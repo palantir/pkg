@@ -1,0 +1,60 @@
+machine:
+  environment:
+    GODIST: "go1.7.3.linux-amd64.tar.gz"
+    GOPATH: "$HOME/.go_workspace"
+    IMPORT_PATH: "github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME"
+    GO_PROJECT_SRC_PATH: "$GOPATH/src/$IMPORT_PATH"
+  services:
+    - docker
+  post:
+    - mkdir -p download
+    - test -e "download/$GODIST" || wget -O "download/$GODIST" "https://storage.googleapis.com/golang/$GODIST"
+    - sudo rm -rf /usr/local/go
+    - sudo tar -C /usr/local -xzf "download/$GODIST"
+
+checkout:
+  post:
+    # ensure all tags are fetched and up-to-date
+    - git tag -l | xargs git tag -d && git fetch -t
+
+dependencies:
+  override:
+    - mkdir -p "$GOPATH/src/$IMPORT_PATH"
+    - rsync -az --delete ./ "$GOPATH/src/$IMPORT_PATH/"
+    - mkdir -p "$HOME/docker"
+    - |
+      cd "$GO_PROJECT_SRC_PATH" && ./docker/docker_cache.sh "$HOME/docker" \
+      "$GO_PROJECT_SRC_PATH/docker/go-1.6" "pkg/go-1.6:latest"
+  cache_directories:
+    - ~/download
+    - ~/docker
+
+test:
+  pre:
+    - go version
+    - docker version
+  override:
+    - ? |
+        case $CIRCLE_NODE_INDEX in
+          0)
+            cd "$GO_PROJECT_SRC_PATH" && \
+            go test -v ./... && \
+            PKGS=$(go list ./... | grep -v /vendor/ | sed 's|github.com/palantir/pkg/|./|g') && \
+            FILES=$(gofmt -l $PKGS) && \
+            if [[ ! -z "$FILES" ]]; then
+              echo "Files not formatted by gofmt:"
+              echo "$FILES"
+              false
+            fi
+            ;;
+          1)
+            time docker load -i "$HOME/docker/cached_image.tar.gz" && \
+            docker run -v "$GOPATH":/go pkg/go-1.6:latest \
+            /bin/sh -c 'cd ./src/github.com/palantir/pkg; go version; go env; go test -v ./...'
+            ;;
+          *)
+            echo "Unexpected node $CIRCLE_NODE_INDEX"
+            ;;
+        esac
+      :
+          parallel: true
