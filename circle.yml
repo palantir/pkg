@@ -39,8 +39,7 @@ test:
           0)
             cd "$GO_PROJECT_SRC_PATH" && \
             go test -v ./... && \
-            PKGS=$(go list ./... | grep -v /vendor/ | sed 's|github.com/palantir/pkg/|./|g') && \
-            FILES=$(gofmt -l $PKGS) && \
+            FILES=$(gofmt -l $(find . -type f -name '*.go' -not -path "./vendor/*")) && \
             if [[ ! -z "$FILES" ]]; then
               echo "Files not formatted by gofmt:"
               echo "$FILES"
