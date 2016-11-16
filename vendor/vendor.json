@@ -22,6 +22,12 @@
 			"revisionTime": "2016-11-01T05:21:29Z"
 		},
 		{
+			"checksumSHA1": "B0BF7VkihzB2dOkQthWVJTdodrI=",
+			"path": "github.com/nmiyake/pkg/gofiles",
+			"revision": "df873ad19d6f60ce7ddeea343e397c2a60642ae4",
+			"revisionTime": "2016-11-01T05:21:29Z"
+		},
+		{
 			"checksumSHA1": "zKKp5SZ3d3ycKe4EKMNT0BqAWBw=",
 			"origin": "github.com/stretchr/testify/vendor/github.com/pmezard/go-difflib/difflib",
 			"path": "github.com/pmezard/go-difflib/difflib",
