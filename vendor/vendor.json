@@ -16,6 +16,12 @@
 			"revisionTime": "2015-03-14T17:03:34Z"
 		},
 		{
+			"checksumSHA1": "G7f4R06x7VYkSDI9BxO28fx7k+k=",
+			"path": "github.com/nmiyake/pkg/dirs",
+			"revision": "df873ad19d6f60ce7ddeea343e397c2a60642ae4",
+			"revisionTime": "2016-11-01T05:21:29Z"
+		},
+		{
 			"checksumSHA1": "zKKp5SZ3d3ycKe4EKMNT0BqAWBw=",
 			"origin": "github.com/stretchr/testify/vendor/github.com/pmezard/go-difflib/difflib",
 			"path": "github.com/pmezard/go-difflib/difflib",
