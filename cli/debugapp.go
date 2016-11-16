@@ -40,9 +40,7 @@ type ErrorStringer func(err error) string
 // error's "ExitCode" function; otherwise, it returns 1.
 func DebugHandler(errorStringer ErrorStringer) Option {
 	return func(app *App) {
-		app.Flags = []flag.Flag{
-			debugFlag,
-		}
+		app.Flags = append(app.Flags, debugFlag)
 		app.ErrorHandler = func(ctx Context, err error) int {
 			if ctx.Bool(DebugFlagName) && errorStringer != nil {
 				if msg := errorStringer(err); msg != "" {
