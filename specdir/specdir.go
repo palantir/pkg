@@ -77,39 +77,39 @@ func New(rootDir string, spec LayoutSpec, values TemplateValues, mode Mode) (Spe
 	requiredNames := spec.rootNode().getNameTemplateKeys()
 	for _, name := range requiredNames {
 		if _, ok := values[name]; !ok {
-			return nil, fmt.Errorf("Required template %q was missing.\nRequired: %v\nProvided: %v", name, requiredNames, values)
+			return nil, fmt.Errorf("required template %q was missing.\nRequired: %v\nProvided: %v", name, requiredNames, values)
 		}
 	}
 
 	switch mode {
 	case Validate:
 		if err := spec.Validate(rootDir, values); err != nil {
-			return nil, fmt.Errorf("Root directory %v does not meet the provided specification: %v", rootDir, err)
+			return nil, err
 		}
 	case Create:
 		// if the root directory is part of the specification, verify that the name matches the required name
 		if spec.rootIsPartOfSpec() {
 			expectedRootDirName := spec.rootNode().name.name(values)
 			if path.Base(rootDir) != expectedRootDirName {
-				return nil, fmt.Errorf("Root directory name %v does not match name required by specification: %v", rootDir, expectedRootDirName)
+				return nil, fmt.Errorf("root directory name %s does not match name required by specification: %v", rootDir, expectedRootDirName)
 			}
 		}
 
 		// create the root directory if it does not already exist
 		if _, err := os.Stat(rootDir); os.IsNotExist(err) {
 			if err := os.Mkdir(rootDir, 0755); err != nil {
-				return nil, fmt.Errorf("Failed to create directory %v: %v", rootDir, err)
+				return nil, fmt.Errorf("failed to create directory %s: %v", rootDir, err)
 			}
 		}
 
 		// create the rest of the directory structure
 		if err := spec.CreateDirectoryStructure(rootDir, values, false); err != nil {
-			return nil, fmt.Errorf("Failed to create directory structure: %v", err)
+			return nil, fmt.Errorf("failed to create directory structure: %v", err)
 		}
 	case SpecOnly:
 		// do nothing
 	default:
-		return nil, fmt.Errorf("Unrecognized mode: %v", mode)
+		return nil, fmt.Errorf("unrecognized mode: %v", mode)
 	}
 
 	return &specDirStruct{

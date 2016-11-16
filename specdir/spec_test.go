@@ -52,7 +52,7 @@ func TestValidateSpec(t *testing.T) {
 		{
 			dirToValidate: "root",
 			spec:          specdir.NewLayoutSpec(specdir.Dir(specdir.LiteralName("root"), ""), true),
-			expectedError: "Path \".*/root\" does not exist",
+			expectedError: `^.+/root does not exist$`,
 		},
 		{
 			dirToValidate: "rootNotPartOfSpec",
@@ -102,7 +102,7 @@ func TestValidateSpec(t *testing.T) {
 				"dirWithWrongChildType":       specdir.DirPath,
 				"dirWithWrongChildType/child": specdir.FilePath,
 			},
-			expectedError: "Verify failed due to path .*: isDir for path at \".*\" returned wrong value, expected true, was false",
+			expectedError: `^isDir for dirWithWrongChildType/child returned wrong value: expected true, was false$`,
 		},
 		{
 			dirToValidate: "templateKeyName",
@@ -172,7 +172,7 @@ func TestCreateDirectoryStructure(t *testing.T) {
 			expectedPaths: map[string]specdir.PathType{
 				"root": specdir.DirPath,
 			},
-			expectedError: "Path \".*/wrongName\" is not a path to root",
+			expectedError: `^.+/wrongName is not a path to root$`,
 		},
 		{
 			rootDirForCreation: "rootNotPartOfSpec",
@@ -226,7 +226,7 @@ func TestCreateDirectoryStructure(t *testing.T) {
 				specdir.Dir(specdir.LiteralName("child"), ""),
 			), true),
 			includeOptional: true,
-			expectedError:   "Failed to create directory .*/failIfFileExistsWhereDirToBeCreated/child: mkdir .*/failIfFileExistsWhereDirToBeCreated/child: not a directory",
+			expectedError:   `^failed to create directory .+/failIfFileExistsWhereDirToBeCreated/child: mkdir .*/failIfFileExistsWhereDirToBeCreated/child: not a directory$`,
 		},
 		{
 			rootDirForCreation: "okIfDirAlreadyExists",

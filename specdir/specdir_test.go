@@ -51,7 +51,7 @@ func TestSpecDirConstruction(t *testing.T) {
 		{
 			rootDir:       "missing",
 			spec:          specdir.NewLayoutSpec(specdir.Dir(specdir.LiteralName("root"), ""), true),
-			expectedError: "Root directory .*/missing does not meet the provided specification: Path \".*/missing\" is not a path to root",
+			expectedError: `^.+/missing is not a path to root$`,
 		},
 	} {
 		currCaseTmpDir, err := ioutil.TempDir(tmpDir, "")
