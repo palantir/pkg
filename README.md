@@ -13,6 +13,11 @@ cli
 The `cli` package provides a framework for creating CLI applications. It provides support for commands, subcommands,
 flags, before and after hooks, documentation, deprecation, command-line completion and other functionality.
 
+specdir
+-------
+The `specdir` package provides the ability to define specifications for directory layouts, verify that existing
+directories match the specification and create new directory structures based on a specification.
+
 License
 -------
 This project is made available under the [Apache 2.0 License](http://www.apache.org/licenses/LICENSE-2.0).
