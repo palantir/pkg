@@ -38,49 +38,95 @@ func DefaultGoPkgExcludeMatcher() matcher.Matcher {
 type Type int
 
 const (
-	NotSupported Type = iota
+	// Absolute is the absolute path to a package, e.g.: /Volumes/git/go/src/github.com/org/project
+	Absolute Type = iota
+	// GoPathSrcRelative is the path to a package relative to "$GOPATH/src", e.g.: github.com/org/project. Is the
+	// file path rather than the import path, so includes vendor directories in path, e.g.:
+	// github.com/org/project/vendor/github.com/other/project
+	GoPathSrcRelative
+	// Relative is the relative path to a package relative to a directory. Always includes the "./" prefix, e.g.:
+	// ./., ./app/main.
 	Relative
-	GoPathRelative
-	Absolute
 )
 
-// Convert the provided path that is of the provided mode to the path using the mode of the receiver. If the receiver or
-// "providedMode" is Relative, "rootDir" will be used as the base directory to resolve the relative paths.
-func (t Type) Convert(providedPath string, providedType Type, rootDir string) (string, error) {
-	// if modes are identical, no conversion needed
-	if t == providedType {
-		return providedPath, nil
-	}
-
-	// convert provided path to absolute path
-	providedPathAbs := ""
-	switch providedType {
-	case Absolute:
-		providedPathAbs = providedPath
-	case GoPathRelative:
-		providedPathAbs = path.Join(os.Getenv("GOPATH"), "src", providedPath)
-	case Relative:
-		providedPathAbs = path.Join(rootDir, providedPath)
-	default:
-		return "", fmt.Errorf("unrecognized source path mode: %v", providedType)
-	}
-
-	// convert absolute path to desired path
+func (t Type) String() string {
 	switch t {
 	case Absolute:
-		return providedPathAbs, nil
-	case GoPathRelative:
-		goSrcDir := path.Join(os.Getenv("GOPATH"), "src")
-		return filepath.Rel(goSrcDir, providedPathAbs)
+		return "Absolute"
+	case GoPathSrcRelative:
+		return "GoPathSrcRelative"
 	case Relative:
-		relPath, err := filepath.Rel(rootDir, providedPathAbs)
-		if err != nil {
-			return "", fmt.Errorf("failed to convert %s to relative path against %v: %v", providedPathAbs, rootDir, err)
-		}
-		return "./" + relPath, nil
+		return "Relative"
 	default:
-		return "", fmt.Errorf("unrecognized target path mode: %v", t)
+		return fmt.Sprintf("%d", int(t))
 	}
+}
+
+type PkgPather interface {
+	Abs() string
+	GoPathSrcRel() (string, error)
+	Rel(root string) (string, error)
+}
+
+func NewAbsPkgPath(absPath string) PkgPather {
+	return &pkgPath{
+		pathType: Absolute,
+		path:     absPath,
+	}
+}
+
+func NewGoPathSrcRelPkgPath(goPathSrcRelPath string) PkgPather {
+	return &pkgPath{
+		pathType: GoPathSrcRelative,
+		path:     goPathSrcRelPath,
+	}
+}
+
+func NewRelPkgPath(relPath, baseDir string) PkgPather {
+	return &pkgPath{
+		pathType: Relative,
+		path:     relPath,
+		baseDir:  baseDir,
+	}
+}
+
+type pkgPath struct {
+	pathType Type
+	path     string
+	baseDir  string // only present if Type is Relative
+}
+
+func (p *pkgPath) Abs() string {
+	switch p.pathType {
+	case Absolute:
+		return p.path
+	case GoPathSrcRelative:
+		return path.Join(os.Getenv("GOPATH"), "src", p.path)
+	case Relative:
+		return path.Join(p.baseDir, p.path)
+	default:
+		panic(fmt.Sprintf("unhandled case: %v", p.path))
+	}
+}
+
+func (p *pkgPath) GoPathSrcRel() (string, error) {
+	return relPathNoParentDir(p.Abs(), path.Join(os.Getenv("GOPATH"), "src"), "")
+}
+
+func (p *pkgPath) Rel(baseDir string) (string, error) {
+	return relPathNoParentDir(p.Abs(), baseDir, "./")
+}
+
+func relPathNoParentDir(absPath, baseDir, prepend string) (string, error) {
+	const parentDirPath = ".." + string(filepath.Separator)
+	relPath, err := filepath.Rel(baseDir, absPath)
+	if err != nil {
+		return "", err
+	}
+	if strings.HasPrefix(relPath, parentDirPath) {
+		return "", fmt.Errorf("resolving %s against base %s produced relative path starting with %s: %s", absPath, baseDir, parentDirPath, relPath)
+	}
+	return prepend + relPath, nil
 }
 
 type packages struct {
@@ -123,32 +169,31 @@ func (p *packages) Packages(pathType Type) (map[string]string, error) {
 		pkgs[currPath] = currPkg
 	}
 
+	var f func(string) (string, error)
 	switch pathType {
 	case Absolute:
 		return pkgs, nil
-	case GoPathRelative:
-		relPathsMap := make(map[string]string, len(pkgs))
-		for currAbsPath, currPkg := range pkgs {
-			currRelPath, err := GoPathRelative.Convert(currAbsPath, Absolute, path.Join(os.Getenv("GOPATH"), "src"))
-			if err != nil {
-				return nil, fmt.Errorf("unable to get relative paths: %v", err)
-			}
-			relPathsMap[currRelPath] = currPkg
+	case GoPathSrcRelative:
+		f = func(absPath string) (string, error) {
+			return NewAbsPkgPath(absPath).GoPathSrcRel()
 		}
-		return relPathsMap, nil
 	case Relative:
-		relPathsMap := make(map[string]string, len(pkgs))
-		for currAbsPath, currPkg := range pkgs {
-			currRelPath, err := Relative.Convert(currAbsPath, Absolute, p.rootDir)
-			if err != nil {
-				return nil, fmt.Errorf("unable to get relative paths: %v", err)
-			}
-			relPathsMap[currRelPath] = currPkg
+		f = func(absPath string) (string, error) {
+			return NewAbsPkgPath(absPath).Rel(p.rootDir)
 		}
-		return relPathsMap, nil
 	default:
 		return nil, fmt.Errorf("unrecognized path type: %v", pathType)
 	}
+
+	relPathsMap := make(map[string]string, len(pkgs))
+	for currAbsPath, currPkg := range pkgs {
+		currRelPath, err := f(currAbsPath)
+		if err != nil {
+			return nil, fmt.Errorf("unable to get relative path for %s: %v", currAbsPath, err)
+		}
+		relPathsMap[currRelPath] = currPkg
+	}
+	return relPathsMap, nil
 }
 
 func (p *packages) Paths(pathType Type) ([]string, error) {
@@ -201,7 +246,7 @@ func PackagesInDir(rootDir string, exclude matcher.Matcher) (Packages, error) {
 	allPkgs := make(map[string]string)
 	if err := filepath.Walk(dirAbsolutePath, func(currPath string, currInfo os.FileInfo, err error) error {
 		if err != nil {
-			return fmt.Errorf("walk failed at path %s: %v", currPath, err)
+			return err
 		}
 
 		if !currInfo.IsDir() {
@@ -210,7 +255,7 @@ func PackagesInDir(rootDir string, exclude matcher.Matcher) (Packages, error) {
 
 		currRelPath, err := filepath.Rel(dirAbsolutePath, currPath)
 		if err != nil {
-			return fmt.Errorf("failed to resolve %s to relative path against base %s: %v", currPath, dirAbsolutePath, err)
+			return err
 		}
 
 		// if current path matches an include and does not match the exclude, include
@@ -248,12 +293,12 @@ func PackagesInDir(rootDir string, exclude matcher.Matcher) (Packages, error) {
 
 func createPkgsWithValidation(rootDir string, pkgs map[string]string) (*packages, error) {
 	if !path.IsAbs(rootDir) {
-		return nil, fmt.Errorf("provided rootDir %s is not an absolute path", rootDir)
+		return nil, fmt.Errorf("rootDir %s is not an absolute path", rootDir)
 	}
 
 	for currAbsPkgPath := range pkgs {
 		if !path.IsAbs(currAbsPkgPath) {
-			return nil, fmt.Errorf("package %s in packages %s is not an absolute path", currAbsPkgPath, currAbsPkgPath)
+			return nil, fmt.Errorf("package %s in packages %v is not an absolute path", currAbsPkgPath, pkgs)
 		}
 	}
 
@@ -272,12 +317,12 @@ func expandPaths(rootDir string, relPaths []string) ([]string, error) {
 			baseDirAbsPath := path.Join(rootDir, splatBaseDir)
 			err := filepath.Walk(baseDirAbsPath, func(path string, info os.FileInfo, err error) error {
 				if err != nil {
-					return fmt.Errorf("walk failed at path %s: %v", path, err)
+					return err
 				}
 				if info.IsDir() {
 					relPath, err := filepath.Rel(rootDir, path)
 					if err != nil {
-						return fmt.Errorf("failed to resolve %v as a relative path against %s: %v", path, rootDir, err)
+						return err
 					}
 					expandedRelPaths = append(expandedRelPaths, relPath)
 				}
