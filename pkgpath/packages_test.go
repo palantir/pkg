@@ -227,7 +227,7 @@ package different`},
 
 		for _, mode := range []pkgpath.Type{
 			pkgpath.Relative,
-			pkgpath.GoPathRelative,
+			pkgpath.GoPathSrcRelative,
 			pkgpath.Absolute,
 		} {
 			want := make(map[string]string)
@@ -235,7 +235,7 @@ package different`},
 				switch mode {
 				case pkgpath.Relative:
 					k = "./" + k
-				case pkgpath.GoPathRelative:
+				case pkgpath.GoPathSrcRelative:
 					k = path.Join(testPkgPath, currCaseDirRelPath, k)
 				case pkgpath.Absolute:
 					k = path.Join(wd, currCaseDirRelPath, k)
@@ -323,11 +323,19 @@ func TestListPackagesSetGoPath(t *testing.T) {
 	pkgs, err := pkgpath.PackagesInDir(projectDir, nil)
 	require.NoError(t, err)
 
-	got, err := pkgs.Packages(pkgpath.GoPathRelative)
+	got, err := pkgs.Packages(pkgpath.GoPathSrcRelative)
 	require.NoError(t, err)
 	want := map[string]string{
 		"github.com/test/foo": "main",
 	}
 
 	assert.Equal(t, want, got)
+}
+
+func TestPkgPathOutsideGoPathFails(t *testing.T) {
+	goPathSrc := path.Join(os.Getenv("GOPATH"), "src")
+	msg := fmt.Sprintf(`^resolving /foo against base %s produced relative path starting with ../: .+/foo$`, goPathSrc)
+
+	_, err := pkgpath.NewAbsPkgPath("/foo").GoPathSrcRel()
+	require.Regexp(t, msg, err.Error())
 }
