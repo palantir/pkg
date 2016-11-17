@@ -36,6 +36,8 @@ func NewLayoutSpec(root FileNodeProvider, rootPartOfSpec bool) LayoutSpec {
 
 // LayoutSpec represents the specification of a layout.
 type LayoutSpec interface {
+	FileNodeProvider
+
 	CreateDirectoryStructure(root string, values TemplateValues, includeOptional bool) error
 	RootDirName(values TemplateValues) string
 	Paths(values TemplateValues, includeOptional bool) []string
@@ -118,6 +120,10 @@ func (s *layoutSpec) Paths(values TemplateValues, includeOptional bool) []string
 	paths = append(paths, s.root.pathsForChildrenOfDir(currPath, values, includeOptional)...)
 
 	return paths
+}
+
+func (s *layoutSpec) fileNode() *fileNode {
+	return s.root
 }
 
 func (s *layoutSpec) getAliasValues(templateValues map[string]string) map[string]string {
