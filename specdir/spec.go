@@ -76,12 +76,12 @@ func (s *layoutSpec) CreateDirectoryStructure(root string, values TemplateValues
 		}
 	}
 	if len(missingKeys) > 0 {
-		return fmt.Errorf("Required template keys were missing: got %v, missing %v", values, missingKeys)
+		return fmt.Errorf("required template keys were missing: got %v, missing %v", values, missingKeys)
 	}
 
 	if s.rootPartOfSpec {
 		// verify provided path matches root directory
-		if err := verifyPath(root, s.root.name.name(values), DirPath, false); err != nil {
+		if err := verifyPath("", root, s.root.name.name(values), DirPath, false); err != nil {
 			return err
 		}
 	}
@@ -145,13 +145,13 @@ func (s *layoutSpec) getAliasValues(templateValues map[string]string) map[string
 func (s *layoutSpec) Validate(root string, values TemplateValues) error {
 	if s.rootPartOfSpec {
 		// verify provided path matches root directory
-		if err := verifyPath(root, s.root.name.name(values), DirPath, false); err != nil {
+		if err := verifyPath("", root, s.root.name.name(values), DirPath, false); err != nil {
 			return err
 		}
 	}
 
 	// verify all child nodes match
-	if err := s.root.verifyLayoutForDir(root, values); err != nil {
+	if err := s.root.verifyLayoutForDir(root, "", values); err != nil {
 		return err
 	}
 
@@ -175,23 +175,23 @@ func getTemplateKeysFromName(n NodeName) []string {
 	return names
 }
 
-func verifyPath(pathToCheck, expectedName string, pathType PathType, optional bool) error {
-	if path.Base(pathToCheck) != expectedName {
-		return fmt.Errorf(`Path "%v" is not a path to %v`, pathToCheck, expectedName)
+func verifyPath(rootDirPath, pathFromRootDir, expectedName string, pathType PathType, optional bool) error {
+	if path.Base(pathFromRootDir) != expectedName {
+		return fmt.Errorf("%s is not a path to %s", pathFromRootDir, expectedName)
 	}
 
-	pathInfo, err := os.Stat(pathToCheck)
+	pathInfo, err := os.Stat(path.Join(rootDirPath, pathFromRootDir))
 	if err != nil {
 		if os.IsNotExist(err) {
 			if !optional {
-				return fmt.Errorf("Path %q does not exist", pathToCheck)
+				return fmt.Errorf("%s does not exist", path.Join(path.Base(rootDirPath), pathFromRootDir))
 			}
 			// path does not exist, but it is optional so is okay
 			return nil
 		}
-		return fmt.Errorf("Failed to stat %q", pathToCheck)
+		return fmt.Errorf("failed to stat %s", path.Join(path.Base(rootDirPath), pathFromRootDir))
 	} else if currIsDir := pathInfo.IsDir(); currIsDir == bool(pathType) {
-		return fmt.Errorf("isDir for path at %q returned wrong value, expected %v, was %v", pathToCheck, !pathType, currIsDir)
+		return fmt.Errorf("isDir for %s returned wrong value: expected %v, was %v", path.Join(path.Base(rootDirPath), pathFromRootDir), !pathType, currIsDir)
 	}
 
 	return nil

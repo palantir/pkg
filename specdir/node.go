@@ -85,7 +85,7 @@ func (n *fileNode) createDirectoryStructure(parentDir string, values TemplateVal
 	if n.pathType == DirPath && (!n.optional || includeOptional) {
 		currPath := path.Join(parentDir, n.name.name(values))
 		if err := os.MkdirAll(currPath, 0755); err != nil {
-			return fmt.Errorf("Failed to create directory %v: %v", currPath, err)
+			return fmt.Errorf("failed to create directory %s: %v", currPath, err)
 		}
 
 		for _, c := range n.children {
@@ -169,26 +169,26 @@ func (n *fileNode) addAliasValuesForDirNodeChildren(aliasValues map[string]strin
 	}
 }
 
-func (n *fileNode) validate(targetPath string, values TemplateValues) error {
+func (n *fileNode) validate(rootDir, pathFromRoot string, values TemplateValues) error {
 	// verify current path
-	if err := verifyPath(targetPath, n.name.name(values), n.pathType, n.optional); err != nil {
+	if err := verifyPath(rootDir, pathFromRoot, n.name.name(values), n.pathType, n.optional); err != nil {
 		return err
 	}
 
 	// verify all child nodes match
-	if err := n.verifyLayoutForDir(targetPath, values); err != nil {
+	if err := n.verifyLayoutForDir(rootDir, pathFromRoot, values); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (n *fileNode) verifyLayoutForDir(targetPath string, values TemplateValues) error {
+func (n *fileNode) verifyLayoutForDir(rootDir, pathFromRoot string, values TemplateValues) error {
 	if n.pathType == DirPath {
 		for _, c := range n.children {
-			currPath := path.Join(targetPath, c.fileNode().name.name(values))
-			if err := c.fileNode().validate(currPath, values); err != nil {
-				return fmt.Errorf("Verify failed due to path %v: %v", currPath, err)
+			currPath := path.Join(pathFromRoot, c.fileNode().name.name(values))
+			if err := c.fileNode().validate(rootDir, currPath, values); err != nil {
+				return err
 			}
 		}
 	}
