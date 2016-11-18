@@ -14,53 +14,21 @@
 
 package matcher
 
-type namesPathsMatchers struct {
-	names Matcher
-	paths Matcher
+// NamesPathsCfg is a configuration object that defines a list of names and paths that should be used to construct a
+// Matcher. The returned Matcher will match any name or path specified in the configuration.
+type NamesPathsCfg struct {
+	Names []string `yaml:"names" json:"names"`
+	Paths []string `yaml:"paths" json:"paths"`
 }
 
-type Exclude namesPathsMatchers
-
-func (e *Exclude) Matcher() Matcher {
-	return Any(e.names, e.paths)
-}
-
-type ExcludeCfg struct {
-	Names []string `yaml:"exclude-names" json:"exclude-names"`
-	Paths []string `yaml:"exclude-paths" json:"exclude-paths"`
-}
-
-func (c *ExcludeCfg) Add(cfg ExcludeCfg) {
+// Add appends the names and paths specified in the provided NamesPathsCfg to those in the receiver.
+func (c *NamesPathsCfg) Add(cfg NamesPathsCfg) {
 	c.Names = append(c.Names, cfg.Names...)
 	c.Paths = append(c.Paths, cfg.Paths...)
 }
 
-func (c *ExcludeCfg) Exclude() Exclude {
-	return Exclude(namesPathsMatchers{
-		names: Name(c.Names...),
-		paths: Path(c.Paths...),
-	})
-}
-
-type Include namesPathsMatchers
-
-func (i *Include) Matcher() Matcher {
-	return Not(Any(i.names, i.paths))
-}
-
-type IncludeCfg struct {
-	Names []string `yaml:"include-names" json:"include-names"`
-	Paths []string `yaml:"include-paths" json:"include-paths"`
-}
-
-func (c *IncludeCfg) Add(cfg IncludeCfg) {
-	c.Names = append(c.Names, cfg.Names...)
-	c.Paths = append(c.Paths, cfg.Paths...)
-}
-
-func (c *IncludeCfg) Include() Include {
-	return Include(namesPathsMatchers{
-		names: Name(c.Names...),
-		paths: Path(c.Paths...),
-	})
+// Matcher returns a Matcher constructed from the configuration. The Matcher returns true if it matches any of the
+// names or paths in the configuration.
+func (c *NamesPathsCfg) Matcher() Matcher {
+	return Any(Name(c.Names...), Path(c.Paths...))
 }
