@@ -78,6 +78,29 @@ func TestPathMatcher(t *testing.T) {
 	}
 }
 
+func TestLiteralPathMatcher(t *testing.T) {
+	for i, currCase := range []struct {
+		matcherArgs []string
+		path        string
+		want        bool
+	}{
+		{[]string{"foo"}, "foo/bar/regular", true},
+		{[]string{"foo"}, "bar/foo/inner", false},
+		// full match required
+		{[]string{"foo"}, "fooLongerName/inner", false},
+		// glob matching does not work
+		{[]string{"foo*"}, "fooName", false},
+		// globs are matched as literals
+		{[]string{"foo*bar"}, "foo*bar", true},
+		{[]string{"foo/bar"}, "foo/bar", true},
+		{[]string{"foo/bar"}, "/foo/bar", false},
+	} {
+		m := matcher.PathLiteral(currCase.matcherArgs...)
+		got := m.Match(currCase.path)
+		assert.Equal(t, currCase.want, got, "Case %d", i)
+	}
+}
+
 func TestHiddenMatcher(t *testing.T) {
 	m := matcher.Hidden()
 

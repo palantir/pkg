@@ -104,19 +104,34 @@ func (m nameMatcher) Match(inputRelPath string) bool {
 // filepath.Match). However, unlike filepath.Match, subpath matches will match all of the sub-paths of a given match as
 // well (for example, the pattern "foo/*/bar" matches "foo/*/bar/baz").
 func Path(paths ...string) Matcher {
-	return pathMatcher(paths)
+	return &pathMatcher{paths: paths, glob: true}
 }
 
-type pathMatcher []string
+// PathLiteral returns a Matcher that is equivalent to that returned by Paths except that matches are done using string
+// equality rather than using glob matching.
+func PathLiteral(paths ...string) Matcher {
+	return &pathMatcher{paths: paths, glob: false}
+}
 
-func (m pathMatcher) Match(inputRelPath string) bool {
+type pathMatcher struct {
+	paths []string
+	glob  bool
+}
+
+func (m *pathMatcher) Match(inputRelPath string) bool {
 	subpaths := allSubpaths(inputRelPath)
-	for _, currMatcherPathPattern := range []string(m) {
+	for _, currMatcherPath := range m.paths {
 		for _, currSubpath := range subpaths {
-			match, err := filepath.Match(currMatcherPathPattern, currSubpath)
-			if err != nil {
-				// only possible error is bad pattern
-				panic(fmt.Sprintf("filepath: Match(%q): %v", currMatcherPathPattern, err))
+			var match bool
+			if m.glob {
+				var err error
+				match, err = filepath.Match(currMatcherPath, currSubpath)
+				if err != nil {
+					// only possible error is bad pattern
+					panic(fmt.Sprintf("filepath: Match(%q): %v", currMatcherPath, err))
+				}
+			} else {
+				match = (currMatcherPath == currSubpath)
 			}
 			if match {
 				return true
