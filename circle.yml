@@ -21,18 +21,12 @@ dependencies:
   override:
     - mkdir -p "$GOPATH/src/$IMPORT_PATH"
     - rsync -az --delete ./ "$GOPATH/src/$IMPORT_PATH/"
-    - mkdir -p "$HOME/docker"
-    - |
-      cd "$GO_PROJECT_SRC_PATH" && ./docker/docker_cache.sh "$HOME/docker" \
-      "$GO_PROJECT_SRC_PATH/docker/go-1.6" "pkg/go-1.6:latest"
   cache_directories:
     - ~/download
-    - ~/docker
 
 test:
   pre:
     - go version
-    - docker version
   override:
     - ? |
         case $CIRCLE_NODE_INDEX in
@@ -47,9 +41,10 @@ test:
             fi
             ;;
           1)
-            time docker load -i "$HOME/docker/cached_image.tar.gz" && \
-            docker run -v "$GOPATH":/go pkg/go-1.6:latest \
-            /bin/sh -c 'cd ./src/github.com/palantir/pkg; go version; go env; go test -v ./...'
+            docker run \
+            -v "$GO_PROJECT_SRC_PATH":/go/src/$IMPORT_PATH \
+            nmiyake/go:alpine-go-1.6 \
+            /bin/sh -c 'cd ./src/$IMPORT_PATH; go version; go env; go test -v ./...'
             ;;
           *)
             echo "Unexpected node $CIRCLE_NODE_INDEX"
