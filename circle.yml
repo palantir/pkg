@@ -21,7 +21,9 @@ dependencies:
   override:
     - mkdir -p "$GOPATH/src/$IMPORT_PATH"
     - rsync -az --delete ./ "$GOPATH/src/$IMPORT_PATH/"
+    - cd "$GO_PROJECT_SRC_PATH" && ./godelw version
   cache_directories:
+    - ~/.godel
     - ~/download
 
 test:
@@ -32,19 +34,17 @@ test:
         case $CIRCLE_NODE_INDEX in
           0)
             cd "$GO_PROJECT_SRC_PATH" && \
-            go test -v ./... && \
-            FILES=$(gofmt -l $(find . -type f -name '*.go' -not -path "./vendor/*")) && \
-            if [[ ! -z "$FILES" ]]; then
-              echo "Files not formatted by gofmt:"
-              echo "$FILES"
-              false
-            fi
+            go install $(./godelw packages) && \
+            mkdir -p "$CIRCLE_TEST_REPORTS/$CIRCLE_PROJECT_REPONAME" && \
+            ./godelw verify --apply=false --junit-output="$CIRCLE_TEST_REPORTS/$CIRCLE_PROJECT_REPONAME/$CIRCLE_PROJECT_REPONAME-tests.xml"
             ;;
           1)
             docker run \
             -v "$GO_PROJECT_SRC_PATH":/go/src/$IMPORT_PATH \
+            -v ~/.godel:/root/.godel \
+            -e IMPORT_PATH \
             nmiyake/go:alpine-go-1.6 \
-            /bin/sh -c 'cd ./src/$IMPORT_PATH; go version; go env; go test -v ./...'
+            /bin/sh -c 'cd /go/src/$IMPORT_PATH; go version; go env; ./godelw test'
             ;;
           *)
             echo "Unexpected node $CIRCLE_NODE_INDEX"
