@@ -1,0 +1,48 @@
+{
+    "imports": [
+        {
+            "path": "github.com/palantir/pkg/matcher",
+            "numGoFiles": 5,
+            "numImportedGoFiles": 0,
+            "importedFrom": [
+                "github.com/palantir/pkg/pkgpath",
+                "github.com/palantir/pkg/pkgpath_test"
+            ]
+        }
+    ],
+    "mainOnlyImports": [],
+    "testOnlyImports": [
+        {
+            "path": "github.com/palantir/pkg/vendor/github.com/nmiyake/pkg/dirs",
+            "numGoFiles": 2,
+            "numImportedGoFiles": 0,
+            "importedFrom": [
+                "github.com/palantir/pkg/pkgpath_test"
+            ]
+        },
+        {
+            "path": "github.com/palantir/pkg/vendor/github.com/nmiyake/pkg/gofiles",
+            "numGoFiles": 1,
+            "numImportedGoFiles": 0,
+            "importedFrom": [
+                "github.com/palantir/pkg/pkgpath_test"
+            ]
+        },
+        {
+            "path": "github.com/palantir/pkg/vendor/github.com/stretchr/testify/assert",
+            "numGoFiles": 6,
+            "numImportedGoFiles": 9,
+            "importedFrom": [
+                "github.com/palantir/pkg/pkgpath_test"
+            ]
+        },
+        {
+            "path": "github.com/palantir/pkg/vendor/github.com/stretchr/testify/require",
+            "numGoFiles": 5,
+            "numImportedGoFiles": 15,
+            "importedFrom": [
+                "github.com/palantir/pkg/pkgpath_test"
+            ]
+        }
+    ]
+}
