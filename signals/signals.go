@@ -19,10 +19,7 @@ func ContextWithShutdown(ctx context.Context) (context.Context, context.CancelFu
 func CancelOnSignalsContext(ctx context.Context, sig ...os.Signal) (context.Context, context.CancelFunc) {
 	newCtx, cancel := context.WithCancel(ctx)
 
-	// Use a buffer of 1 in case we are not ready when the signal arrives
-	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, sig...)
-
+	signals := NewSignalReceiver(sig...)
 	go func() {
 		<-signals
 		cancel()
@@ -42,14 +39,12 @@ func RegisterStackTraceWriter(out io.Writer) (unregister func()) {
 // snapshot of all running goroutines to out when any of the provided signals are received. Returns a function that
 // unregisters the listener when called.
 func RegisterStackTraceWriterOnSignals(out io.Writer, sig ...os.Signal) (unregister func()) {
-	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, sig...)
-
 	cancel := make(chan bool, 1)
 	unregister = func() {
 		cancel <- true
 	}
 
+	signals := NewSignalReceiver(sig...)
 	go func() {
 		for {
 			select {
@@ -65,4 +60,12 @@ func RegisterStackTraceWriterOnSignals(out io.Writer, sig ...os.Signal) (unregis
 	}()
 
 	return unregister
+}
+
+// NewSignalReceiver returns a buffered channel that is registered to receive the provided signals.
+func NewSignalReceiver(sig ...os.Signal) <-chan os.Signal {
+	// Use a buffer of 1 in case we are not ready when the signal arrives
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, sig...)
+	return signals
 }
