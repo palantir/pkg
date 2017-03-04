@@ -4,3 +4,4 @@ root-dirs:
   - pkgpath
   - signals
   - specdir
+  - tlsconfig
