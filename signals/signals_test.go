@@ -3,6 +3,7 @@ package signals_test
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"os"
 	"syscall"
 	"testing"
@@ -31,7 +32,7 @@ func TestCancelOnSignalsContext(t *testing.T) {
 
 func TestRegisterStackTraceWriterOnSignals(t *testing.T) {
 	out := &bytes.Buffer{}
-	signals.RegisterStackTraceWriterOnSignals(out, syscall.SIGHUP)
+	signals.RegisterStackTraceWriterOnSignals(out, nil, syscall.SIGHUP)
 
 	sendSignalToCurrProcess(t, syscall.SIGHUP)
 
@@ -39,9 +40,36 @@ func TestRegisterStackTraceWriterOnSignals(t *testing.T) {
 	assert.Contains(t, out.String(), "signals_test.TestRegisterStackTraceWriterOnSignals")
 }
 
+type errWriter struct{}
+
+func (w errWriter) Write(p []byte) (n int, err error) {
+	return 0, fmt.Errorf("test error")
+}
+
+func TestRegisterStackTraceWriterErrorHandler(t *testing.T) {
+	out := errWriter{}
+	var handlerErr error
+	errHandler := func(err error) {
+		handlerErr = err
+	}
+
+	signals.RegisterStackTraceWriterOnSignals(out, errHandler, syscall.SIGHUP)
+
+	proc, err := os.FindProcess(os.Getpid())
+	require.NoError(t, err)
+	err = proc.Signal(syscall.SIGHUP)
+	require.NoError(t, err)
+
+	// add sleep because write to buffer happens on a separate channel
+	time.Sleep(1 * time.Second)
+
+	// handler should have been called with error
+	assert.EqualError(t, handlerErr, "test error")
+}
+
 func TestUnregisterStackTraceWriterOnSignals(t *testing.T) {
 	out := &bytes.Buffer{}
-	unregister := signals.RegisterStackTraceWriterOnSignals(out, syscall.SIGHUP)
+	unregister := signals.RegisterStackTraceWriterOnSignals(out, nil, syscall.SIGHUP)
 	unregister()
 
 	sendSignalToCurrProcess(t, syscall.SIGHUP)
