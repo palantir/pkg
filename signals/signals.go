@@ -2,7 +2,6 @@ package signals
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"os/signal"
@@ -29,16 +28,18 @@ func CancelOnSignalsContext(ctx context.Context, sig ...os.Signal) (context.Cont
 }
 
 // RegisterStackTraceWriter starts a goroutine that listens for the SIGQUIT (kill -3) signal and writes a
-// pprof-formatted snapshot of all running goroutines when the signal is received. Returns a function that unregisters
-// the listener when called.
-func RegisterStackTraceWriter(out io.Writer) (unregister func()) {
-	return RegisterStackTraceWriterOnSignals(out, syscall.SIGQUIT)
+// pprof-formatted snapshot of all running goroutines when the signal is received. If writing to out returns an
+// error, that error is provided to the errHandler function if one is provided. Returns a function that unregisters the
+// listener when called.
+func RegisterStackTraceWriter(out io.Writer, errHandler func(error)) (unregister func()) {
+	return RegisterStackTraceWriterOnSignals(out, errHandler, syscall.SIGQUIT)
 }
 
 // RegisterStackTraceWriterOnSignals starts a goroutine that listens for the specified signals and writes a pprof-formatted
-// snapshot of all running goroutines to out when any of the provided signals are received. Returns a function that
-// unregisters the listener when called.
-func RegisterStackTraceWriterOnSignals(out io.Writer, sig ...os.Signal) (unregister func()) {
+// snapshot of all running goroutines to out when any of the provided signals are received. If writing to out returns an
+// error, that error is provided to the errHandler function if one is provided. Returns a function that unregisters the
+// listener when called.
+func RegisterStackTraceWriterOnSignals(out io.Writer, errHandler func(error), sig ...os.Signal) (unregister func()) {
 	cancel := make(chan bool, 1)
 	unregister = func() {
 		cancel <- true
@@ -50,15 +51,14 @@ func RegisterStackTraceWriterOnSignals(out io.Writer, sig ...os.Signal) (unregis
 			select {
 			case <-signals:
 				err := pprof.Lookup("goroutine").WriteTo(out, 2)
-				if err != nil {
-					fmt.Fprintln(out, "Failed to dump goroutines")
+				if err != nil && errHandler != nil {
+					errHandler(err)
 				}
 			case <-cancel:
 				return
 			}
 		}
 	}()
-
 	return unregister
 }
 
