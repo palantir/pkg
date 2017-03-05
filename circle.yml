@@ -24,8 +24,8 @@ stages:
           set -eu
           if [ "${CIRCLE_NODE_INDEX}" -eq 0 ]; then
             go install $(./godelw packages)
-            mkdir -p /tmp/test-results
-            ./godelw verify --apply=false --junit-output="/tmp/test-results/tests.xml"
+            mkdir -p /tmp/test-results/pkg
+            ./godelw verify --apply=false --junit-output="/tmp/test-results/pkg/pkg-tests.xml"
           fi
       - type: shell
         name: "run tests using Go 1.7 in container 1"
@@ -37,6 +37,8 @@ stages:
             go version
             ./godelw test
           fi
-      # Upload test results
       - type: test-results-store
         path: /tmp/test-results
+      - type: artifacts-store
+        path: /tmp/test-results
+        destination: test-results
