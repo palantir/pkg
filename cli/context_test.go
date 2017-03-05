@@ -7,6 +7,7 @@ package cli
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"testing"
 	"time"
 
@@ -195,7 +196,8 @@ func TestTypedGetFunctionsPanicOnValueOfWrongType(t *testing.T) {
 			ctx := createTestContext(t, c.incompatibleFlag, []string{})
 			c.getFunction(ctx)
 		}
-		assertPanic(t, testFunction, fmt.Sprintf("interface conversion: interface is %s, not %s", c.incompatibleType, c.typeName))
+		// conditional regexp causes panic message to match for both Go 1.8 and 1.7
+		assertPanic(t, testFunction, fmt.Sprintf(`interface conversion: interface (\{\} )?is %s, not %s`, c.incompatibleType, c.typeName))
 	}
 }
 
@@ -227,7 +229,7 @@ func assertPanic(t *testing.T, testFunction func(), expected string) {
 		} else if err, ok := panicValue.(error); !ok {
 			assert.Fail(t, "value of panic was not of type error: was type %T with value %#v", panicValue, panicValue)
 		} else {
-			assert.Equal(t, expected, err.Error())
+			assert.Regexp(t, regexp.MustCompile(expected), err.Error())
 		}
 	}()
 
