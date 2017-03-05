@@ -1,10 +1,10 @@
 package encryption
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"strings"
 )
 
 type SymmetricKey struct {
@@ -14,9 +14,12 @@ type EncodedSymmetricKey string
 
 const (
 	NoSymmetricKey   = EncodedSymmetricKey("")
-	aesKeyPrefix     = "AES:"
-	aes32KeyPrefix   = "AES32:"
 	symmetricKeyBits = 256
+)
+
+var (
+	aesKeyPrefix   = []byte("AES:")
+	aes32KeyPrefix = []byte("AES32:")
 )
 
 func NewSymmetricKey() (*SymmetricKey, error) {
@@ -39,26 +42,26 @@ func (sym *SymmetricKey) Encode32() EncodedSymmetricKey {
 	return sym.encodeWithFunc(aes32KeyPrefix, Base32Encode)
 }
 
-func (sym *SymmetricKey) encodeWithFunc(prefixString string, encodingFunc func([]byte) []byte) EncodedSymmetricKey {
+func (sym *SymmetricKey) encodeWithFunc(prefix []byte, encodingFunc func([]byte) []byte) EncodedSymmetricKey {
 	if sym == nil {
 		return NoSymmetricKey
 	}
-	prefix := []byte(prefixString)
 	encoded := encodingFunc(sym.k)
 	return EncodedSymmetricKey(append(prefix, encoded...))
 }
 
 func (enc EncodedSymmetricKey) Decode() (*SymmetricKey, error) {
+	encBytes := []byte(enc)
 	switch {
-	case strings.HasPrefix(string(enc), aesKeyPrefix):
-		withoutPrefix := []byte(enc)[len(aesKeyPrefix):]
+	case bytes.HasPrefix(encBytes, aesKeyPrefix):
+		withoutPrefix := encBytes[len(aesKeyPrefix):]
 		raw, err := Base64Decode(withoutPrefix)
 		if err != nil {
 			return nil, fmt.Errorf("Encoded symmetric key is not valid base64: %v", err)
 		}
 		return &SymmetricKey{k: raw}, nil
-	case strings.HasPrefix(string(enc), aes32KeyPrefix):
-		withoutPrefix := []byte(enc)[len(aes32KeyPrefix):]
+	case bytes.HasPrefix(encBytes, aes32KeyPrefix):
+		withoutPrefix := encBytes[len(aes32KeyPrefix):]
 		raw, err := Base32Decode(withoutPrefix)
 		if err != nil {
 			return nil, fmt.Errorf("Encoded symmetric key is not valid base32: %v", err)
