@@ -1,5 +1,6 @@
 root-dirs:
   - cli
+  - encryption
   - matcher
   - pkgpath
   - safejson
