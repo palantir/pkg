@@ -2,5 +2,8 @@ root-dirs:
   - cli
   - matcher
   - pkgpath
+  - safejson
+  - safeyaml
   - signals
   - specdir
+  - transform
