@@ -18,25 +18,45 @@ stages:
         key: pkg-godel-{{ checksum "godelw" }}
         paths:
           - /root/.godel
+
+      # ============== Container 0 ==============
+      - type: shell
+        name: "verify Go version in container 0"
+        command: |
+          set -eu
+          if [ "${CIRCLE_NODE_INDEX}" -eq 0 ]; then
+            go version
+          fi
       - type: shell
         name: "run verify using Go 1.8 in container 0"
         command: |
           set -eu
           if [ "${CIRCLE_NODE_INDEX}" -eq 0 ]; then
             go install $(./godelw packages)
-            mkdir -p /tmp/test-results/pkg
-            ./godelw verify --apply=false --junit-output="/tmp/test-results/pkg/pkg-tests.xml"
+            mkdir -p /tmp/test-results/pkg-1.8
+            ./godelw verify --apply=false --junit-output="/tmp/test-results/pkg-1.8/pkg-1.8-tests.xml"
           fi
+
+      # ============== Container 1 ==============
       - type: shell
-        name: "run tests using Go 1.7 in container 1"
+        name: "set Go 1.7 in container 1"
         command: |
           set -eu
           if [ "${CIRCLE_NODE_INDEX}" -eq 1 ]; then
             rm /usr/local/go
             ln -s /usr/local/go-1.7 /usr/local/go
             go version
-            ./godelw test
           fi
+      - type: shell
+        name: "run verify using Go 1.7 in container 1"
+        command: |
+          set -eu
+          if [ "${CIRCLE_NODE_INDEX}" -eq 1 ]; then
+            go install $(./godelw packages)
+            mkdir -p /tmp/test-results/pkg-1.7
+            ./godelw verify --apply=false --junit-output="/tmp/test-results/pkg-1.7/pkg-1.7-tests.xml"
+          fi
+
       - type: test-results-store
         path: /tmp/test-results
       - type: artifacts-store
