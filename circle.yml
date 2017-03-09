@@ -9,7 +9,7 @@ stages:
     workDir: /go/src/github.com/palantir/pkg
     environment:
       - PROJECT: pkg
-      - GO_VERSION: |
+      - GET_GO_VERSION: |
             case $CIRCLE_NODE_INDEX in
             0)
                 echo "1.8"
@@ -37,7 +37,7 @@ stages:
         command: |
           set -eu
           rm /usr/local/go
-          ln -s "/usr/local/go-$(eval "$GO_VERSION")" /usr/local/go
+          ln -s "/usr/local/go-$(eval "$GET_GO_VERSION")" /usr/local/go
       - type: shell
         name: "Verify Go version"
         command: go version
@@ -46,10 +46,10 @@ stages:
         command: go install ./...
       - type: shell
         name: "Create test output directory"
-        command: mkdir -p "/tmp/test-results/$PROJECT-$(eval "$GO_VERSION")"
+        command: mkdir -p "/tmp/test-results/$PROJECT-$(eval "$GET_GO_VERSION")"
       - type: shell
         name: "Run godel verification"
-        command: ./godelw verify --apply=false --junit-output="/tmp/test-results/$PROJECT-$(eval "$GO_VERSION")/$PROJECT-$(eval "$GO_VERSION")-tests.xml"
+        command: ./godelw verify --apply=false --junit-output="/tmp/test-results/$PROJECT-$(eval "$GET_GO_VERSION")/$PROJECT-$(eval "$GET_GO_VERSION")-tests.xml"
       - type: test-results-store
         path: /tmp/test-results
       - type: artifacts-store
