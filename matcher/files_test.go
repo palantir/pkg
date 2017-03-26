@@ -19,8 +19,8 @@ import (
 
 func TestListFiles(t *testing.T) {
 	tmpDir, cleanup, err := dirs.TempDir("", "")
-	require.NoError(t, err)
 	defer cleanup()
+	require.NoError(t, err)
 
 	cases := []struct {
 		include       matcher.Matcher

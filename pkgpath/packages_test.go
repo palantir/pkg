@@ -27,8 +27,8 @@ func TestNewPackages(t *testing.T) {
 	require.NoError(t, err)
 
 	tmpDir, cleanup, err := dirs.TempDir(wd, "")
-	require.NoError(t, err)
 	defer cleanup()
+	require.NoError(t, err)
 
 	for i, currCase := range []struct {
 		filesToCreate []gofiles.GoFileSpec
@@ -89,8 +89,8 @@ func TestListPackages(t *testing.T) {
 	require.NoError(t, err)
 
 	tmpDir, cleanup, err := dirs.TempDir(wd, "")
-	require.NoError(t, err)
 	defer cleanup()
+	require.NoError(t, err)
 
 	for i, currCase := range []struct {
 		filesToCreate []gofiles.GoFileSpec
@@ -247,8 +247,8 @@ func TestListPackagesFailsWithMultiplePackages(t *testing.T) {
 	require.NoError(t, err)
 
 	tmpDir, cleanup, err := dirs.TempDir(wd, "")
-	require.NoError(t, err)
 	defer cleanup()
+	require.NoError(t, err)
 
 	for i, currCase := range []struct {
 		filesToCreate []gofiles.GoFileSpec
@@ -285,8 +285,8 @@ func TestListPackagesFailsWithMultiplePackages(t *testing.T) {
 // Verify that ListPackages uses the current value of the GOPATH environment variable to determine the package paths.
 func TestListPackagesSetGoPath(t *testing.T) {
 	tmpDir, cleanup, err := dirs.TempDir("", "")
-	require.NoError(t, err)
 	defer cleanup()
+	require.NoError(t, err)
 
 	// get original value of GOPATH and restore after test
 	origGoPath := os.Getenv("GOPATH")
