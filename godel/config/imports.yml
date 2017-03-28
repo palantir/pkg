@@ -7,4 +7,5 @@ root-dirs:
   - safeyaml
   - signals
   - specdir
+  - tlsconfig
   - transform
