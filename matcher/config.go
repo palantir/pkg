@@ -7,24 +7,26 @@ package matcher
 // NamesPathsCfg is a configuration object that defines a list of names and paths that should be used to construct a
 // Matcher. The returned Matcher will match any name or path specified in the configuration.
 type NamesPathsCfg struct {
-	Names []string `yaml:"names" json:"names"`
-	Paths []string `yaml:"paths" json:"paths"`
+	Names    []string `yaml:"names" json:"names"`
+	Paths    []string `yaml:"paths" json:"paths"`
+	Excludes []string `yaml:"excludes" json:"excludes"`
 }
 
-// Add appends the names and paths specified in the provided NamesPathsCfg to those in the receiver.
+// Add appends the names, paths and excludes specified in the provided NamesPathsCfg to those in the receiver.
 func (c *NamesPathsCfg) Add(cfg NamesPathsCfg) {
 	c.Names = append(c.Names, cfg.Names...)
 	c.Paths = append(c.Paths, cfg.Paths...)
+	c.Excludes = append(c.Excludes, cfg.Excludes...)
 }
 
 // Empty returns true if the configuration is empty. If this function returns true, it indicates that the semantic
 // meaning of the configuration is the same as it not being provided/specified at all.
 func (c *NamesPathsCfg) Empty() bool {
-	return len(c.Names) == 0 && len(c.Paths) == 0
+	return len(c.Names) == 0 && len(c.Paths) == 0 && len(c.Excludes) == 0
 }
 
 // Matcher returns a Matcher constructed from the configuration. The Matcher returns true if it matches any of the
-// names or paths in the configuration.
+// names or paths and does not match with excludes in the configuration.
 func (c *NamesPathsCfg) Matcher() Matcher {
-	return Any(Name(c.Names...), Path(c.Paths...))
+	return All(Any(Name(c.Names...), Path(c.Paths...)), Not(Path(c.Excludes...)))
 }
