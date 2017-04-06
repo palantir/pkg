@@ -2,7 +2,7 @@
     "imports": [
         {
             "path": "github.com/palantir/pkg/matcher",
-            "numGoFiles": 5,
+            "numGoFiles": 6,
             "numImportedGoFiles": 0,
             "importedFrom": [
                 "github.com/palantir/pkg/pkgpath",

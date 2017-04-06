@@ -28,3 +28,17 @@ func (c *NamesPathsCfg) Empty() bool {
 func (c *NamesPathsCfg) Matcher() Matcher {
 	return Any(Name(c.Names...), Path(c.Paths...))
 }
+
+// NamesPathsWithExcludeCfg is a configuration object that defines a matcher and a set of criteria that should be used
+// to exclude matches. The returned Matcher will match any name or path specified in the configuration provided that the
+// matched path does not match the matcher produced by the "Exclude" configuration.
+type NamesPathsWithExcludeCfg struct {
+	NamesPathsCfg `yaml:",inline"`
+	Exclude       NamesPathsCfg `yaml:"exclude" json:"exclude"`
+}
+
+// Matcher returns a Matcher constructed from the configuration. The Matcher returns true if it matches any of the
+// names or paths in the configuration and does not match any of the criteria specified in the "Exclude" configuration.
+func (c *NamesPathsWithExcludeCfg) Matcher() Matcher {
+	return All(c.NamesPathsCfg.Matcher(), Not(c.Exclude.Matcher()))
+}
