@@ -2,13 +2,16 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package safejson
+package safejson_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
+
+	"github.com/palantir/pkg/safejson"
 )
 
 var tests = []struct {
@@ -99,8 +102,8 @@ x:
 
 func TestFromYAML(t *testing.T) {
 	for _, test := range tests {
-		out, err := FromYAML(test.input)
-		assert.NoError(t, err)
+		out, err := safejson.FromYAMLValue(test.input)
+		require.NoError(t, err)
 		assert.Equal(t, test.output, out)
 	}
 
@@ -112,7 +115,7 @@ func TestFromYAML(t *testing.T) {
 			"grass": "green",
 		},
 	}
-	out, err := FromYAML(invalidJSONMap)
+	out, err := safejson.FromYAMLValue(invalidJSONMap)
 	assert.EqualError(t, err, "Expected map key inside other_map to be a string but was int: 1")
 	assert.Nil(t, out)
 
@@ -120,9 +123,23 @@ func TestFromYAML(t *testing.T) {
 		var y interface{}
 		err := yaml.Unmarshal([]byte(test.input), &y)
 		if assert.NoError(t, err) {
-			j, err := FromYAML(y)
+			j, err := safejson.FromYAMLValue(y)
 			assert.NoError(t, err)
 			assert.Equal(t, test.output, j)
 		}
 	}
+}
+
+func TestMapInStructsNotConverted(t *testing.T) {
+	val := struct {
+		v map[interface{}]string
+	}{
+		v: map[interface{}]string{
+			13: "thirteen",
+		},
+	}
+
+	res, err := safejson.FromYAMLValue(val)
+	require.NoError(t, err)
+	assert.Equal(t, val, res)
 }
