@@ -1,5 +1,6 @@
 root-dirs:
   - cli
+  - encryptedconfigvalue
   - encryption
   - matcher
   - pkgpath
