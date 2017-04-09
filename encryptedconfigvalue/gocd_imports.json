@@ -1,5 +1,15 @@
 {
-    "imports": [],
+    "imports": [
+        {
+            "path": "github.com/palantir/pkg/encryption",
+            "numGoFiles": 10,
+            "numImportedGoFiles": 0,
+            "importedFrom": [
+                "github.com/palantir/pkg/encryptedconfigvalue",
+                "github.com/palantir/pkg/encryptedconfigvalue_test"
+            ]
+        }
+    ],
     "mainOnlyImports": [],
     "testOnlyImports": [
         {
@@ -7,7 +17,7 @@
             "numGoFiles": 6,
             "numImportedGoFiles": 9,
             "importedFrom": [
-                "github.com/palantir/pkg/encryption_test"
+                "github.com/palantir/pkg/encryptedconfigvalue_test"
             ]
         },
         {
@@ -15,7 +25,7 @@
             "numGoFiles": 5,
             "numImportedGoFiles": 15,
             "importedFrom": [
-                "github.com/palantir/pkg/encryption_test"
+                "github.com/palantir/pkg/encryptedconfigvalue_test"
             ]
         }
     ]
