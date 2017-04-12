@@ -10,8 +10,18 @@ import (
 	"strings"
 )
 
-// FromYAML converts nested map[interface{}]interface{} to map[string]interface{}.
-func FromYAML(y interface{}) (interface{}, error) {
+// FromYAMLValue returns a version of the provided input where all nested map[interface{}]interface{} values are
+// converted to map[string]interface{}. The input should be the representation of an object in
+// map[interface{}]interface{} form (as opposed to a string or []byte of the YAML itself). Returns an error if the
+// conversion fails because any of the object keys are not strings.
+//
+// Assumes that the input consists of only maps, slices, arrays, primitives and pointers to these types. Structs are
+// assumed to have been converted into a map representation -- if a struct value is encountered, it will be treated as a
+// primitive and left as-is (in particular, any maps in the struct will not be converted).
+//
+// Many YAML libraries unmarshal YAML content as map[interface{}]interface{}, but the Go JSON library requires JSON maps
+// to be represented as map[string]interface{}, so this function is helpful in converting the former to the latter.
+func FromYAMLValue(y interface{}) (interface{}, error) {
 	return fromYAMLValue(reflect.ValueOf(y), "")
 }
 
