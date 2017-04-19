@@ -42,7 +42,7 @@ func (ctx *Context) Slice(name string) []string {
 }
 
 func (ctx *Context) Int(name string) int {
-	value, err := strconv.Atoi(ctx.get(name).(string))
+	value, err := strconv.Atoi(ctx.String(name))
 	if err != nil {
 		panic(fmt.Errorf("interface conversion: interface is string, not int"))
 	}
