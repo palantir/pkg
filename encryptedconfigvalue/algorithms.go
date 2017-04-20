@@ -74,16 +74,22 @@ type keyTypeData struct {
 
 var keyTypeToData = map[KeyType]keyTypeData{
 	AESKey: {
-		generator: keyGeneratorFor(AESKey, encryption.AESKeyFromBytes),
-		algType:   AES,
+		generator: keyGeneratorFor(AESKey, func(key []byte) (encryption.Key, error) {
+			return encryption.AESKeyFromBytes(key)
+		}),
+		algType: AES,
 	},
 	RSAPubKey: {
-		generator: keyGeneratorFor(RSAPubKey, encryption.RSAPublicKeyFromPEMBytes),
-		algType:   RSA,
+		generator: keyGeneratorFor(RSAPubKey, func(key []byte) (encryption.Key, error) {
+			return encryption.RSAPublicKeyFromPEMBytes(key)
+		}),
+		algType: RSA,
 	},
 	RSAPrivKey: {
-		generator: keyGeneratorFor(RSAPrivKey, encryption.RSAPrivateKeyFromPKCS8Bytes),
-		algType:   RSA,
+		generator: keyGeneratorFor(RSAPrivKey, func(key []byte) (encryption.Key, error) {
+			return encryption.RSAPrivateKeyFromPKCS8Bytes(key)
+		}),
+		algType: RSA,
 	},
 }
 

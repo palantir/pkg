@@ -14,7 +14,7 @@ type AESKey struct {
 	key []byte
 }
 
-func NewAESKey(keySizeBits int) (Key, error) {
+func NewAESKey(keySizeBits int) (*AESKey, error) {
 	k, err := randomBytes(keySizeBits / 8)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate random bytes for AES key: %v", err)
@@ -22,7 +22,7 @@ func NewAESKey(keySizeBits int) (Key, error) {
 	return AESKeyFromBytes(k)
 }
 
-func AESKeyFromBytes(key []byte) (Key, error) {
+func AESKeyFromBytes(key []byte) (*AESKey, error) {
 	return &AESKey{
 		key: key,
 	}, nil
