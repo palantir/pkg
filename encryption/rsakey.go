@@ -14,7 +14,7 @@ import (
 )
 
 // NewRSAKeyPair creates an RSA key pair of the provided size and returns the public and private keys for the pair.
-func NewRSAKeyPair(keySizeBits int) (pubKey, privKey Key, err error) {
+func NewRSAKeyPair(keySizeBits int) (pubKey *RSAPublicKey, privKey *RSAPrivateKey, err error) {
 	rsaPrivKey, err := rsa.GenerateKey(rand.Reader, keySizeBits)
 	if err != nil {
 		return nil, nil, err
@@ -40,7 +40,7 @@ func (r *RSAPublicKey) Bytes() []byte {
 
 // RSAPublicKeyFromPEMBytes returns a new RSA public key using the provided bytes, which should be the PEM
 // representation of the public key.
-func RSAPublicKeyFromPEMBytes(key []byte) (Key, error) {
+func RSAPublicKeyFromPEMBytes(key []byte) (*RSAPublicKey, error) {
 	var errInvalidRSAPublicKeyError = fmt.Errorf("key is not a valid PEM-encoded RSA public key")
 
 	block, _ := pem.Decode(key)
@@ -58,7 +58,7 @@ func RSAPublicKeyFromPEMBytes(key []byte) (Key, error) {
 	return rsaPublicKeyFromKey(rsaPubKey), nil
 }
 
-func rsaPublicKeyFromKey(rsaPubKey *rsa.PublicKey) Key {
+func rsaPublicKeyFromKey(rsaPubKey *rsa.PublicKey) *RSAPublicKey {
 	return (*RSAPublicKey)(rsaPubKey)
 }
 
@@ -89,7 +89,7 @@ func (r *RSAPrivateKey) Bytes() []byte {
 
 // RSAPrivateKeyFromPKCS8Bytes returns a new RSA private key using the provided bytes, which should be the PKCS#8
 // representation of the private key.
-func RSAPrivateKeyFromPKCS8Bytes(key []byte) (Key, error) {
+func RSAPrivateKeyFromPKCS8Bytes(key []byte) (*RSAPrivateKey, error) {
 	pkcsPrivKey, err := x509.ParsePKCS8PrivateKey(key)
 	if err != nil {
 		return nil, fmt.Errorf("invalid PKCS8 private key: %v", err)
@@ -101,6 +101,6 @@ func RSAPrivateKeyFromPKCS8Bytes(key []byte) (Key, error) {
 	return rsaPrivateKeyFromKey(rsaPrivKey), nil
 }
 
-func rsaPrivateKeyFromKey(rsaPrivKey *rsa.PrivateKey) Key {
+func rsaPrivateKeyFromKey(rsaPrivKey *rsa.PrivateKey) *RSAPrivateKey {
 	return (*RSAPrivateKey)(rsaPrivKey)
 }
