@@ -2,7 +2,7 @@
     "imports": [
         {
             "path": "github.com/palantir/pkg/encryption",
-            "numGoFiles": 10,
+            "numGoFiles": 11,
             "numImportedGoFiles": 0,
             "importedFrom": [
                 "github.com/palantir/pkg/encryptedconfigvalue",

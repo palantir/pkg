@@ -31,10 +31,15 @@ func RSAPublicKeyFromBytes(key []byte) (KeyWithType, error) {
 	if err != nil {
 		return KeyWithType{}, err
 	}
+	return RSAPublicKeyFromKey(rsaPubKey), nil
+}
+
+// RSAPublicKeyFromKey returns a new KeyWithType that wraps the provided RSAPublicKey.
+func RSAPublicKeyFromKey(key *encryption.RSAPublicKey) KeyWithType {
 	return KeyWithType{
 		Type: RSAPubKey,
-		Key:  rsaPubKey,
-	}, nil
+		Key:  key,
+	}
 }
 
 // RSAPrivateKeyFromBytes creates a new KeyWithType that contains an RSA private key constructed using the provided bytes.
@@ -44,10 +49,15 @@ func RSAPrivateKeyFromBytes(key []byte) (KeyWithType, error) {
 	if err != nil {
 		return KeyWithType{}, err
 	}
+	return RSAPrivateKeyFromKey(rsaPrivKey), nil
+}
+
+// RSAPrivateKeyFromKey returns a new KeyWithType that wraps the provided RSAPrivateKey.
+func RSAPrivateKeyFromKey(key *encryption.RSAPrivateKey) KeyWithType {
 	return KeyWithType{
 		Type: RSAPrivKey,
-		Key:  rsaPrivKey,
-	}, nil
+		Key:  key,
+	}
 }
 
 const defaultRSAKeySizeBits = 2048

@@ -5,7 +5,6 @@
 package encryption
 
 import (
-	"crypto/rand"
 	"fmt"
 )
 
@@ -15,7 +14,7 @@ type AESKey struct {
 }
 
 func NewAESKey(keySizeBits int) (*AESKey, error) {
-	k, err := randomBytes(keySizeBits / 8)
+	k, err := RandomBytes(keySizeBits / 8)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate random bytes for AES key: %v", err)
 	}
@@ -30,12 +29,4 @@ func AESKeyFromBytes(key []byte) (*AESKey, error) {
 
 func (a *AESKey) Bytes() []byte {
 	return a.key
-}
-
-func randomBytes(n int) ([]byte, error) {
-	out := make([]byte, n)
-	if _, err := rand.Read(out); err != nil {
-		return nil, fmt.Errorf("failed to generate %d cryptographically strong pseudo-random bytes: %v", n, err)
-	}
-	return out, nil
 }
