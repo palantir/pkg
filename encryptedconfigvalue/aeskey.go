@@ -15,10 +15,7 @@ func NewAESKey(keySizeBits int) (KeyWithType, error) {
 	if err != nil {
 		return KeyWithType{}, err
 	}
-	return KeyWithType{
-		Type: AESKey,
-		Key:  key,
-	}, nil
+	return AESKeyFromKey(key), nil
 }
 
 // AESKeyFromBytes creates a new AES key that uses the provided bytes as its key material and returns a new KeyWithType
@@ -28,10 +25,15 @@ func AESKeyFromBytes(key []byte) (KeyWithType, error) {
 	if err != nil {
 		return KeyWithType{}, err
 	}
+	return AESKeyFromKey(aesKey), nil
+}
+
+// AESKeyFromKey returns a new KeyWithType that wraps the provided AESKey.
+func AESKeyFromKey(key *encryption.AESKey) KeyWithType {
 	return KeyWithType{
 		Type: AESKey,
-		Key:  aesKey,
-	}, nil
+		Key:  key,
+	}
 }
 
 const defaultAESKeySizeBits = 256

@@ -53,7 +53,7 @@ func (a *AESGCMCipher) Encrypt(data []byte, key Key) ([]byte, error) {
 	}
 
 	// generate random nonce/IV
-	nonce, err := randomBytes(gcm.NonceSize())
+	nonce, err := RandomBytes(gcm.NonceSize())
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate nonce: %v", err)
 	}
