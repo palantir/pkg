@@ -1,6 +1,7 @@
 root-dirs:
   - cli
   - matcher
+  - objmatcher
   - pkgpath
   - safehttp
   - safejson

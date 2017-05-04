@@ -18,6 +18,13 @@ matcher
 `matcher` allows files to be matched based on their name or path. Supports composing and combining matchers and provides
 data structures that can be used as configuration to specify include and exclude rules.
 
+objmatcher
+----------
+`objmatcher` provides the ability to match objects based on criteria and returns a descriptive error when an object does
+not match its expectation. When used in combination with maps, makes it easy to perform complex matching on maps in a
+declarative manner (for example, requiring that some map entries match an expectation exactly while others should match
+a particular regular expression).
+
 pkgpath
 -------
 `pkgpath` provides functions for getting Go package paths. Provides functions for getting the paths to all of the
