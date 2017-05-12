@@ -7,19 +7,16 @@
 //
 // - json.Decoder.UseNumber
 // - json.Encoder.SetEscapeHTML(false)
-// - json.Encoder.Encode(big floats as json.Number)
 package safejson
 
 import (
 	"bytes"
 	"encoding/json"
-	"math/big"
-
-	"github.com/palantir/pkg/transform"
 )
 
 // Marshal returns the JSON encoding of v.
 func Marshal(v interface{}) ([]byte, error) {
+	// go through Encoder to control SetEscapeHTML
 	var buf bytes.Buffer
 	if err := NewEncoder(&buf).Encode(v); err != nil {
 		return nil, err
@@ -55,18 +52,5 @@ type Encoder struct {
 // See the documentation for json.Marshal for details about the conversion of Go
 // values to JSON.
 func (e *Encoder) Encode(v interface{}) error {
-	return e.enc.Encode(bigFloatToJSONNumber(v))
-}
-
-// bigFloatToJSONNumber returns json.Number in place of big.Float.
-//
-// This is necessary because big.Float's text marshaller turns them into normal
-// strings. For usage, see Encoder.Encode.
-func bigFloatToJSONNumber(obj interface{}) interface{} {
-	rules := transform.Rules{
-		func(bf *big.Float) json.Number {
-			return json.Number(bf.Text('g', -1))
-		},
-	}
-	return rules.Apply(obj)
+	return e.enc.Encode(v)
 }
