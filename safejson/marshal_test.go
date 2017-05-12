@@ -25,6 +25,14 @@ var encodeTests = map[string]struct {
 		in:   big.NewFloat(3.14),
 		want: `"3.14"`,
 	},
+	"struct containing *big.Float": {
+		in:   struct{ Foo *big.Float }{Foo: big.NewFloat(3.14)},
+		want: `{"Foo":"3.14"}`,
+	},
+	"slice of *big.Float": {
+		in:   []*big.Float{big.NewFloat(3.14), big.NewFloat(8.42)},
+		want: `["3.14","8.42"]`,
+	},
 }
 
 func TestEncoder(t *testing.T) {
