@@ -111,6 +111,14 @@ func TestTypedGetFunctionsReturnValue(t *testing.T) {
 			flagValue: []string{time.Minute.String()},
 			value:     time.Minute,
 		},
+		{
+			getFunction: func(ctx Context) interface{} {
+				return ctx.Int(flagName)
+			},
+			testFlag:  flag.StringFlag{Name: flagName, Value: "10"},
+			flagValue: []string{"5"},
+			value:     5,
+		},
 	}
 
 	for _, c := range cases {
@@ -144,6 +152,12 @@ func TestTypedGetFunctionsPanicOnMissingFlags(t *testing.T) {
 				return ctx.Duration(missingFlagName)
 			},
 			testFlag: flag.DurationFlag{Name: flagName, Value: "120s"},
+		},
+		{
+			getFunction: func(ctx Context) interface{} {
+				return ctx.Int(missingFlagName)
+			},
+			testFlag: flag.StringFlag{Name: flagName, Value: "5"},
 		},
 	}
 
@@ -188,6 +202,14 @@ func TestTypedGetFunctionsPanicOnValueOfWrongType(t *testing.T) {
 			incompatibleFlag: flag.StringFlag{Name: flagName, Value: "testDefault"},
 			incompatibleType: "string",
 			typeName:         "time.Duration",
+		},
+		{
+			getFunction: func(ctx Context) interface{} {
+				return ctx.Int(flagName)
+			},
+			incompatibleFlag: flag.StringFlag{Name: flagName, Value: "testDefault"},
+			incompatibleType: "string",
+			typeName:         "int",
 		},
 	}
 

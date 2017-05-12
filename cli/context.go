@@ -6,6 +6,7 @@ package cli
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -38,6 +39,14 @@ func (ctx *Context) Duration(name string) time.Duration {
 
 func (ctx *Context) Slice(name string) []string {
 	return ctx.get(name).([]string)
+}
+
+func (ctx *Context) Int(name string) int {
+	value, err := strconv.Atoi(ctx.String(name))
+	if err != nil {
+		panic(fmt.Errorf("interface conversion: interface is string, not int"))
+	}
+	return value
 }
 
 func (ctx *Context) get(name string) interface{} {
