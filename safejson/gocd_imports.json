@@ -1,14 +1,5 @@
 {
-    "imports": [
-        {
-            "path": "github.com/palantir/pkg/transform",
-            "numGoFiles": 2,
-            "numImportedGoFiles": 0,
-            "importedFrom": [
-                "github.com/palantir/pkg/safejson"
-            ]
-        }
-    ],
+    "imports": [],
     "mainOnlyImports": [],
     "testOnlyImports": [
         {
