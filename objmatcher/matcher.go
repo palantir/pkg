@@ -15,6 +15,16 @@ type Matcher interface {
 	Matches(in interface{}) error
 }
 
+type anyMatcher struct{}
+
+func (m *anyMatcher) Matches(in interface{}) error {
+	return nil
+}
+
+func NewAnyMatcher() Matcher {
+	return &anyMatcher{}
+}
+
 type EqualsMatcher struct {
 	Want interface{}
 }
