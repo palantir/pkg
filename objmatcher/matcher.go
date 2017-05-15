@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -85,7 +86,13 @@ func (m MapMatcher) Matches(in interface{}) error {
 		return fmt.Errorf("want: %+v\ngot:  %+v\n%T(%+v)is not a map", m, in, in, in)
 	}
 	if len(m) != len(inMap) {
-		return fmt.Errorf("want: %+v\ngot:  %+v\nsize %d != %d", m, inMap, len(m), len(inMap))
+		genericM := make(map[string]interface{})
+		for k, v := range m {
+			genericM[k] = v
+		}
+		missingKeys := keyDifference(genericM, inMap)
+		extraKeys := keyDifference(inMap, genericM)
+		return fmt.Errorf("want: %+v\ngot:  %+v\nsize %d != %d\nmissing keys: %v\nextra keys:   %v", m, inMap, len(m), len(inMap), missingKeys, extraKeys)
 	}
 	for wantK, wantV := range m {
 		gotV, ok := inMap[wantK]
@@ -98,4 +105,17 @@ func (m MapMatcher) Matches(in interface{}) error {
 		}
 	}
 	return nil
+}
+
+// keyDifference returns the keys that are in "want" that are not in "got".
+func keyDifference(want, got map[string]interface{}) []string {
+	var missingKeys []string
+	for wantK := range want {
+		if _, ok := got[wantK]; ok {
+			continue
+		}
+		missingKeys = append(missingKeys, wantK)
+	}
+	sort.Strings(missingKeys)
+	return missingKeys
 }
