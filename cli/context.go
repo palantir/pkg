@@ -40,6 +40,10 @@ func (ctx *Context) Slice(name string) []string {
 	return ctx.get(name).([]string)
 }
 
+func (ctx *Context) Int(name string) int {
+	return ctx.get(name).(int)
+}
+
 func (ctx *Context) get(name string) interface{} {
 	if v, ok := ctx.specified[name]; ok {
 		return v
