@@ -18,13 +18,14 @@ import (
 
 func TestParseFlags(t *testing.T) {
 	cases := []struct {
+		name           string
 		flags          []flag.Flag
 		args           []string
 		expectedOutput string
 		expectedError  string
 	}{
-		// optional string flag with default value has value without flag
 		{
+			name: "optional string flag with default value has value without flag",
 			flags: []flag.Flag{
 				flag.StringFlag{
 					Name:  "name",
@@ -37,8 +38,8 @@ func TestParseFlags(t *testing.T) {
 			},
 			expectedOutput: "name: default",
 		},
-		// bool flag with default value has value without flag
 		{
+			name: "bool flag with default value has value without flag",
 			flags: []flag.Flag{
 				flag.BoolFlag{
 					Name:  "bool",
@@ -51,8 +52,8 @@ func TestParseFlags(t *testing.T) {
 			},
 			expectedOutput: "bool: true",
 		},
-		// string flag with space parses correctly
 		{
+			name: "string flag with space parses correctly",
 			flags: []flag.Flag{
 				flag.StringFlag{
 					Name: "name",
@@ -66,8 +67,8 @@ func TestParseFlags(t *testing.T) {
 			},
 			expectedOutput: "name: foo",
 		},
-		// string flag with '=' parses correctly
 		{
+			name: "string flag with '=' parses correctly",
 			flags: []flag.Flag{
 				flag.StringFlag{
 					Name: "name",
@@ -80,8 +81,8 @@ func TestParseFlags(t *testing.T) {
 			},
 			expectedOutput: "name: foo",
 		},
-		// string flag with empty value after '=' does not parse (interpreted as missing flag value)
 		{
+			name: "string flag with empty value after '=' does not parse (interpreted as missing flag value)",
 			flags: []flag.Flag{
 				flag.StringFlag{
 					Name: "name",
@@ -94,8 +95,8 @@ func TestParseFlags(t *testing.T) {
 			},
 			expectedError: "Missing value for flag --name",
 		},
-		// string flag with empty value after '=' does not parse (interpreted as missing flag value)
 		{
+			name: "string flag with empty value after '=' does not parse (interpreted as missing flag value)",
 			flags: []flag.Flag{
 				flag.StringFlag{
 					Name: "name",
@@ -109,8 +110,8 @@ func TestParseFlags(t *testing.T) {
 			},
 			expectedError: "Missing value for flag --name",
 		},
-		// parameters are not parsed as flags
 		{
+			name: "parameters are not parsed as flags",
 			flags: []flag.Flag{
 				flag.StringSlice{
 					Name: "args",
@@ -124,8 +125,8 @@ func TestParseFlags(t *testing.T) {
 			},
 			expectedOutput: "args: [foo=1 bar=2]",
 		},
-		// '=' is a legal character in a value
 		{
+			name: "'=' is a legal character in a value",
 			flags: []flag.Flag{
 				flag.StringFlag{
 					Name: "name",
@@ -139,8 +140,8 @@ func TestParseFlags(t *testing.T) {
 			},
 			expectedOutput: "name: foo=bar",
 		},
-		// only first '=' in a flag is considered
 		{
+			name: "only first '=' in a flag is considered",
 			flags: []flag.Flag{
 				flag.StringFlag{
 					Name: "name",
@@ -153,8 +154,8 @@ func TestParseFlags(t *testing.T) {
 			},
 			expectedOutput: "name: foo=bar",
 		},
-		// flag name can contain "="
 		{
+			name: "flag name can contain '='",
 			flags: []flag.Flag{
 				flag.StringFlag{
 					Name: "name=foo",
@@ -167,8 +168,8 @@ func TestParseFlags(t *testing.T) {
 			},
 			expectedOutput: "name=foo: bar",
 		},
-		// bool flag with no value parses as "true"
 		{
+			name: "bool flag with no value parses as 'true'",
 			flags: []flag.Flag{
 				flag.BoolFlag{
 					Name: "bool",
@@ -181,8 +182,8 @@ func TestParseFlags(t *testing.T) {
 			},
 			expectedOutput: "bool: true",
 		},
-		// bool flag can be set to false using "--flag=" syntax
 		{
+			name: "bool flag can be set to false using '--flag=' syntax",
 			flags: []flag.Flag{
 				flag.BoolFlag{
 					Name:  "bool",
@@ -196,8 +197,8 @@ func TestParseFlags(t *testing.T) {
 			},
 			expectedOutput: "bool: false",
 		},
-		// bool flag with missing value after '=' is invalid
 		{
+			name: "bool flag with missing value after '=' is invalid",
 			flags: []flag.Flag{
 				flag.BoolFlag{
 					Name: "bool",
@@ -210,8 +211,8 @@ func TestParseFlags(t *testing.T) {
 			},
 			expectedError: "Missing value for flag --bool",
 		},
-		// bool flag with invalid value is invalid
 		{
+			name: "bool flag with invalid value is invalid",
 			flags: []flag.Flag{
 				flag.BoolFlag{
 					Name: "bool",
@@ -224,45 +225,75 @@ func TestParseFlags(t *testing.T) {
 			},
 			expectedError: `--bool: strconv.ParseBool: parsing "NOT_VALID": invalid syntax`,
 		},
+		{
+			name: "int flag parses correctly",
+			flags: []flag.Flag{
+				flag.IntFlag{
+					Name: "int",
+				},
+			},
+			args: []string{
+				"./test",
+				"test-cmd",
+				"--int=5",
+			},
+			expectedOutput: "int: 5",
+		},
+		{
+			name: "int flag with invalid value is invalid",
+			flags: []flag.Flag{
+				flag.IntFlag{
+					Name: "int",
+				},
+			},
+			args: []string{
+				"./test",
+				"test-cmd",
+				"--int=NOT_VALID",
+			},
+			expectedError: `--int: strconv.ParseInt: parsing "NOT_VALID": invalid syntax`,
+		},
 	}
 
 	for i, currCase := range cases {
-		app := cli.NewApp()
-		app.Name = "test"
+		t.Run(currCase.name, func(t *testing.T) {
+			app := cli.NewApp()
+			app.Name = "test"
 
-		output := &bytes.Buffer{}
-		app.Subcommands = []cli.Command{
-			{
-				Name:  "test-cmd",
-				Flags: currCase.flags,
-				Action: func(ctx cli.Context) error {
-					printFlags(output, ctx, currCase.flags)
-					return nil
+			output := &bytes.Buffer{}
+			app.Subcommands = []cli.Command{
+				{
+					Name:  "test-cmd",
+					Flags: currCase.flags,
+					Action: func(ctx cli.Context) error {
+						printFlags(output, ctx, currCase.flags)
+						return nil
+					},
 				},
-			},
-		}
+			}
 
-		app.Stdout = ioutil.Discard
+			app.Stdout = ioutil.Discard
 
-		stdErr := &bytes.Buffer{}
-		app.Stderr = stdErr
+			stdErr := &bytes.Buffer{}
+			app.Stderr = stdErr
 
-		exitStatus := app.Run(currCase.args)
-		expectedExitStatus := 0
-		if currCase.expectedError != "" {
-			expectedExitStatus = 1
-		}
-		if expectedExitStatus != exitStatus {
-			t.Errorf("Case %d:\nExpected: %d\nActual:   %d", i, expectedExitStatus, exitStatus)
-		}
+			exitStatus := app.Run(currCase.args)
+			expectedExitStatus := 0
+			if currCase.expectedError != "" {
+				expectedExitStatus = 1
+			}
+			if expectedExitStatus != exitStatus {
+				t.Errorf("Case %d:\nExpected: %d\nActual:   %d", i, expectedExitStatus, exitStatus)
+			}
 
-		if currCase.expectedOutput != output.String() {
-			t.Errorf("Case %d:\nExpected: %q\nActual:   %q", i, currCase.expectedOutput, output.String())
-		}
+			if currCase.expectedOutput != output.String() {
+				t.Errorf("Case %d:\nExpected: %q\nActual:   %q", i, currCase.expectedOutput, output.String())
+			}
 
-		if currCase.expectedError != "" && !regexp.MustCompile(currCase.expectedError).MatchString(stdErr.String()) {
-			t.Errorf("Case %d: regexp did not match\nExpected: %v\nActual:   %v", i, currCase.expectedError, stdErr.String())
-		}
+			if currCase.expectedError != "" && !regexp.MustCompile(currCase.expectedError).MatchString(stdErr.String()) {
+				t.Errorf("Case %d: regexp did not match\nExpected: %v\nActual:   %v", i, currCase.expectedError, stdErr.String())
+			}
+		})
 	}
 }
 
@@ -277,6 +308,8 @@ func printFlags(w io.Writer, ctx cli.Context, flags []flag.Flag) {
 			fmt.Fprintf(w, "%v: %v", currFlag.Name, ctx.Bool(currFlag.Name))
 		case flag.StringSlice:
 			fmt.Fprintf(w, "%v: %v", currFlag.Name, ctx.Slice(currFlag.Name))
+		case flag.IntFlag:
+			fmt.Fprintf(w, "%v: %v", currFlag.Name, ctx.Int(currFlag.Name))
 		default:
 			panic(fmt.Sprintf("unsupported type: %v", currFlag))
 		}
