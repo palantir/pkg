@@ -20,7 +20,7 @@ const appHelpTemplate = `NAME:
    {{.Name}} - {{.Usage}}
 
 USAGE:
-   {{.Name}}{{if .Flags}} [global flags]{{end}}{{if .Subcommands}} command [command flags]{{end}}{{if .Description}}
+   {{.Name}}{{if .Flags}} [global flags]{{end}}{{if anyCommands .Subcommands}} command [command flags]{{end}}{{if .Description}}
 
 DESCRIPTION:
    {{.Description}}{{end}}{{if anyCommands .Subcommands}}
