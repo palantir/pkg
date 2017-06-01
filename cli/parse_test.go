@@ -36,7 +36,7 @@ func TestParseFlags(t *testing.T) {
 				"./test",
 				"test-cmd",
 			},
-			expectedOutput: "name: default",
+			expectedOutput: "name: default name: [default]",
 		},
 		{
 			name: "bool flag with default value has value without flag",
@@ -65,7 +65,7 @@ func TestParseFlags(t *testing.T) {
 				"--name",
 				"foo",
 			},
-			expectedOutput: "name: foo",
+			expectedOutput: "name: foo name: [foo]",
 		},
 		{
 			name: "string flag with '=' parses correctly",
@@ -79,7 +79,7 @@ func TestParseFlags(t *testing.T) {
 				"test-cmd",
 				"--name=foo",
 			},
-			expectedOutput: "name: foo",
+			expectedOutput: "name: foo name: [foo]",
 		},
 		{
 			name: "string flag with empty value after '=' does not parse (interpreted as missing flag value)",
@@ -111,6 +111,25 @@ func TestParseFlags(t *testing.T) {
 			expectedError: "Missing value for flag --name",
 		},
 		{
+			name: "string flag with multiple values parses correctly",
+			flags: []flag.Flag{
+				flag.StringFlag{
+					Name: "name",
+				},
+			},
+			args: []string{
+				"./test",
+				"test-cmd",
+				"--name",
+				"foo",
+				"--name",
+				"bar",
+				"--name",
+				"bar",
+			},
+			expectedOutput: "name: bar name: [foo bar bar]",
+		},
+		{
 			name: "parameters are not parsed as flags",
 			flags: []flag.Flag{
 				flag.StringSlice{
@@ -138,7 +157,7 @@ func TestParseFlags(t *testing.T) {
 				"--name",
 				"foo=bar",
 			},
-			expectedOutput: "name: foo=bar",
+			expectedOutput: "name: foo=bar name: [foo=bar]",
 		},
 		{
 			name: "only first '=' in a flag is considered",
@@ -152,7 +171,7 @@ func TestParseFlags(t *testing.T) {
 				"test-cmd",
 				"--name=foo=bar",
 			},
-			expectedOutput: "name: foo=bar",
+			expectedOutput: "name: foo=bar name: [foo=bar]",
 		},
 		{
 			name: "flag name can contain '='",
@@ -166,7 +185,7 @@ func TestParseFlags(t *testing.T) {
 				"test-cmd",
 				"--name=foo=bar",
 			},
-			expectedOutput: "name=foo: bar",
+			expectedOutput: "name=foo: bar name=foo: [bar]",
 		},
 		{
 			name: "bool flag with no value parses as 'true'",
@@ -237,7 +256,23 @@ func TestParseFlags(t *testing.T) {
 				"test-cmd",
 				"--int=5",
 			},
-			expectedOutput: "int: 5",
+			expectedOutput: "int: 5 int: [5]",
+		},
+		{
+			name: "int flag with multiple values parses correctly",
+			flags: []flag.Flag{
+				flag.IntFlag{
+					Name: "int",
+				},
+			},
+			args: []string{
+				"./test",
+				"test-cmd",
+				"--int=5",
+				"--int=13",
+				"--int=13",
+			},
+			expectedOutput: "int: 13 int: [5 13 13]",
 		},
 		{
 			name: "int flag with invalid value is invalid",
@@ -302,14 +337,17 @@ func printFlags(w io.Writer, ctx cli.Context, flags []flag.Flag) {
 		switch currFlag := currFlag.(type) {
 		case flag.StringFlag:
 			fmt.Fprintf(w, "%v: %v", currFlag.Name, ctx.String(currFlag.Name))
+			fmt.Fprintf(w, " %v: %v", currFlag.Name, ctx.StringSlice(currFlag.Name))
 		case flag.StringParam:
-			fmt.Fprintf(w, "%v: %v", currFlag.Name, ctx.String(currFlag.Name))
+			fmt.Fprintf(w, "%v: %v ", currFlag.Name, ctx.String(currFlag.Name))
+			fmt.Fprintf(w, "%v: %v", currFlag.Name, ctx.StringSlice(currFlag.Name))
 		case flag.BoolFlag:
 			fmt.Fprintf(w, "%v: %v", currFlag.Name, ctx.Bool(currFlag.Name))
 		case flag.StringSlice:
 			fmt.Fprintf(w, "%v: %v", currFlag.Name, ctx.Slice(currFlag.Name))
 		case flag.IntFlag:
 			fmt.Fprintf(w, "%v: %v", currFlag.Name, ctx.Int(currFlag.Name))
+			fmt.Fprintf(w, " %v: %v", currFlag.Name, ctx.IntSlice(currFlag.Name))
 		default:
 			panic(fmt.Sprintf("unsupported type: %v", currFlag))
 		}

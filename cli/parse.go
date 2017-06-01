@@ -23,6 +23,7 @@ func (app *App) parse(args []string) (Context, error) {
 		},
 		defaults:  map[string]interface{}{},
 		specified: map[string]interface{}{},
+		allVals:   map[string][]interface{}{},
 	}
 	args = args[1:] // skip name of binary
 	fillDefaults(&ctx)
@@ -132,6 +133,7 @@ func parseNextFlag(ctx *Context, args *[]string) (more bool, err error) {
 			if err != nil {
 				return false, fmt.Errorf("%v: %v", name, err)
 			}
+			ctx.allVals[f.MainName()] = append(ctx.allVals[f.MainName()], ctx.specified[f.MainName()])
 			return true, nil
 		}
 	}
