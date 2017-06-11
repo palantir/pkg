@@ -6,16 +6,10 @@ package safejson
 
 import (
 	"bytes"
-	"encoding/json"
-	"io"
 )
 
+// Unmarshal unmarshals the provided bytes (which should be valid JSON)
+// into "v" using safejson.Decoder.
 func Unmarshal(data []byte, v interface{}) error {
-	return UnmarshalFrom(bytes.NewReader(data), v)
-}
-
-func UnmarshalFrom(reader io.Reader, v interface{}) error {
-	dec := json.NewDecoder(reader)
-	dec.UseNumber()
-	return dec.Decode(v)
+	return Decoder(bytes.NewReader(data)).Decode(v)
 }
