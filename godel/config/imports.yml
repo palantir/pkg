@@ -1,5 +1,6 @@
 root-dirs:
   - cli
+  - httpserver
   - matcher
   - objmatcher
   - pkgpath

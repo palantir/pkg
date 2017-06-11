@@ -1,0 +1,14 @@
+{
+    "imports": [],
+    "mainOnlyImports": [],
+    "testOnlyImports": [
+        {
+            "path": "github.com/palantir/pkg/vendor/github.com/stretchr/testify/assert",
+            "numGoFiles": 6,
+            "numImportedGoFiles": 9,
+            "importedFrom": [
+                "github.com/palantir/pkg/httpserver_test"
+            ]
+        }
+    ]
+}
