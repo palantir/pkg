@@ -12,9 +12,8 @@ import (
 	"io"
 )
 
-// NewEncoder returns a new encoder that writes to a wrapper around w.
-func NewEncoder(w io.Writer) *Encoder {
-	return &Encoder{enc: json.NewEncoder(unescapedHTMLWriter{w})}
+func Encoder(w io.Writer) *json.Encoder {
+	return json.NewEncoder(unescapedHTMLWriter{w})
 }
 
 type unescapedHTMLWriter struct {

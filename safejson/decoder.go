@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build go1.7
-
 package safejson
 
 import (
@@ -11,9 +9,9 @@ import (
 	"io"
 )
 
-// Encoder returns a new *json.Encoder with SetEscapeHTML(false).
-func Encoder(w io.Writer) *json.Encoder {
-	e := json.NewEncoder(w)
-	e.SetEscapeHTML(false)
-	return e
+// Decoder returns a new *json.Decoder with UseNumber enabled.
+func Decoder(r io.Reader) *json.Decoder {
+	decoder := json.NewDecoder(r)
+	decoder.UseNumber()
+	return decoder
 }
