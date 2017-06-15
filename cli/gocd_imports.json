@@ -9,6 +9,15 @@
             ]
         },
         {
+            "path": "github.com/palantir/pkg/vendor/github.com/spf13/viper",
+            "numGoFiles": 3,
+            "numImportedGoFiles": 272,
+            "importedFrom": [
+                "github.com/palantir/pkg/cli/cliviper",
+                "github.com/palantir/pkg/cli_test"
+            ]
+        },
+        {
             "path": "github.com/palantir/pkg/vendor/golang.org/x/crypto/ssh/terminal",
             "numGoFiles": 6,
             "numImportedGoFiles": 0,
