@@ -1,7 +1,7 @@
 version: 2
 executorType: docker
 containerInfo:
-  - image: nmiyake/go:go-1.7.5-1.8.1-t35
+  - image: nmiyake/go:go-1.7.6-1.8.3-t39
     cmd: ["/bin/bash"]
 stages:
   build:
