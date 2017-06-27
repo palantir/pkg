@@ -21,3 +21,11 @@ func (p *flagValueSet) VisitAll(fn func(viper.FlagValue)) {
 		fn((*cli.Context)(p).FlagValue(currFlag.MainName()))
 	}
 }
+
+func App() cli.Option {
+	return func(app *cli.App) {
+		app.ContextOptions = append(app.ContextOptions, func(ctx *cli.Context) {
+			_ = viper.BindFlagValues(FlagValueSet(ctx))
+		})
+	}
+}
