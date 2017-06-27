@@ -14,6 +14,7 @@
             "numImportedGoFiles": 272,
             "importedFrom": [
                 "github.com/palantir/pkg/cli/cliviper",
+                "github.com/palantir/pkg/cli/cliviper_test",
                 "github.com/palantir/pkg/cli_test"
             ]
         },
@@ -33,6 +34,7 @@
             "numGoFiles": 6,
             "numImportedGoFiles": 9,
             "importedFrom": [
+                "github.com/palantir/pkg/cli/cliviper_test",
                 "github.com/palantir/pkg/cli/completion_test",
                 "github.com/palantir/pkg/cli_test"
             ]
