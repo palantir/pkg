@@ -43,7 +43,7 @@ stages:
         command: go version
       - type: shell
         name: "Install packages"
-        command: go install ./...
+        command: go install $(./godelw packages)
       - type: shell
         name: "Create test output directory"
         command: mkdir -p "/tmp/test-results/$PROJECT-$(eval "$GET_GO_VERSION")"
