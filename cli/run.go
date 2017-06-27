@@ -146,5 +146,8 @@ func runAction(ctx Context) error {
 		once.Do(onExit)
 	}()
 
+	for _, cfg := range ctx.App.ContextOptions {
+		cfg(&ctx)
+	}
 	return ctx.Command.Action(ctx)
 }
