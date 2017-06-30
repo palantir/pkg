@@ -2,7 +2,7 @@
     "imports": [
         {
             "path": "github.com/palantir/pkg/vendor/github.com/mitchellh/go-wordwrap",
-            "numGoFiles": 1,
+            "numGoFiles": 2,
             "numImportedGoFiles": 0,
             "importedFrom": [
                 "github.com/palantir/pkg/cli"
@@ -10,8 +10,8 @@
         },
         {
             "path": "github.com/palantir/pkg/vendor/github.com/spf13/viper",
-            "numGoFiles": 3,
-            "numImportedGoFiles": 272,
+            "numGoFiles": 7,
+            "numImportedGoFiles": 379,
             "importedFrom": [
                 "github.com/palantir/pkg/cli/cliviper",
                 "github.com/palantir/pkg/cli/cliviper_test",
@@ -20,8 +20,8 @@
         },
         {
             "path": "github.com/palantir/pkg/vendor/golang.org/x/crypto/ssh/terminal",
-            "numGoFiles": 6,
-            "numImportedGoFiles": 0,
+            "numGoFiles": 8,
+            "numImportedGoFiles": 176,
             "importedFrom": [
                 "github.com/palantir/pkg/cli"
             ]
@@ -31,8 +31,8 @@
     "testOnlyImports": [
         {
             "path": "github.com/palantir/pkg/vendor/github.com/stretchr/testify/assert",
-            "numGoFiles": 6,
-            "numImportedGoFiles": 9,
+            "numGoFiles": 9,
+            "numImportedGoFiles": 19,
             "importedFrom": [
                 "github.com/palantir/pkg/cli/cliviper_test",
                 "github.com/palantir/pkg/cli/completion_test",
@@ -41,8 +41,8 @@
         },
         {
             "path": "github.com/palantir/pkg/vendor/github.com/stretchr/testify/require",
-            "numGoFiles": 5,
-            "numImportedGoFiles": 15,
+            "numGoFiles": 7,
+            "numImportedGoFiles": 28,
             "importedFrom": [
                 "github.com/palantir/pkg/cli_test"
             ]

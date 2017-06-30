@@ -4,16 +4,16 @@
     "testOnlyImports": [
         {
             "path": "github.com/palantir/pkg/vendor/github.com/stretchr/testify/assert",
-            "numGoFiles": 6,
-            "numImportedGoFiles": 9,
+            "numGoFiles": 9,
+            "numImportedGoFiles": 19,
             "importedFrom": [
                 "github.com/palantir/pkg/tlsconfig_test"
             ]
         },
         {
             "path": "github.com/palantir/pkg/vendor/github.com/stretchr/testify/require",
-            "numGoFiles": 5,
-            "numImportedGoFiles": 15,
+            "numGoFiles": 7,
+            "numImportedGoFiles": 28,
             "importedFrom": [
                 "github.com/palantir/pkg/tlsconfig_test"
             ]
