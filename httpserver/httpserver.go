@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package httpserver provides functions that are useful for HTTP servers.
 package httpserver
 
 import (
@@ -40,52 +39,60 @@ func AvailablePort() (port int, rErr error) {
 
 // URLReady returns a channel that is sent "true" when an http.Get executed against the provided URL returns a response
 // with status code http.StatusOK. This is a convenience function that calls Ready with a readyCall that consists of
-// sending a GET request to the provided URL and a readyResp that returns true on a 200 status.
-func URLReady(url string, timeout time.Duration) <-chan bool {
+// sending a GET request using the default HTTP client to the provided URL.
+func URLReady(url string, params ...ReadyParam) <-chan bool {
 	return Ready(func() (*http.Response, error) {
 		return http.Get(url)
-	}, func(resp *http.Response) bool {
-		return resp.StatusCode == http.StatusOK
-	}, timeout)
+	}, params...)
 }
 
-// Ready returns a channel that is sent "true" when the provided readyCall returns a nil error. The readyCall is invoked
-// once every 100ms until it either returns a nil error or the provided timeout duration is reached, in which case
-// "false" is sent on the channel.
-//
-// Note that any call that returns a nil error for readyCall is interpreted to mean that the server is ready. For most
-// HTTP clients, any response (including a response with an error code) will result in a nil error: the error is
-// typically only non-nil if a transport-level failure occurs.
+// Ready returns a channel that is sent "true" when the provided readyCall returns a nil error and a response that
+// returns "true" when provided to readyResp. The readyCall is invoked once every tick duration until it either returns
+// a nil error and readyResp returns true for the response or the timeout duration is reached, in which case "false" is
+// sent on the channel.
 //
 // readyCall should by a function that returns quickly. At most one readyCall will be running at a particular time.
 //
-// Example:
+// ReadyRespParam is used to specify the function that should be used to check if the response returned by the readyCall
+// should be interpreted as "ready". If it is not specified, a default function that returns true if the response code
+// is 200 is used.
 //
-//   Ready(func() (*http.Response, error) {
-//     return http.Get(fmt.Sprintf("http://localhost:%d/example/ready", port))
-//   }, func(resp *http.Response) bool {
-//     return resp.StatusCode == http.StatusOK
-//   }, 5 * time.Second)
-func Ready(readyCall func() (*http.Response, error), readyResp func(*http.Response) bool, timeout time.Duration) <-chan bool {
+// ReadyRetryIntervalParam is used to specify the retry interval for the "readyCall". If it is not specified, a default
+// value of 100ms is used.
+//
+// WaitTimeoutParam is used to specify the timeout duration (the time after which the channel should return "false"). If
+// it is not specified, a default value of 5s is used.
+func Ready(readyCall func() (*http.Response, error), params ...ReadyParam) <-chan bool {
+	cfg := &readyConfig{
+		readyResp: func(resp *http.Response) bool {
+			return resp.StatusCode == http.StatusOK
+		},
+		timeout:      5 * time.Second,
+		tickDuration: 100 * time.Millisecond,
+	}
+	for _, p := range params {
+		p.config(cfg)
+	}
+
 	once := &sync.Once{}
 	done := make(chan struct{})
 
 	ready := make(chan bool)
 	go func() {
-		timeout := time.NewTimer(timeout)
+		timeout := time.NewTimer(cfg.timeout)
 		defer timeout.Stop()
 
 		// start a separate goroutine with the ticker. Done so that the possibly expensive action will not
 		// block the timeout.
 		go func() {
-			ticker := time.NewTicker(100 * time.Millisecond)
+			ticker := time.NewTicker(cfg.tickDuration)
 			defer ticker.Stop()
 			for {
 				select {
 				case <-done:
 					return
 				case <-ticker.C:
-					if resp, err := readyCall(); err == nil && readyResp(resp) {
+					if resp, err := readyCall(); err == nil && cfg.readyResp(resp) {
 						once.Do(func() {
 							ready <- true
 							close(done)
@@ -110,4 +117,38 @@ func Ready(readyCall func() (*http.Response, error), readyResp func(*http.Respon
 		}
 	}()
 	return ready
+}
+
+type ReadyParam interface {
+	config(*readyConfig)
+}
+
+type readyParam func(*readyConfig)
+
+func (p readyParam) config(cfg *readyConfig) {
+	p(cfg)
+}
+
+func ReadyRespParam(readyResp func(*http.Response) bool) ReadyParam {
+	return readyParam(func(cfg *readyConfig) {
+		cfg.readyResp = readyResp
+	})
+}
+
+func WaitTimeoutParam(t time.Duration) ReadyParam {
+	return readyParam(func(cfg *readyConfig) {
+		cfg.timeout = t
+	})
+}
+
+func ReadyRetryIntervalParam(t time.Duration) ReadyParam {
+	return readyParam(func(cfg *readyConfig) {
+		cfg.tickDuration = t
+	})
+}
+
+type readyConfig struct {
+	readyResp    func(*http.Response) bool
+	timeout      time.Duration
+	tickDuration time.Duration
 }
