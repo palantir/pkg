@@ -1,55 +1,79 @@
+working_dir: &working_dir
+  working_directory: /go/src/github.com/palantir/pkg
+
+go-version: &go-version
+  run: go version
+
+godel-cache-restore: &godel-cache-restore
+  restore_cache:
+    keys:
+      - godel-cache-{{ checksum "godelw" }}-v1
+
+godel-version: &godel-version
+  run: ./godelw version
+
+godel-cache-save: &godel-cache-save
+  save_cache:
+    key: godel-cache-{{ checksum "godelw" }}-v1
+    paths:
+      - ~/.godel
+
+define-tests-dir: &define-tests-dir
+  run: echo 'export TESTS_DIR=/tmp/test-results' >> $BASH_ENV
+
+mkdir-tests-dir: &mkdir-tests-dir
+  run: mkdir -p "${TESTS_DIR}"
+
+go-install-packages: &go-install-packages
+  run: go install $(./godelw packages)
+
+godelw-verify: &godelw-verify
+  run: ./godelw verify --junit-output="$TESTS_DIR/$CIRCLE_PROJECT_REPONAME-tests.xml"
+
+store-test-results: &store-test-results
+  type: test-results-store
+  path: /tmp/test-results
+
+store-artifacts: &store-artifacts
+  type: artifacts-store
+  path: /tmp/test-results
+  destination: test-results
+
+steps_array: &steps_array
+  - checkout
+  - *go-version
+  - *godel-cache-restore
+  - *godel-version
+  - *godel-cache-save
+  - *define-tests-dir
+  - *mkdir-tests-dir
+  - *go-install-packages
+  - *godelw-verify
+  - *store-test-results
+  - *store-artifacts
+
 version: 2
 jobs:
-  build:
-    parallelism: 2
-    working_directory: /go/src/github.com/palantir/pkg
+  go-1.9:
+    <<: *working_dir
     docker:
-      - image: nmiyake/go:go-1.7.6-1.8.3-t39
-        cmd: ["/bin/bash"]
-    environment:
-      - GET_GO_VERSION: |
-            case $CIRCLE_NODE_INDEX in
-            0)
-                echo "1.8"
-                ;;
-            1)
-                echo "1.7"
-                ;;
-            *)
-                echo "Unexpected node $CIRCLE_NODE_INDEX"
-                ;;
-            esac
-    steps:
-      - type: checkout
-      - type: cache-restore
-        key: godel-{{ checksum "godelw" }}
-      - type: shell
-        name: "Verify godel version"
-        command: ./godelw version
-      - type: cache-save
-        key: godel-{{ checksum "godelw" }}
-        paths:
-          - /root/.godel
-      - type: shell
-        name: "Set up /usr/local/go"
-        command: |
-          set -eu
-          rm /usr/local/go
-          ln -s "/usr/local/go-$(eval "$GET_GO_VERSION")" /usr/local/go
-      - type: shell
-        name: "Verify Go version"
-        command: go version
-      - type: shell
-        name: "Install packages"
-        command: go install $(./godelw packages)
-      - type: shell
-        name: "Create test output directory"
-        command: mkdir -p "/tmp/test-results/${CIRCLE_PROJECT_REPONAME}-$(eval "$GET_GO_VERSION")"
-      - type: shell
-        name: "Run godel verification"
-        command: ./godelw verify --apply=false --junit-output="/tmp/test-results/${CIRCLE_PROJECT_REPONAME}-$(eval "$GET_GO_VERSION")/${CIRCLE_PROJECT_REPONAME}-$(eval "$GET_GO_VERSION")-tests.xml"
-      - type: test-results-store
-        path: /tmp/test-results
-      - type: artifacts-store
-        path: /tmp/test-results
-        destination: test-results
+      - image: golang:1.9.0
+    steps: *steps_array
+  go-1.8:
+    <<: *working_dir
+    docker:
+      - image: golang:1.8.3
+    steps: *steps_array
+  go-1.7:
+    <<: *working_dir
+    docker:
+      - image: golang:1.7.6
+    steps: *steps_array
+
+workflows:
+  version: 2
+  build-publish:
+    jobs:
+      - go-1.9
+      - go-1.8
+      - go-1.7
