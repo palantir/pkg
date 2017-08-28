@@ -1,0 +1,49 @@
+{
+	"comment": "",
+	"ignore": "",
+	"package": [
+		{
+			"checksumSHA1": "wOWwkoZV+QPXLhOSUNoN3ebqCgM=",
+			"path": "golang.org/x/net/http2",
+			"revision": "6b27048ae5e6ad1ef927e72e437531493de612fe",
+			"revisionTime": "2017-02-17T08:49:01Z"
+		},
+		{
+			"checksumSHA1": "ArgSxXN8mmvpTbEjnSwPjkpmU5o=",
+			"path": "golang.org/x/net/http2/hpack",
+			"revision": "6b27048ae5e6ad1ef927e72e437531493de612fe",
+			"revisionTime": "2017-02-17T08:49:01Z"
+		},
+		{
+			"checksumSHA1": "n5oKv09EMGZZ9GUWdLiXZRzEsg0=",
+			"path": "golang.org/x/net/idna",
+			"revision": "6b27048ae5e6ad1ef927e72e437531493de612fe",
+			"revisionTime": "2017-02-17T08:49:01Z"
+		},
+		{
+			"checksumSHA1": "UOJDYDq9dPMJ3Re3Dc9vvbi+UI0=",
+			"path": "golang.org/x/net/lex/httplex",
+			"revision": "6b27048ae5e6ad1ef927e72e437531493de612fe",
+			"revisionTime": "2017-02-17T08:49:01Z"
+		},
+		{
+			"checksumSHA1": "GmkEZFJm52d1682FWhrW2oXQ4Mk=",
+			"path": "golang.org/x/tools/go/ast/astutil",
+			"revision": "c853fd576988aeebd3665f6224972f1379960013",
+			"revisionTime": "2017-04-20T21:57:57Z"
+		},
+		{
+			"checksumSHA1": "egGJCsLSwW0XmtHr06SujgTr2mo=",
+			"path": "golang.org/x/tools/go/buildutil",
+			"revision": "c853fd576988aeebd3665f6224972f1379960013",
+			"revisionTime": "2017-04-20T21:57:57Z"
+		},
+		{
+			"checksumSHA1": "CXcMmG44ATTo/IgFwpqu4l3iGNQ=",
+			"path": "golang.org/x/tools/go/loader",
+			"revision": "c853fd576988aeebd3665f6224972f1379960013",
+			"revisionTime": "2017-04-20T21:57:57Z"
+		}
+	],
+	"rootPath": "github.com/palantir/pkg"
+}
