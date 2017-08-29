@@ -5,6 +5,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -13,6 +14,7 @@ import (
 type Context struct {
 	App        *App
 	Command    *Command
+	Context    context.Context
 	Path       []string
 	IsTerminal func() bool
 

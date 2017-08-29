@@ -18,6 +18,7 @@ func (app *App) parse(args []string) (Context, error) {
 	ctx := Context{
 		App:     app,
 		Command: &app.Command,
+		Context: app.Context,
 		IsTerminal: func() bool {
 			return terminal.IsTerminal(int(uintptr(syscall.Stdout)))
 		},
