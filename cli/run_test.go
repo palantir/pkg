@@ -6,6 +6,7 @@ package cli_test
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"testing"
 
@@ -89,5 +90,81 @@ func TestRunErrorHandler(t *testing.T) {
 		exitCode := app.Run([]string{"testApp"})
 		assert.Equal(t, currCase.expectedExitCode, exitCode, "Case %d", i)
 		assert.Equal(t, currCase.expectedOutput, stderr.String(), "Case %d", i)
+	}
+}
+
+func TestRunContext(t *testing.T) {
+
+	var customContextFunc = func(ctx context.Context) context.Context {
+		return context.WithValue(ctx, "message", "hello")
+	}
+
+	cases := []struct {
+		name  string
+		check func(*testing.T)
+	}{
+		{
+			name: "check that context is propagated to app action",
+			check: func(t *testing.T) {
+				app := cli.NewApp()
+
+				app.ContextConfig = customContextFunc
+
+				app.Action = func(ctx cli.Context) error {
+					assert.Equal(t, "hello", ctx.Context().Value("message"))
+					return nil
+				}
+
+				app.Run([]string{"testApp"})
+			},
+		},
+		{
+			name: "check that context is propagated to app error handler",
+			check: func(t *testing.T) {
+				app := cli.NewApp()
+
+				app.ContextConfig = customContextFunc
+
+				app.ErrorHandler = func(ctx cli.Context, err error) int {
+					assert.Equal(t, "hello", ctx.Context().Value("message"))
+					return 0
+				}
+
+				app.Action = func(ctx cli.Context) error {
+					return fmt.Errorf("an error occured")
+				}
+
+				app.Run([]string{"testApp"})
+			},
+		},
+		{
+			name: "check that context is propagated to app subcommand",
+			check: func(t *testing.T) {
+				app := cli.NewApp()
+
+				app.ContextConfig = customContextFunc
+
+				app.Subcommands = []cli.Command{
+					{
+						Name: "subCommand",
+
+						Action: func(ctx cli.Context) error {
+							assert.Equal(t, "hello", ctx.Context().Value("message"))
+
+							return nil
+						},
+					},
+				}
+
+				app.Run([]string{"testApp", "subCommand"})
+			},
+		},
+	}
+
+	for i, currCase := range cases {
+
+		name := fmt.Sprintf("Case %d - %s", i, currCase.name)
+
+		t.Run(name, currCase.check)
 	}
 }

@@ -5,6 +5,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -16,10 +17,16 @@ type Context struct {
 	Path       []string
 	IsTerminal func() bool
 
+	context   context.Context
+	cancel    context.CancelFunc
 	defaults  map[string]interface{}
 	specified map[string]interface{}
 	// stores all flag values in the order they were encountered
 	allVals map[string][]interface{}
+}
+
+func (ctx *Context) Context() context.Context {
+	return ctx.context
 }
 
 func (ctx *Context) Has(name string) bool {
