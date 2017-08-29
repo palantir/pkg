@@ -15,14 +15,14 @@ import (
 
 func NewHTTPClient(timeout time.Duration, tlsConf *tls.Config) *http.Client {
 	return &http.Client{
-		Transport: newTransport(timeout, tlsConf),
+		Transport: NewTransporter(timeout, tlsConf),
 		Timeout:   timeout,
 	}
 }
 
 func NewHTTP2Client(timeout time.Duration, tlsConf *tls.Config) (*http.Client, error) {
-	tr := newTransport(timeout, tlsConf)
-	if err := http2.ConfigureTransport(tr); err != nil {
+	tr, err := NewHTTP2Transporter(timeout, tlsConf)
+	if err != nil {
 		return nil, err
 	}
 
@@ -32,7 +32,7 @@ func NewHTTP2Client(timeout time.Duration, tlsConf *tls.Config) (*http.Client, e
 	}, nil
 }
 
-func newTransport(timeout time.Duration, tlsConf *tls.Config) *http.Transport {
+func NewTransporter(timeout time.Duration, tlsConf *tls.Config) *http.Transport {
 	return &http.Transport{
 		Proxy:               http.ProxyFromEnvironment,
 		TLSClientConfig:     tlsConf,
@@ -45,4 +45,13 @@ func newTransport(timeout time.Duration, tlsConf *tls.Config) *http.Transport {
 			KeepAlive: timeout,
 		}).DialContext,
 	}
+}
+
+func NewHTTP2Transporter(timeout time.Duration, tlsConf *tls.Config) (*http.Transport, error) {
+	tr := NewTransporter(timeout, tlsConf)
+	if err := http2.ConfigureTransport(tr); err != nil {
+		return nil, err
+	}
+
+	return tr, nil
 }
