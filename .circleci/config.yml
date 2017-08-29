@@ -39,7 +39,7 @@ store-artifacts: &store-artifacts
   path: /tmp/test-results
   destination: test-results
 
-steps_array: &steps_array
+steps: &steps
   - checkout
   - *go-version
   - *godel-cache-restore
@@ -58,17 +58,12 @@ jobs:
     <<: *working_dir
     docker:
       - image: golang:1.9.0
-    steps: *steps_array
+    steps: *steps
   go-1.8:
     <<: *working_dir
     docker:
       - image: golang:1.8.3
-    steps: *steps_array
-  go-1.7:
-    <<: *working_dir
-    docker:
-      - image: golang:1.7.6
-    steps: *steps_array
+    steps: *steps
 
 workflows:
   version: 2
@@ -76,4 +71,3 @@ workflows:
     jobs:
       - go-1.9
       - go-1.8
-      - go-1.7
