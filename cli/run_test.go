@@ -95,40 +95,23 @@ func TestRunErrorHandler(t *testing.T) {
 
 func TestRunContext(t *testing.T) {
 
-	var customContext = context.WithValue(context.Background(), "message", "hello")
+	var customContextFunc = func(ctx context.Context) context.Context {
+		return context.WithValue(ctx, "message", "hello")
+	}
 
 	cases := []struct {
 		name  string
 		check func(*testing.T)
 	}{
-
-		{
-			name: "check that default app context is not nil",
-			check: func(t *testing.T) {
-				app := cli.NewApp()
-
-				assert.NotNil(t, app.Context)
-			},
-		},
-		{
-			name: "check that an app can be configured with a custom option",
-			check: func(t *testing.T) {
-				app := cli.NewApp(func(theApp *cli.App) {
-					theApp.Context = customContext
-				})
-
-				assert.Equal(t, "hello", app.Context.Value("message"))
-			},
-		},
 		{
 			name: "check that context is propagated to app action",
 			check: func(t *testing.T) {
 				app := cli.NewApp()
 
-				app.Context = customContext
+				app.ContextConfig = customContextFunc
 
 				app.Action = func(ctx cli.Context) error {
-					assert.Equal(t, "hello", ctx.Context.Value("message"))
+					assert.Equal(t, "hello", ctx.Context().Value("message"))
 					return nil
 				}
 
@@ -140,10 +123,10 @@ func TestRunContext(t *testing.T) {
 			check: func(t *testing.T) {
 				app := cli.NewApp()
 
-				app.Context = customContext
+				app.ContextConfig = customContextFunc
 
 				app.ErrorHandler = func(ctx cli.Context, err error) int {
-					assert.Equal(t, "hello", ctx.Context.Value("message"))
+					assert.Equal(t, "hello", ctx.Context().Value("message"))
 					return 0
 				}
 
@@ -159,14 +142,14 @@ func TestRunContext(t *testing.T) {
 			check: func(t *testing.T) {
 				app := cli.NewApp()
 
-				app.Context = customContext
+				app.ContextConfig = customContextFunc
 
 				app.Subcommands = []cli.Command{
 					{
 						Name: "subCommand",
 
 						Action: func(ctx cli.Context) error {
-							assert.Equal(t, "hello", ctx.Context.Value("message"))
+							assert.Equal(t, "hello", ctx.Context().Value("message"))
 
 							return nil
 						},

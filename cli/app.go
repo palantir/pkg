@@ -23,7 +23,7 @@ type App struct {
 	Manpage        *Manpage
 	Backcompat     []Backcompat
 	OnExit         OnExit
-	Context        context.Context
+	ContextConfig  func(context.Context) context.Context
 	ContextOptions []ContextOption
 }
 
@@ -33,10 +33,9 @@ type ContextOption func(*Context)
 
 func NewApp(opts ...Option) *App {
 	app := &App{
-		Stdout:  os.Stdout,
-		Stderr:  os.Stderr,
-		OnExit:  newOnExit(),
-		Context: context.Background(),
+		Stdout: os.Stdout,
+		Stderr: os.Stderr,
+		OnExit: newOnExit(),
 	}
 	for _, opt := range opts {
 		opt(app)
