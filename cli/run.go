@@ -136,6 +136,9 @@ func runAction(ctx Context) error {
 	go func() {
 		if _, ok := <-signals; ok {
 			once.Do(onExit)
+			if ctx.cancel != nil {
+				ctx.cancel()
+			}
 			os.Exit(1)
 		}
 	}()

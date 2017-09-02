@@ -5,6 +5,7 @@
 package cli
 
 import (
+	"context"
 	"io"
 	"os"
 
@@ -22,6 +23,7 @@ type App struct {
 	Manpage        *Manpage
 	Backcompat     []Backcompat
 	OnExit         OnExit
+	ContextConfig  func(context.Context) context.Context
 	ContextOptions []ContextOption
 }
 
