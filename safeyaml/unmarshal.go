@@ -11,6 +11,7 @@
 package safeyaml
 
 import (
+	"errors"
 	"fmt"
 
 	"gopkg.in/yaml.v2"
@@ -23,34 +24,50 @@ func Unmarshal(in []byte, out interface{}) error {
 	if err := yaml.Unmarshal(in, &res); err != nil {
 		return err
 	}
-	*out.(*interface{}) = cleanupMapValue(res)
+	cleaned, err := cleanupMapValue(res)
+	if err != nil {
+		return err
+	}
+	*out.(*interface{}) = cleaned
 
 	return nil
 }
 
-func cleanupInterfaceArray(in []interface{}) []interface{} {
+func cleanupInterfaceArray(in []interface{}) ([]interface{}, error) {
 	res := make([]interface{}, len(in))
 	for i, v := range in {
-		res[i] = cleanupMapValue(v)
+		cleaned, err := cleanupMapValue(v)
+		if err != nil {
+			return nil, err
+		}
+		res[i] = cleaned
 	}
-	return res
+	return res, nil
 }
 
-func cleanupInterfaceMap(in map[interface{}]interface{}) map[string]interface{} {
+func cleanupInterfaceMap(in map[interface{}]interface{}) (map[string]interface{}, error) {
 	res := make(map[string]interface{})
 	for k, v := range in {
-		res[fmt.Sprintf("%v", k)] = cleanupMapValue(v)
+		cleaned, err := cleanupMapValue(v)
+		if err != nil {
+			return nil, err
+		}
+		newKey := fmt.Sprintf("%v", k)
+		if _, exists := res[newKey]; exists {
+			return nil, errors.New(fmt.Sprintf("conflicting key %q encountered while unmarshaling yaml", newKey))
+		}
+		res[newKey] = cleaned
 	}
-	return res
+	return res, nil
 }
 
-func cleanupMapValue(v interface{}) interface{} {
+func cleanupMapValue(v interface{}) (interface{}, error) {
 	switch v := v.(type) {
 	case []interface{}:
 		return cleanupInterfaceArray(v)
 	case map[interface{}]interface{}:
 		return cleanupInterfaceMap(v)
 	default:
-		return v
+		return v, nil
 	}
 }

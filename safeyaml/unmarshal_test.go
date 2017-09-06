@@ -23,6 +23,7 @@ func TestUnmarshal(t *testing.T) {
 		name     string
 		input    string
 		expected interface{}
+		errMsg   string
 	}{
 		{
 			name:  "test unmarshal",
@@ -38,11 +39,24 @@ func TestUnmarshal(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "conflicting keys",
+			input: `top-level:
+  "5": ""
+  5: ""`,
+			errMsg: "conflicting key",
+		},
 	} {
 		var got interface{}
 		err := Unmarshal([]byte(testcase.input), &got)
-		if assert.NoError(t, err, testcase.name) {
-			assert.Equal(t, testcase.expected, got, testcase.name)
+		if testcase.errMsg == "" {
+			if assert.NoError(t, err, testcase.name) {
+				assert.Equal(t, testcase.expected, got, testcase.name)
+			}
+		} else {
+			if assert.Error(t, err, testcase.name) {
+				assert.Contains(t, err.Error(), testcase.errMsg, testcase.name)
+			}
 		}
 	}
 }
