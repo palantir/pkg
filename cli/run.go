@@ -40,7 +40,7 @@ func (app *App) Run(args []string) (exitStatus int) {
 
 	baseContext := context.Background()
 	if app.ContextConfig != nil {
-		baseContext = app.ContextConfig(baseContext)
+		baseContext = app.ContextConfig(ctx, baseContext)
 	}
 	if baseContext == nil {
 		baseContext = context.Background()

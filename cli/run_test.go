@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/palantir/pkg/cli"
+	"github.com/palantir/pkg/cli/flag"
 )
 
 func TestRunErrorOutput(t *testing.T) {
@@ -94,9 +95,20 @@ func TestRunErrorHandler(t *testing.T) {
 }
 
 func TestRunContext(t *testing.T) {
+	testFlagName := "test-flag"
+	testFlagValue := "foobar"
 
-	var customContextFunc = func(_ cli.Context, ctx context.Context) context.Context {
-		return context.WithValue(ctx, "message", "hello")
+	var customContextFunc = func(cliCtx cli.Context, ctx context.Context) context.Context {
+		for _, flag := range cliCtx.Command.Flags {
+			flagVal := cliCtx.FlagValue(flag.MainName())
+			ctx = context.WithValue(ctx, flagVal.Name(), flagVal.ValueString())
+		}
+		return ctx
+	}
+
+	var testFunc = func(ctx cli.Context) error {
+		assert.Equal(t, testFlagValue, ctx.Context().Value(testFlagName))
+		return nil
 	}
 
 	cases := []struct {
@@ -108,14 +120,17 @@ func TestRunContext(t *testing.T) {
 			check: func(t *testing.T) {
 				app := cli.NewApp()
 
-				app.ContextConfig = customContextFunc
-
-				app.Action = func(ctx cli.Context) error {
-					assert.Equal(t, "hello", ctx.Context().Value("message"))
-					return nil
+				app.Command.Flags = []flag.Flag{
+					flag.StringFlag{
+						Name: testFlagName,
+					},
 				}
 
-				app.Run([]string{"testApp"})
+				app.ContextConfig = customContextFunc
+
+				app.Action = testFunc
+
+				assert.Equal(t, 0, app.Run([]string{"testApp", "--" + testFlagName, testFlagValue}))
 			},
 		},
 		{
@@ -123,10 +138,17 @@ func TestRunContext(t *testing.T) {
 			check: func(t *testing.T) {
 				app := cli.NewApp()
 
+				app.Command.Flags = []flag.Flag{
+					flag.StringFlag{
+						Name:  testFlagName,
+						Value: "value",
+					},
+				}
+
 				app.ContextConfig = customContextFunc
 
-				app.ErrorHandler = func(ctx cli.Context, err error) int {
-					assert.Equal(t, "hello", ctx.Context().Value("message"))
+				app.ErrorHandler = func(ctx cli.Context, _ error) int {
+					testFunc(ctx)
 					return 0
 				}
 
@@ -134,7 +156,7 @@ func TestRunContext(t *testing.T) {
 					return fmt.Errorf("an error occured")
 				}
 
-				app.Run([]string{"testApp"})
+				assert.Equal(t, 0, app.Run([]string{"testApp", "--" + testFlagName, testFlagValue}))
 			},
 		},
 		{
@@ -142,21 +164,29 @@ func TestRunContext(t *testing.T) {
 			check: func(t *testing.T) {
 				app := cli.NewApp()
 
+				app.Command.Flags = []flag.Flag{
+					flag.StringFlag{
+						Name: testFlagName,
+					},
+				}
+
 				app.ContextConfig = customContextFunc
 
 				app.Subcommands = []cli.Command{
 					{
 						Name: "subCommand",
 
-						Action: func(ctx cli.Context) error {
-							assert.Equal(t, "hello", ctx.Context().Value("message"))
+						Action: testFunc,
 
-							return nil
+						Flags: []flag.Flag{
+							flag.StringFlag{
+								Name: testFlagName,
+							},
 						},
 					},
 				}
 
-				app.Run([]string{"testApp", "subCommand"})
+				assert.Equal(t, 0, app.Run([]string{"testApp", "subCommand", "--" + testFlagName, testFlagValue}))
 			},
 		},
 	}
