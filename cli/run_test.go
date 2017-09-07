@@ -148,7 +148,7 @@ func TestRunContext(t *testing.T) {
 				app.ContextConfig = customContextFunc
 
 				app.ErrorHandler = func(ctx cli.Context, _ error) int {
-					testFunc(ctx)
+					assert.NoError(t, testFunc(ctx))
 					return 0
 				}
 
