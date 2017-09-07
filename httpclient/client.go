@@ -13,7 +13,7 @@ import (
 	"golang.org/x/net/http2"
 )
 
-// Provides you with an http client that is configured with the NewTransporter.
+// NewHTTPClient provides you with an http client that is configured with the NewTransporter.
 func NewHTTPClient(timeout time.Duration, tlsConf *tls.Config) *http.Client {
 	return &http.Client{
 		Transport: NewTransporter(timeout, tlsConf),
@@ -21,7 +21,7 @@ func NewHTTPClient(timeout time.Duration, tlsConf *tls.Config) *http.Client {
 	}
 }
 
-// Provides you with an http2 client that is configured with the NewTransporter.
+// NewHTTP2Client provides you with an http2 client that is configured with the NewTransporter.
 func NewHTTP2Client(timeout time.Duration, tlsConf *tls.Config) (*http.Client, error) {
 	tr, err := NewHTTP2Transporter(timeout, tlsConf)
 	if err != nil {
@@ -34,7 +34,7 @@ func NewHTTP2Client(timeout time.Duration, tlsConf *tls.Config) (*http.Client, e
 	}, nil
 }
 
-// Configures a transporter that ensures you are never stuck in an infinite timeout
+// NewTransporter configures a transporter that ensures you are never stuck in an infinite timeout
 // and ensures that you don't leak connections. For example, your connection can get stuck
 // in Dial forever even if you have a client timeout set, so this transport ensures that never happens.
 func NewTransporter(timeout time.Duration, tlsConf *tls.Config) *http.Transport {
@@ -52,7 +52,7 @@ func NewTransporter(timeout time.Duration, tlsConf *tls.Config) *http.Transport 
 	}
 }
 
-// Same as NewTransporter but also configures it for HTTP2 connections.
+// NewHTTP2Transporter is the same as NewTransporter but also configures it for HTTP2 connections.
 func NewHTTP2Transporter(timeout time.Duration, tlsConf *tls.Config) (*http.Transport, error) {
 	tr := NewTransporter(timeout, tlsConf)
 	if err := http2.ConfigureTransport(tr); err != nil {
