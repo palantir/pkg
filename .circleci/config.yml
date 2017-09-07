@@ -30,6 +30,9 @@ go-install-packages: &go-install-packages
 godelw-verify: &godelw-verify
   run: ./godelw verify --junit-output="$TESTS_DIR/$CIRCLE_PROJECT_REPONAME-tests.xml"
 
+godelw-test: &godelw-test
+  run: ./godelw test --junit-output="$TESTS_DIR/$CIRCLE_PROJECT_REPONAME-tests.xml"
+
 store-test-results: &store-test-results
   type: test-results-store
   path: /tmp/test-results
@@ -39,31 +42,40 @@ store-artifacts: &store-artifacts
   path: /tmp/test-results
   destination: test-results
 
-steps: &steps
-  - checkout
-  - *go-version
-  - *godel-cache-restore
-  - *godel-version
-  - *godel-cache-save
-  - *define-tests-dir
-  - *mkdir-tests-dir
-  - *go-install-packages
-  - *godelw-verify
-  - *store-test-results
-  - *store-artifacts
-
 version: 2
 jobs:
   go-1.9:
     <<: *working_dir
     docker:
       - image: golang:1.9.0
-    steps: *steps
+    steps:
+      - checkout
+      - *go-version
+      - *godel-cache-restore
+      - *godel-version
+      - *godel-cache-save
+      - *define-tests-dir
+      - *mkdir-tests-dir
+      - *go-install-packages
+      - *godelw-verify
+      - *store-test-results
+      - *store-artifacts
   go-1.8:
     <<: *working_dir
     docker:
       - image: golang:1.8.3
-    steps: *steps
+    steps:
+      - checkout
+      - *go-version
+      - *godel-cache-restore
+      - *godel-version
+      - *godel-cache-save
+      - *define-tests-dir
+      - *mkdir-tests-dir
+      - *go-install-packages
+      - *godelw-test
+      - *store-test-results
+      - *store-artifacts
 
 workflows:
   version: 2
