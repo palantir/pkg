@@ -28,11 +28,12 @@ func (app *App) parse(args []string) (Context, error) {
 	}
 
 	baseContext := context.Background()
-
 	if app.ContextConfig != nil {
 		baseContext = app.ContextConfig(baseContext)
 	}
-
+	if baseContext == nil {
+		baseContext = context.Background()
+	}
 	ctx.context, ctx.cancel = context.WithCancel(baseContext)
 
 	args = args[1:] // skip name of binary
