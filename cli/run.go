@@ -5,6 +5,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"os"
 	"os/signal"

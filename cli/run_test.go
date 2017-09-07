@@ -95,7 +95,7 @@ func TestRunErrorHandler(t *testing.T) {
 
 func TestRunContext(t *testing.T) {
 
-	var customContextFunc = func(_ Context, ctx context.Context) context.Context {
+	var customContextFunc = func(_ cli.Context, ctx context.Context) context.Context {
 		return context.WithValue(ctx, "message", "hello")
 	}
 

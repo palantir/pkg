@@ -5,7 +5,6 @@
 package cli
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"syscall"
