@@ -36,6 +36,15 @@ func (app *App) Run(args []string) (exitStatus int) {
 		printVersion(ctx)
 		return 0
 	}
+
+	baseContext := context.Background()
+
+	if app.ContextConfig != nil {
+		baseContext = app.ContextConfig(ctx, baseContext)
+	}
+
+	ctx.context, ctx.cancel = context.WithCancel(baseContext)
+
 	if ctx.Bool(helpFlag.MainName()) {
 		ctx.PrintHelp(app.Stdout)
 		return 0

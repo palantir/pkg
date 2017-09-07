@@ -23,7 +23,7 @@ type App struct {
 	Manpage        *Manpage
 	Backcompat     []Backcompat
 	OnExit         OnExit
-	ContextConfig  func(context.Context) context.Context
+	ContextConfig  func(Context, context.Context) context.Context
 	ContextOptions []ContextOption
 }
 

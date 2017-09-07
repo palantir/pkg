@@ -27,14 +27,6 @@ func (app *App) parse(args []string) (Context, error) {
 		allVals:   map[string][]interface{}{},
 	}
 
-	baseContext := context.Background()
-
-	if app.ContextConfig != nil {
-		baseContext = app.ContextConfig(baseContext)
-	}
-
-	ctx.context, ctx.cancel = context.WithCancel(baseContext)
-
 	args = args[1:] // skip name of binary
 	fillDefaults(&ctx)
 	for {
