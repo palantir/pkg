@@ -5,7 +5,6 @@
 package cli
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"syscall"
@@ -26,15 +25,6 @@ func (app *App) parse(args []string) (Context, error) {
 		specified: map[string]interface{}{},
 		allVals:   map[string][]interface{}{},
 	}
-
-	baseContext := context.Background()
-	if app.ContextConfig != nil {
-		baseContext = app.ContextConfig(baseContext)
-	}
-	if baseContext == nil {
-		baseContext = context.Background()
-	}
-	ctx.context, ctx.cancel = context.WithCancel(baseContext)
 
 	args = args[1:] // skip name of binary
 	fillDefaults(&ctx)
