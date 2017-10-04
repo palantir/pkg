@@ -82,6 +82,7 @@ func configureTLSConfig(cfgs ...configurer) (*tls.Config, error) {
 		MinVersion:               tls.VersionTLS12,
 		PreferServerCipherSuites: true,
 		CipherSuites:             defaultCipherSuites,
+		Renegotiation:            tls.RenegotiateNever,
 	}
 	for _, currCfg := range cfgs {
 		if err := currCfg(tlsCfg); err != nil {
