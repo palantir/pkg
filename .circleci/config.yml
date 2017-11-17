@@ -47,7 +47,7 @@ jobs:
   go-1.9:
     <<: *working_dir
     docker:
-      - image: golang:1.9.0
+      - image: golang:1.9.2
     steps:
       - checkout
       - *go-version
@@ -63,7 +63,7 @@ jobs:
   go-1.8:
     <<: *working_dir
     docker:
-      - image: golang:1.8.3
+      - image: golang:1.8.5
     steps:
       - checkout
       - *go-version
