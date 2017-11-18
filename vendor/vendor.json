@@ -1,0 +1,19 @@
+{
+	"comment": "",
+	"ignore": "",
+	"package": [
+		{
+			"checksumSHA1": "YScFYICe3s3A7F3EiCS0kAWNtqI=",
+			"path": "github.com/pkg/errors",
+			"revision": "06d0ff92304f326db9df7094a319fac592b029a9",
+			"revisionTime": "2016-10-02T05:18:18Z"
+		},
+		{
+			"checksumSHA1": "S+zah21fDVOvqz9bD5oAWjM/BhU=",
+			"path": "github.com/spf13/cobra",
+			"revision": "2da4a54c5ceefcee7ca5dd0eea1e18a3b6366489",
+			"revisionTime": "2017-11-02T15:22:38Z"
+		}
+	],
+	"rootPath": "github.com/palantir/pkg"
+}
