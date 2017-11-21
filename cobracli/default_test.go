@@ -152,7 +152,7 @@ func TestExecuteWithDefaultParams(t *testing.T) {
 				tc.configure(rootCmd)
 			}
 
-			rv := cobracli.ExecuteWithDefaultParams(rootCmd, tc.debugVar, tc.version)
+			rv := cobracli.ExecuteWithDefaultParamsWithVersion(rootCmd, tc.debugVar, tc.version)
 			require.Equal(t, tc.wantRV, rv, "Case %d: %s", i, tc.name)
 
 			switch val := tc.wantOutput.(type) {

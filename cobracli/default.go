@@ -9,9 +9,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// ExecuteWithDefaultParams executes the provided root command using the parameters returned by DefaultParams. Typical
-// usage is "os.Exit(cobracli.ExecuteWithDefaultParams(...))" in a main function.
-func ExecuteWithDefaultParams(rootCmd *cobra.Command, debugVar *bool, version string) int {
+var version = "unspecified"
+
+// ExecuteWithDefaultParams executes the provided root command using the parameters returned by DefaultParams. This
+// function also adds a "version command that prints the value of the "version" variable of this package. The value of
+// this version variable should be set using build flags. Typical usage is
+// "os.Exit(cobracli.ExecuteWithDefaultParams(...))" in a main function.
+func ExecuteWithDefaultParams(rootCmd *cobra.Command, debugVar *bool) int {
+	return ExecuteWithDefaultParamsWithVersion(rootCmd, debugVar, version)
+}
+
+// ExecuteWithDefaultParamsWithVersion executes the provided root command using the parameters returned by
+// DefaultParams. Typical usage is "os.Exit(cobracli.ExecuteWithDefaultParamsWithVersion(...))" in a main function.
+func ExecuteWithDefaultParamsWithVersion(rootCmd *cobra.Command, debugVar *bool, version string) int {
 	return Execute(rootCmd, DefaultParams(debugVar, version)...)
 }
 
