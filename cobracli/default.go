@@ -9,14 +9,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var version = "unspecified"
+var Version = "unspecified"
 
 // ExecuteWithDefaultParams executes the provided root command using the parameters returned by DefaultParams. This
 // function also adds a "version command that prints the value of the "version" variable of this package. The value of
 // this version variable should be set using build flags. Typical usage is
 // "os.Exit(cobracli.ExecuteWithDefaultParams(...))" in a main function.
 func ExecuteWithDefaultParams(rootCmd *cobra.Command, debugVar *bool) int {
-	return ExecuteWithDefaultParamsWithVersion(rootCmd, debugVar, version)
+	return ExecuteWithDefaultParamsWithVersion(rootCmd, debugVar, Version)
 }
 
 // ExecuteWithDefaultParamsWithVersion executes the provided root command using the parameters returned by
