@@ -6,6 +6,7 @@ package cobracli
 
 import (
 	"fmt"
+	"io/ioutil"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -92,6 +93,58 @@ func ErrorPrinterWithDebugHandler(debugVar *bool, debugErrTransform func(error) 
 		}
 		command.Println("Error:", errStr)
 	}
+}
+
+// PrintUsageOnRequiredFlagErrorHandlerDecorator decorates the provided error handler to add functionality that prints
+// the command usage if the error that occurred was due to a required flag not being specified. This handler first
+// processes the error using the provided handler. Then, it examines the string returned by the Error() function of the
+// error to determine if it matches the form of an error that indicates that a required flag was missing. If so, the
+// usage string of the command is printed.
+func PrintUsageOnRequiredFlagErrorHandlerDecorator(fn func(*cobra.Command, error)) func(*cobra.Command, error) {
+	return func(command *cobra.Command, err error) {
+		// allow inner handler to process first
+		fn(command, err)
+
+		if !isRequiredFlagError(err) {
+			return
+		}
+		// if error was a required flags error, print usage
+		command.Println(strings.TrimSuffix(command.UsageString(), "\n"))
+	}
+}
+
+// isRequiredFlagError returns true if the provided error is of the form returned when a required flag is not specified,
+// false otherwise.
+func isRequiredFlagError(inErr error) bool {
+	if inErr == nil || inErr.Error() == "" {
+		return false
+	}
+
+	// create a dummy command, set it to require a flag, execute it without a flag and parse the error output
+	cmd := &cobra.Command{
+		Run:           func(cmd *cobra.Command, args []string) {},
+		SilenceErrors: true,
+		SilenceUsage:  true,
+	}
+	cmd.SetOutput(ioutil.Discard)
+	const dummyFlagName = "dummy-flag-name"
+	cmd.Flags().Bool(dummyFlagName, false, "")
+	_ = cmd.MarkFlagRequired(dummyFlagName)
+	cmd.SetArgs([]string{})
+	err := cmd.Execute()
+	flagErrStr := err.Error()
+	idx := strings.Index(flagErrStr, dummyFlagName)
+	if idx == -1 {
+		return false
+	}
+
+	// determine prefix and suffix of missing required flag error
+	prefix := flagErrStr[:idx]
+	suffix := flagErrStr[idx+len(dummyFlagName):]
+
+	// if provided error has same prefix and suffix as missing flag error, treat it as a missing flag error
+	inErrStr := inErr.Error()
+	return strings.HasPrefix(inErrStr, prefix) && strings.HasSuffix(inErrStr, suffix)
 }
 
 // ConfigureCmdParam adds the provided configuration function to the executor. All of the configuration functions on the

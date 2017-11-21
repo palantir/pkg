@@ -6,7 +6,6 @@ package cobracli_test
 
 import (
 	"bytes"
-	"os"
 	"regexp"
 	"testing"
 
@@ -22,7 +21,8 @@ func TestExecuteWithDefaultParams(t *testing.T) {
 	for i, tc := range []struct {
 		name       string
 		runE       func(cmd *cobra.Command, args []string) error
-		osArgs     []string
+		configure  func(cmd *cobra.Command)
+		args       []string
 		debugVar   *bool
 		version    string
 		wantRV     int
@@ -36,6 +36,7 @@ func TestExecuteWithDefaultParams(t *testing.T) {
 			},
 			nil,
 			nil,
+			nil,
 			"",
 			0,
 			"hello, world!\n",
@@ -46,7 +47,8 @@ func TestExecuteWithDefaultParams(t *testing.T) {
 				cmd.Println("hello, world!")
 				return nil
 			},
-			[]string{os.Args[0], "--invalid-flag"},
+			nil,
+			[]string{"--invalid-flag"},
 			nil,
 			"",
 			1,
@@ -59,6 +61,7 @@ func TestExecuteWithDefaultParams(t *testing.T) {
 			},
 			nil,
 			nil,
+			nil,
 			"",
 			1,
 			"Error: hello-error\n",
@@ -69,17 +72,19 @@ func TestExecuteWithDefaultParams(t *testing.T) {
 				return errors.Errorf("hello-error")
 			},
 			nil,
+			nil,
 			boolVar(true),
 			"",
 			1,
-			regexp.MustCompile("Error: hello-error\n\tgithub.com/palantir/pkg/cobracli_test.TestExecuteWithDefaultParams.+"),
+			regexp.MustCompile("^Error: hello-error\n\tgithub.com/palantir/pkg/cobracli_test.TestExecuteWithDefaultParams.+"),
 		},
 		{
 			"version command prints version",
 			func(cmd *cobra.Command, args []string) error {
 				return errors.Errorf("hello-error")
 			},
-			[]string{os.Args[0], "version"},
+			nil,
+			[]string{"version"},
 			nil,
 			"1.0.0",
 			0,
@@ -91,11 +96,48 @@ func TestExecuteWithDefaultParams(t *testing.T) {
 				cmd.Println(args)
 				return nil
 			},
-			[]string{os.Args[0], "version"},
+			nil,
+			[]string{"version"},
 			nil,
 			"",
 			0,
 			"[version]\n",
+		},
+		{
+			"print usage when required flag is not provided",
+			func(cmd *cobra.Command, args []string) error {
+				cmd.Println(args)
+				return nil
+			},
+			func(cmd *cobra.Command) {
+				cmd.Flags().Bool("required-flag", false, "")
+				_ = cmd.MarkFlagRequired("required-flag")
+			},
+			nil,
+			nil,
+			"",
+			1,
+			regexp.MustCompile(`(?s)^Error: .+` + "\nUsage:\n  my-app " + regexp.QuoteMeta(`[flags]`) + "\n\nFlags:\n  -h, --help            help for my-app\n      --required-flag\n$"),
+		},
+		{
+			"subcommand required flag error prints help for subcommand",
+			nil,
+			func(cmd *cobra.Command) {
+				subCmd := &cobra.Command{
+					Use: "subcmd",
+					Run: func(cmd *cobra.Command, args []string) {
+						cmd.Println("in subcommand")
+					},
+				}
+				subCmd.Flags().Bool("sub-req-flag", false, "")
+				_ = subCmd.MarkFlagRequired("sub-req-flag")
+				cmd.AddCommand(subCmd)
+			},
+			[]string{"subcmd"},
+			nil,
+			"",
+			1,
+			regexp.MustCompile(`(?s)^Error: .+` + "\nUsage:\n  my-app subcmd " + regexp.QuoteMeta(`[flags]`) + "\n\nFlags:\n  -h, --help           help for subcmd\n      --sub-req-flag\n$"),
 		},
 	} {
 		func() {
@@ -105,14 +147,11 @@ func TestExecuteWithDefaultParams(t *testing.T) {
 				RunE: tc.runE,
 			}
 			rootCmd.SetOutput(outBuf)
-
-			if tc.osArgs != nil {
-				origArgs := os.Args
-				os.Args = tc.osArgs
-				defer func() {
-					os.Args = origArgs
-				}()
+			rootCmd.SetArgs(tc.args)
+			if tc.configure != nil {
+				tc.configure(rootCmd)
 			}
+
 			rv := cobracli.ExecuteWithDefaultParams(rootCmd, tc.debugVar, tc.version)
 			require.Equal(t, tc.wantRV, rv, "Case %d: %s", i, tc.name)
 

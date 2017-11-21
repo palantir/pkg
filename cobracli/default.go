@@ -24,7 +24,9 @@ func ExecuteWithDefaultParams(rootCmd *cobra.Command, debugVar *bool, version st
 //   while parsing flags. This makes it such that errors that occur due to invalid flags do print the usage.
 // * Registers an error printer that prints top-level errors as "Error: <error.Error()>" unless <error.Error()> is the
 //   empty string, in which case no error is printed. If the "debugVar" pointer is non-nil and its underlying value is
-//   true, then <error.Error()> is printed as a full verbose stack trace if it is a pkg/errors error.
+//   true, then <error.Error()> is printed as a full verbose stack trace if it is a pkg/errors error. This printer is
+//   also configured to print the usage output for a command if the command returns an error that indicates that a
+//   required flag was not provided.
 // * If the provided version is non-empty, adds a "version" command that prints the version of the application in the
 //   form "<rootCmd.Use> version <version>".
 func DefaultParams(debugVar *bool, version string) []Param {
@@ -36,7 +38,7 @@ func DefaultParams(debugVar *bool, version string) []Param {
 		// set error handler that prints "Error: <error content>" (unless error content is empty, in which case nothing
 		// is printed). If the value of the provided debug boolean pointer is true, then if the error is a pkg/errors
 		// error, the full stack trace is printed.
-		ErrorHandlerParam(ErrorPrinterWithDebugHandler(debugVar, errorstringer.StackWithInterleavedMessages)),
+		ErrorHandlerParam(PrintUsageOnRequiredFlagErrorHandlerDecorator(ErrorPrinterWithDebugHandler(debugVar, errorstringer.StackWithInterleavedMessages))),
 	}
 	if version != "" {
 		params = append(params,
