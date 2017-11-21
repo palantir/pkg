@@ -9,10 +9,10 @@
 			"revisionTime": "2016-10-02T05:18:18Z"
 		},
 		{
-			"checksumSHA1": "S+zah21fDVOvqz9bD5oAWjM/BhU=",
+			"checksumSHA1": "OLhJf7kqvMR1oHXye8orEE2oJ/8=",
 			"path": "github.com/spf13/cobra",
-			"revision": "2da4a54c5ceefcee7ca5dd0eea1e18a3b6366489",
-			"revisionTime": "2017-11-02T15:22:38Z"
+			"revision": "19e54c4a2b8a78c9d54b2bed61b1a6c5e1bfcf6f",
+			"revisionTime": "2017-11-19T09:22:51Z"
 		}
 	],
 	"rootPath": "github.com/palantir/pkg"
