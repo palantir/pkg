@@ -26,7 +26,7 @@ func Execute(rootCmd *cobra.Command, params ...Param) int {
 		configureCmd(rootCmd)
 	}
 
-	err := rootCmd.Execute()
+	executedCmd, err := rootCmd.ExecuteC()
 	if err == nil {
 		// command ran successfully: return 0
 		return 0
@@ -34,7 +34,7 @@ func Execute(rootCmd *cobra.Command, params ...Param) int {
 
 	// print error if error-printing function is defined
 	if executor.errorHandler != nil {
-		executor.errorHandler(rootCmd, err)
+		executor.errorHandler(executedCmd, err)
 	}
 
 	// extract custom exit code if exit code extractor is defined
@@ -61,16 +61,16 @@ func (f paramFunc) apply(e *executor) {
 	f(e)
 }
 
-// ExitCodeExtractorParam sets the exit code extractor function for the executor. If the root command returns an error,
-// the error is provided to the function and the code returned by the extractor is used as the exit code.
+// ExitCodeExtractorParam sets the exit code extractor function for the executor. If executing the root command returns
+// an error, the error is provided to the function and the code returned by the extractor is used as the exit code.
 func ExitCodeExtractorParam(extractor func(error) int) Param {
 	return paramFunc(func(executor *executor) {
 		executor.exitCodeExtractor = extractor
 	})
 }
 
-// ErrorHandlerParam sets the error handler for the command. If the root command returns and error, it is provided to
-// the error handler for processing.
+// ErrorHandlerParam sets the error handler for the command. If executing the root command returns an error, the command
+// that was executed is provided to the error handler.
 func ErrorHandlerParam(handler func(*cobra.Command, error)) Param {
 	return paramFunc(func(executor *executor) {
 		executor.errorHandler = handler
