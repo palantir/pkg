@@ -21,6 +21,7 @@ func TestNewServerConfig(t *testing.T) {
 		clientCAFiles []string
 		authType      tls.ClientAuthType
 		cipherSuites  []uint16
+		nextProtos    []string
 	}{
 		{
 			name: "defaults",
@@ -41,12 +42,19 @@ func TestNewServerConfig(t *testing.T) {
 				tls.TLS_RSA_WITH_AES_256_CBC_SHA,
 			},
 		},
+		{
+			name: "nextProtos specified",
+			nextProtos: []string{
+				"http/1.1",
+			},
+		},
 	} {
 		cfg, err := tlsconfig.NewServerConfig(
 			tlsconfig.TLSCertFromFiles(serverCertFile, serverKeyFile),
 			tlsconfig.ServerClientCAFiles(currCase.clientCAFiles...),
 			tlsconfig.ServerClientAuthType(currCase.authType),
 			tlsconfig.ServerCipherSuites(currCase.cipherSuites...),
+			tlsconfig.ServerNextProtos(currCase.nextProtos...),
 		)
 		require.NoError(t, err)
 		assert.NotNil(t, cfg, "Case %d: %s", currCaseNum, currCase.name)
