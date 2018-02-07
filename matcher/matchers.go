@@ -9,6 +9,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"runtime"
 )
 
 type Matcher interface {
@@ -88,11 +89,12 @@ type nameMatcher []*regexp.Regexp
 
 func (m nameMatcher) Match(inputRelPath string) bool {
 	for _, currSubpath := range allSubpaths(inputRelPath) {
-		currName := path.Base(currSubpath)
+		currName := filepath.Base(currSubpath)
 		// do not match relative path components
 		if currName == ".." {
 			continue
 		}
+
 		for _, currRegExp := range []*regexp.Regexp(m) {
 			matchLoc := currRegExp.FindStringIndex(currName)
 			if len(matchLoc) > 0 && matchLoc[0] == 0 && matchLoc[1] == len(currName) {
@@ -109,13 +111,22 @@ func (m nameMatcher) Match(inputRelPath string) bool {
 // filepath.Match). However, unlike filepath.Match, subpath matches will match all of the sub-paths of a given match as
 // well (for example, the pattern "foo/*/bar" matches "foo/*/bar/baz").
 func Path(paths ...string) Matcher {
-	return &pathMatcher{paths: paths, glob: true}
+	return newPathMatcher(paths, true)
 }
 
 // PathLiteral returns a Matcher that is equivalent to that returned by Paths except that matches are done using string
 // equality rather than using glob matching.
 func PathLiteral(paths ...string) Matcher {
-	return &pathMatcher{paths: paths, glob: false}
+	return newPathMatcher(paths, false)
+}
+
+func newPathMatcher(paths []string, glob bool) Matcher {
+	if runtime.GOOS == "windows" {
+		for i, p := range paths {
+			paths[i] = filepath.ToSlash(p)
+		}
+	}
+	return &pathMatcher{paths: paths, glob: glob}
 }
 
 type pathMatcher struct {
@@ -130,7 +141,7 @@ func (m *pathMatcher) Match(inputRelPath string) bool {
 			var match bool
 			if m.glob {
 				var err error
-				match, err = filepath.Match(currMatcherPath, currSubpath)
+				match, err = path.Match(currMatcherPath, currSubpath)
 				if err != nil {
 					// only possible error is bad pattern
 					panic(fmt.Sprintf("filepath: Match(%q): %v", currMatcherPath, err))
@@ -151,12 +162,12 @@ func (m *pathMatcher) Match(inputRelPath string) bool {
 // paths as well: a path of the form "../foo/bar/baz.txt" returns [../foo/bar/baz.txt ../foo/bar ../foo ..]. Returns nil
 // if the input path is not a relative path.
 func allSubpaths(relPath string) []string {
-	if path.IsAbs(relPath) {
+	if filepath.IsAbs(relPath) {
 		return nil
 	}
 	var subpaths []string
-	for currRelPath := relPath; currRelPath != "."; currRelPath = path.Dir(currRelPath) {
-		subpaths = append(subpaths, currRelPath)
+	for currRelPath := relPath; currRelPath != "." && currRelPath != string(filepath.Separator); currRelPath = filepath.Dir(currRelPath) {
+		subpaths = append(subpaths, filepath.ToSlash(currRelPath))
 	}
 	return subpaths
 }

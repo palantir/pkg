@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/palantir/pkg/osutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -57,12 +58,12 @@ func TestNewClientConfigErrors(t *testing.T) {
 		{
 			name:      "missing certificate file",
 			keyFile:   clientKeyFile,
-			wantError: "failed to load TLS certificate: open : no such file or directory",
+			wantError: "failed to load TLS certificate: open : " + osutil.GetNoSuchFileOrDirErrorMsg(),
 		},
 		{
 			name:      "missing key file",
 			certFile:  clientCertFile,
-			wantError: "failed to load TLS certificate: open : no such file or directory",
+			wantError: "failed to load TLS certificate: open : " + osutil.GetNoSuchFileOrDirErrorMsg(),
 		},
 		{
 			name:     "invalid CA file",
