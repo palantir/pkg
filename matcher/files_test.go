@@ -7,7 +7,7 @@ package matcher_test
 import (
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"testing"
 
 	"github.com/nmiyake/pkg/dirs"
@@ -67,6 +67,10 @@ func TestListFiles(t *testing.T) {
 		got, err := matcher.ListFiles(currCaseTmpDir, currCase.include, currCase.exclude)
 		require.NoError(t, err, "Case %d", i)
 
+		for i, want := range currCase.want {
+			currCase.want[i] = filepath.FromSlash(want)
+		}
+
 		assert.Equal(t, currCase.want, got, "Case %d", i)
 	}
 }
@@ -76,10 +80,10 @@ func createFiles(t *testing.T, tmpDir string, files map[string]string) string {
 	require.NoError(t, err)
 
 	for currFile, currContent := range files {
-		err := os.MkdirAll(path.Join(currCaseTmpDir, path.Dir(currFile)), 0755)
+		err := os.MkdirAll(filepath.Join(currCaseTmpDir, filepath.Dir(currFile)), 0755)
 		require.NoError(t, err)
 
-		err = ioutil.WriteFile(path.Join(currCaseTmpDir, currFile), []byte(currContent), 0644)
+		err = ioutil.WriteFile(filepath.Join(currCaseTmpDir, currFile), []byte(currContent), 0644)
 		require.NoError(t, err)
 	}
 

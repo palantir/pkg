@@ -9,7 +9,8 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path"
+	"path/filepath"
+	"runtime"
 	"syscall"
 	"testing"
 
@@ -66,14 +67,18 @@ func runGoFile(t *testing.T, src string) ([]byte, error) {
 		}
 	}()
 
-	err = ioutil.WriteFile(path.Join(tmpDir, "test_cli.go"), []byte(src), 0644)
+	err = ioutil.WriteFile(filepath.Join(tmpDir, "test_cli.go"), []byte(src), 0644)
 	require.NoError(t, err)
 
-	buildCmd := exec.Command("go", "build", "-o", "test-cli", ".")
+	binName := "test-cli"
+	if runtime.GOOS == "windows" {
+		binName += ".exe"
+	}
+	buildCmd := exec.Command("go", "build", "-o", binName, ".")
 	buildCmd.Dir = tmpDir
 	output, err := buildCmd.CombinedOutput()
 	require.NoError(t, err, "%v failed: %s", buildCmd.Args, string(output))
 
-	testCLICmd := exec.Command(path.Join(tmpDir, "test-cli"))
+	testCLICmd := exec.Command(filepath.Join(tmpDir, binName))
 	return testCLICmd.CombinedOutput()
 }

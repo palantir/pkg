@@ -5,9 +5,10 @@
 package specdir_test
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"regexp"
 	"testing"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/palantir/pkg/osutil"
 	"github.com/palantir/pkg/specdir"
 )
 
@@ -40,7 +42,7 @@ func TestValidateSpec(t *testing.T) {
 		{
 			dirToValidate: "root",
 			spec:          specdir.NewLayoutSpec(specdir.Dir(specdir.LiteralName("root"), ""), true),
-			expectedError: `^.+/root does not exist$`,
+			expectedError: fmt.Sprintf(`^.+%s does not exist$`, osutil.MakeValidRegexPath("/root")),
 		},
 		{
 			dirToValidate: "rootNotPartOfSpec",
@@ -90,7 +92,10 @@ func TestValidateSpec(t *testing.T) {
 				"dirWithWrongChildType":       specdir.DirPath,
 				"dirWithWrongChildType/child": specdir.FilePath,
 			},
-			expectedError: `^isDir for dirWithWrongChildType/child returned wrong value: expected true, was false$`,
+			expectedError: fmt.Sprintf(
+				`^isDir for %s returned wrong value: expected true, was false$`,
+				osutil.MakeValidRegexPath("dirWithWrongChildType/child"),
+			),
 		},
 		{
 			dirToValidate: "templateKeyName",
@@ -124,7 +129,7 @@ func TestValidateSpec(t *testing.T) {
 		require.NoError(t, err)
 
 		createDirectoryStructure(t, currCaseTmpDir, currCase.pathsToCreate)
-		err = currCase.spec.Validate(path.Join(currCaseTmpDir, currCase.dirToValidate), currCase.values)
+		err = currCase.spec.Validate(filepath.Join(currCaseTmpDir, currCase.dirToValidate), currCase.values)
 		if currCase.expectedError == "" {
 			assert.NoError(t, err, "Case %d", i)
 		} else {
@@ -160,7 +165,10 @@ func TestCreateDirectoryStructure(t *testing.T) {
 			expectedPaths: map[string]specdir.PathType{
 				"root": specdir.DirPath,
 			},
-			expectedError: `^.+/wrongName is not a path to root$`,
+			expectedError: fmt.Sprintf(
+				`^.+%s is not a path to root$`,
+				osutil.MakeValidRegexPath("/wrongName"),
+			),
 		},
 		{
 			rootDirForCreation: "rootNotPartOfSpec",
@@ -214,7 +222,12 @@ func TestCreateDirectoryStructure(t *testing.T) {
 				specdir.Dir(specdir.LiteralName("child"), ""),
 			), true),
 			includeOptional: true,
-			expectedError:   `^failed to create directory .+/failIfFileExistsWhereDirToBeCreated/child: mkdir .*/failIfFileExistsWhereDirToBeCreated/child: not a directory$`,
+			expectedError: fmt.Sprintf(
+				`^failed to create directory .+%s: mkdir .*%s: %s$`,
+				osutil.MakeValidRegexPath("/failIfFileExistsWhereDirToBeCreated/child"),
+				osutil.MakeValidRegexPath("/failIfFileExistsWhereDirToBeCreated/child"),
+				osutil.GetNotADirErrorMsg(),
+			),
 		},
 		{
 			rootDirForCreation: "okIfDirAlreadyExists",
@@ -230,7 +243,7 @@ func TestCreateDirectoryStructure(t *testing.T) {
 		currCaseTmpDir, err := ioutil.TempDir(tmpDir, "")
 		require.NoError(t, err)
 
-		rootForCreation := path.Join(currCaseTmpDir, currCase.rootDirForCreation)
+		rootForCreation := filepath.Join(currCaseTmpDir, currCase.rootDirForCreation)
 		err = os.Mkdir(rootForCreation, 0755)
 		require.NoError(t, err)
 
@@ -241,13 +254,13 @@ func TestCreateDirectoryStructure(t *testing.T) {
 			assert.NoError(t, err, "Case %d", i)
 
 			for currPath, pathType := range currCase.expectedPaths {
-				info, err := os.Stat(path.Join(currCaseTmpDir, currPath))
+				info, err := os.Stat(filepath.Join(currCaseTmpDir, currPath))
 				assert.NoError(t, err, "Case %d", i)
 				assert.Equal(t, bool(pathType), !info.IsDir(), "Case %d", i)
 			}
 
 			for _, currPath := range currCase.unexpectedPaths {
-				_, err = os.Stat(path.Join(currCaseTmpDir, currPath))
+				_, err = os.Stat(filepath.Join(currCaseTmpDir, currPath))
 				assert.True(t, os.IsNotExist(err), "Case %d")
 			}
 		} else {
@@ -258,11 +271,11 @@ func TestCreateDirectoryStructure(t *testing.T) {
 
 func createDirectoryStructure(t *testing.T, tmpDir string, paths map[string]specdir.PathType) {
 	for currPath, pathType := range paths {
-		currPath = path.Join(tmpDir, currPath)
+		currPath = filepath.Join(tmpDir, currPath)
 
 		dirToCreate := currPath
 		if pathType == specdir.FilePath {
-			dirToCreate = path.Dir(currPath)
+			dirToCreate = filepath.Dir(currPath)
 		}
 		err := os.MkdirAll(dirToCreate, 0755)
 		require.NoError(t, err)

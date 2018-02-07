@@ -10,7 +10,6 @@ import (
 	"go/parser"
 	"go/token"
 	"os"
-	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -89,18 +88,22 @@ type pkgPath struct {
 func (p *pkgPath) Abs() string {
 	switch p.pathType {
 	case Absolute:
-		return p.path
+		absPath, err := filepath.Abs(p.path)
+		if err != nil {
+			panic(err)
+		}
+		return absPath
 	case GoPathSrcRelative:
-		return path.Join(os.Getenv("GOPATH"), "src", p.path)
+		return filepath.Join(os.Getenv("GOPATH"), "src", p.path)
 	case Relative:
-		return path.Join(p.baseDir, p.path)
+		return filepath.Join(p.baseDir, p.path)
 	default:
 		panic(fmt.Sprintf("unhandled case: %v", p.path))
 	}
 }
 
 func (p *pkgPath) GoPathSrcRel() (string, error) {
-	return relPathNoParentDir(p.Abs(), path.Join(os.Getenv("GOPATH"), "src"), "")
+	return relPathNoParentDir(p.Abs(), filepath.Join(os.Getenv("GOPATH"), "src"), "")
 }
 
 func (p *pkgPath) Rel(baseDir string) (string, error) {
@@ -113,9 +116,10 @@ func relPathNoParentDir(absPath, baseDir, prepend string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if strings.HasPrefix(relPath, parentDirPath) {
+	if filepath.HasPrefix(relPath, parentDirPath) {
 		return "", fmt.Errorf("resolving %s against base %s produced relative path starting with %s: %s", absPath, baseDir, parentDirPath, relPath)
 	}
+	relPath = filepath.ToSlash(relPath)
 	return prepend + relPath, nil
 }
 
@@ -142,7 +146,7 @@ func (p *packages) Filter(exclude matcher.Matcher) (Packages, error) {
 	filteredAbsPathPkgs := make(map[string]string)
 	for currPkgRelPath, currPkg := range allPkgsRelPaths {
 		if exclude == nil || !exclude.Match(currPkgRelPath) {
-			filteredAbsPathPkgs[path.Join(p.rootDir, currPkgRelPath)] = currPkg
+			filteredAbsPathPkgs[filepath.Join(p.rootDir, currPkgRelPath)] = currPkg
 		}
 	}
 
@@ -214,7 +218,7 @@ func PackagesFromPaths(rootDir string, relPaths []string) (Packages, error) {
 
 	pkgs := make(map[string]string, len(expandedRelPaths))
 	for _, currPath := range expandedRelPaths {
-		currAbsPath := path.Join(absoluteRoot, currPath)
+		currAbsPath := filepath.Join(absoluteRoot, currPath)
 		currPkg, err := getPrimaryPkgForDir(currAbsPath, nil)
 		if err != nil {
 			return nil, fmt.Errorf("unable to determine package for directory %s: %v", currAbsPath, err)
@@ -257,7 +261,7 @@ func PackagesInDir(rootDir string, exclude matcher.Matcher) (Packages, error) {
 		// create a filter for processing package files that only passes if it does not match an exclude
 		filter := func(info os.FileInfo) bool {
 			// if exclude exists and matches the file, skip it
-			if exclude != nil && exclude.Match(path.Join(currRelPath, info.Name())) {
+			if exclude != nil && exclude.Match(filepath.Join(currRelPath, info.Name())) {
 				return false
 			}
 			// process file if it would be included in build context (handles things like build tags)
@@ -283,12 +287,12 @@ func PackagesInDir(rootDir string, exclude matcher.Matcher) (Packages, error) {
 }
 
 func createPkgsWithValidation(rootDir string, pkgs map[string]string) (*packages, error) {
-	if !path.IsAbs(rootDir) {
+	if !filepath.IsAbs(rootDir) {
 		return nil, fmt.Errorf("rootDir %s is not an absolute path", rootDir)
 	}
 
 	for currAbsPkgPath := range pkgs {
-		if !path.IsAbs(currAbsPkgPath) {
+		if !filepath.IsAbs(currAbsPkgPath) {
 			return nil, fmt.Errorf("package %s in packages %v is not an absolute path", currAbsPkgPath, pkgs)
 		}
 	}
@@ -305,7 +309,7 @@ func expandPaths(rootDir string, relPaths []string) ([]string, error) {
 		if strings.HasSuffix(currRelPath, "/...") {
 			// expand splatted paths
 			splatBaseDir := currRelPath[:len(currRelPath)-len("/...")]
-			baseDirAbsPath := path.Join(rootDir, splatBaseDir)
+			baseDirAbsPath := filepath.Join(rootDir, splatBaseDir)
 			err := filepath.Walk(baseDirAbsPath, func(path string, info os.FileInfo, err error) error {
 				if err != nil {
 					return err
