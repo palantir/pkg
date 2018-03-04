@@ -1,5 +1,6 @@
 root-dirs:
   - cli
+  - gittest
   - httpserver
   - matcher
   - objmatcher
