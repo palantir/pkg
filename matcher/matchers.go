@@ -90,11 +90,14 @@ type nameMatcher []*regexp.Regexp
 func (m nameMatcher) Match(inputRelPath string) bool {
 	for _, currSubpath := range allSubpaths(inputRelPath) {
 		currName := filepath.Base(currSubpath)
+<<<<<<< HEAD
 		// do not match relative path components
 		if currName == ".." {
 			continue
 		}
 
+=======
+>>>>>>> 5f8a5da3cbe649d89ce270eb4bc605cd9042490f
 		for _, currRegExp := range []*regexp.Regexp(m) {
 			matchLoc := currRegExp.FindStringIndex(currName)
 			if len(matchLoc) > 0 && matchLoc[0] == 0 && matchLoc[1] == len(currName) {
