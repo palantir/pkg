@@ -1,3 +1,5 @@
+// +build !windows
+
 // Copyright 2016 Palantir Technologies. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
@@ -9,7 +11,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"runtime"
 	"syscall"
 	"testing"
 	"time"
@@ -21,9 +22,6 @@ import (
 )
 
 func TestCancelOnSignalsContext(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		return
-	}
 	ctx, _ := signals.CancelOnSignalsContext(context.Background(), syscall.SIGHUP)
 
 	sendSignalToCurrProcess(t, syscall.SIGHUP)
@@ -39,10 +37,6 @@ func TestCancelOnSignalsContext(t *testing.T) {
 }
 
 func TestRegisterStackTraceWriterOnSignals(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		return
-	}
-
 	out := &bytes.Buffer{}
 	signals.RegisterStackTraceWriterOnSignals(out, nil, syscall.SIGHUP)
 
@@ -59,10 +53,6 @@ func (w errWriter) Write(p []byte) (n int, err error) {
 }
 
 func TestRegisterStackTraceWriterErrorHandler(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		return
-	}
-
 	out := errWriter{}
 	var handlerErr error
 	errHandler := func(err error) {
@@ -84,10 +74,6 @@ func TestRegisterStackTraceWriterErrorHandler(t *testing.T) {
 }
 
 func TestUnregisterStackTraceWriterOnSignals(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		return
-	}
-
 	out := &bytes.Buffer{}
 	unregister := signals.RegisterStackTraceWriterOnSignals(out, nil, syscall.SIGHUP)
 	unregister()
@@ -99,10 +85,6 @@ func TestUnregisterStackTraceWriterOnSignals(t *testing.T) {
 }
 
 func TestNewSignalReceiver(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		return
-	}
-
 	c := signals.NewSignalReceiver(syscall.SIGHUP)
 
 	sendSignalToCurrProcess(t, syscall.SIGHUP)
