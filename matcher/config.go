@@ -7,8 +7,8 @@ package matcher
 // NamesPathsCfg is a configuration object that defines a list of names and paths that should be used to construct a
 // Matcher. The returned Matcher will match any name or path specified in the configuration.
 type NamesPathsCfg struct {
-	Names []string `yaml:"names" json:"names"`
-	Paths []string `yaml:"paths" json:"paths"`
+	Names []string `yaml:"names,omitempty" json:"names"`
+	Paths []string `yaml:"paths,omitempty" json:"paths"`
 }
 
 // Add appends the names and paths specified in the provided NamesPathsCfg to those in the receiver.
