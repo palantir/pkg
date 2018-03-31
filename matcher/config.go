@@ -33,8 +33,8 @@ func (c *NamesPathsCfg) Matcher() Matcher {
 // to exclude matches. The returned Matcher will match any name or path specified in the configuration provided that the
 // matched path does not match the matcher produced by the "Exclude" configuration.
 type NamesPathsWithExcludeCfg struct {
-	NamesPathsCfg `yaml:",inline"`
-	Exclude       NamesPathsCfg `yaml:"exclude" json:"exclude"`
+	NamesPathsCfg `yaml:",inline,omitempty"`
+	Exclude       NamesPathsCfg `yaml:"exclude,omitempty" json:"exclude"`
 }
 
 // Matcher returns a Matcher constructed from the configuration. The Matcher returns true if it matches any of the
