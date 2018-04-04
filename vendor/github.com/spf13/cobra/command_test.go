@@ -843,6 +843,63 @@ func TestHelpExecutedOnNonRunnableChild(t *testing.T) {
 	checkStringContains(t, output, childCmd.Long)
 }
 
+func TestVersionFlagExecuted(t *testing.T) {
+	rootCmd := &Command{Use: "root", Version: "1.0.0", Run: emptyRun}
+
+	output, err := executeCommand(rootCmd, "--version", "arg1")
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	checkStringContains(t, output, "root version 1.0.0")
+}
+
+func TestVersionTemplate(t *testing.T) {
+	rootCmd := &Command{Use: "root", Version: "1.0.0", Run: emptyRun}
+	rootCmd.SetVersionTemplate(`customized version: {{.Version}}`)
+
+	output, err := executeCommand(rootCmd, "--version", "arg1")
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	checkStringContains(t, output, "customized version: 1.0.0")
+}
+
+func TestVersionFlagExecutedOnSubcommand(t *testing.T) {
+	rootCmd := &Command{Use: "root", Version: "1.0.0"}
+	rootCmd.AddCommand(&Command{Use: "sub", Run: emptyRun})
+
+	output, err := executeCommand(rootCmd, "--version", "sub")
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	checkStringContains(t, output, "root version 1.0.0")
+}
+
+func TestVersionFlagOnlyAddedToRoot(t *testing.T) {
+	rootCmd := &Command{Use: "root", Version: "1.0.0", Run: emptyRun}
+	rootCmd.AddCommand(&Command{Use: "sub", Run: emptyRun})
+
+	_, err := executeCommand(rootCmd, "sub", "--version")
+	if err == nil {
+		t.Errorf("Expected error")
+	}
+
+	checkStringContains(t, err.Error(), "unknown flag: --version")
+}
+
+func TestVersionFlagOnlyExistsIfVersionNonEmpty(t *testing.T) {
+	rootCmd := &Command{Use: "root", Run: emptyRun}
+
+	_, err := executeCommand(rootCmd, "--version")
+	if err == nil {
+		t.Errorf("Expected error")
+	}
+	checkStringContains(t, err.Error(), "unknown flag: --version")
+}
+
 func TestUsageIsNotPrintedTwice(t *testing.T) {
 	var cmd = &Command{Use: "root"}
 	var sub = &Command{Use: "sub"}
@@ -1504,5 +1561,68 @@ func TestUpdateName(t *testing.T) {
 	c.Use = "changedName abc"
 	if originalName == c.Name() || c.Name() != "changedName" {
 		t.Error("c.Name() should be updated on changed c.Use")
+	}
+}
+
+type calledAsTestcase struct {
+	args []string
+	call string
+	want string
+	epm  bool
+	tc   bool
+}
+
+func (tc *calledAsTestcase) test(t *testing.T) {
+	defer func(ov bool) { EnablePrefixMatching = ov }(EnablePrefixMatching)
+	EnablePrefixMatching = tc.epm
+
+	var called *Command
+	run := func(c *Command, _ []string) { t.Logf("called: %q", c.Name()); called = c }
+
+	parent := &Command{Use: "parent", Run: run}
+	child1 := &Command{Use: "child1", Run: run, Aliases: []string{"this"}}
+	child2 := &Command{Use: "child2", Run: run, Aliases: []string{"that"}}
+
+	parent.AddCommand(child1)
+	parent.AddCommand(child2)
+	parent.SetArgs(tc.args)
+
+	output := new(bytes.Buffer)
+	parent.SetOutput(output)
+
+	parent.Execute()
+
+	if called == nil {
+		if tc.call != "" {
+			t.Errorf("missing expected call to command: %s", tc.call)
+		}
+		return
+	}
+
+	if called.Name() != tc.call {
+		t.Errorf("called command == %q; Wanted %q", called.Name(), tc.call)
+	} else if got := called.CalledAs(); got != tc.want {
+		t.Errorf("%s.CalledAs() == %q; Wanted: %q", tc.call, got, tc.want)
+	}
+}
+
+func TestCalledAs(t *testing.T) {
+	tests := map[string]calledAsTestcase{
+		"find/no-args":            {nil, "parent", "parent", false, false},
+		"find/real-name":          {[]string{"child1"}, "child1", "child1", false, false},
+		"find/full-alias":         {[]string{"that"}, "child2", "that", false, false},
+		"find/part-no-prefix":     {[]string{"thi"}, "", "", false, false},
+		"find/part-alias":         {[]string{"thi"}, "child1", "this", true, false},
+		"find/conflict":           {[]string{"th"}, "", "", true, false},
+		"traverse/no-args":        {nil, "parent", "parent", false, true},
+		"traverse/real-name":      {[]string{"child1"}, "child1", "child1", false, true},
+		"traverse/full-alias":     {[]string{"that"}, "child2", "that", false, true},
+		"traverse/part-no-prefix": {[]string{"thi"}, "", "", false, true},
+		"traverse/part-alias":     {[]string{"thi"}, "child1", "this", true, true},
+		"traverse/conflict":       {[]string{"th"}, "", "", true, true},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, tc.test)
 	}
 }
