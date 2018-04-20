@@ -28,7 +28,7 @@ go-install-packages: &go-install-packages
   run: go install $(./godelw packages)
 
 godelw-verify: &godelw-verify
-  run: ./godelw verify --junit-output="$TESTS_DIR/$CIRCLE_PROJECT_REPONAME-tests.xml"
+  run: ./godelw verify --apply=false --junit-output="$TESTS_DIR/$CIRCLE_PROJECT_REPONAME-tests.xml"
 
 godelw-test: &godelw-test
   run: ./godelw test --junit-output="$TESTS_DIR/$CIRCLE_PROJECT_REPONAME-tests.xml"
