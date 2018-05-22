@@ -1,0 +1,6 @@
+checks:
+  golint:
+    filters:
+    - value: should have comment or be unexported
+    - value: or a comment on this block
+    - value: error strings should not be capitalized or end with punctuation or a newline

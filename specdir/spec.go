@@ -145,11 +145,7 @@ func (s *layoutSpec) Validate(root string, values TemplateValues) error {
 	}
 
 	// verify all child nodes match
-	if err := s.root.verifyLayoutForDir(root, "", values); err != nil {
-		return err
-	}
-
-	return nil
+	return s.root.verifyLayoutForDir(root, "", values)
 }
 
 func (s *layoutSpec) getNameTemplateKeys() []string {

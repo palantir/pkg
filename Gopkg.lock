@@ -25,7 +25,7 @@
     "hcl/token",
     "json/parser",
     "json/scanner",
-    "json/token"
+    "json/token",
   ]
   revision = "392dba7d905ed5d04a5794ba89f558b27e2ba1ca"
 
@@ -59,7 +59,7 @@
   packages = [
     "dirs",
     "errorstringer",
-    "gofiles"
+    "gofiles",
   ]
   revision = "b64318170fdef93b4462420e0badef8050dbb7ec"
 
@@ -92,7 +92,7 @@
   name = "github.com/spf13/afero"
   packages = [
     ".",
-    "mem"
+    "mem",
   ]
   revision = "9be650865eab0c12963d8753212f4f9c66cdcf12"
 
@@ -130,7 +130,7 @@
   name = "github.com/stretchr/testify"
   packages = [
     "assert",
-    "require"
+    "require",
   ]
   revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
   version = "v1.2.1"
@@ -148,7 +148,7 @@
     "http2",
     "http2/hpack",
     "idna",
-    "lex/httplex"
+    "lex/httplex",
   ]
   revision = "66aacef3dd8a676686c7ae3716979581e8b03c47"
 
@@ -170,7 +170,7 @@
     "unicode/bidi",
     "unicode/cldr",
     "unicode/norm",
-    "unicode/rangetable"
+    "unicode/rangetable",
   ]
   revision = "6353ef0f924300eea566d3438817aa4d3374817e"
 
