@@ -164,11 +164,7 @@ func (n *fileNode) validate(rootDir, pathFromRoot string, values TemplateValues)
 	}
 
 	// verify all child nodes match
-	if err := n.verifyLayoutForDir(rootDir, pathFromRoot, values); err != nil {
-		return err
-	}
-
-	return nil
+	return n.verifyLayoutForDir(rootDir, pathFromRoot, values)
 }
 
 func (n *fileNode) verifyLayoutForDir(rootDir, pathFromRoot string, values TemplateValues) error {
