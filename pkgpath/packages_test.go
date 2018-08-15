@@ -8,9 +8,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
+	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/nmiyake/pkg/dirs"
@@ -85,7 +86,7 @@ func TestListPackages(t *testing.T) {
 	wd, err := os.Getwd()
 	require.NoError(t, err)
 
-	testPkgPath, err := filepath.Rel(path.Join(os.Getenv("GOPATH"), "src"), wd)
+	testPkgPath, err := filepath.Rel(filepath.Join(os.Getenv("GOPATH"), "src"), wd)
 	require.NoError(t, err)
 
 	tmpDir, cleanup, err := dirs.TempDir(wd, "")
@@ -226,9 +227,9 @@ package different`},
 				case pkgpath.Relative:
 					k = "./" + k
 				case pkgpath.GoPathSrcRelative:
-					k = path.Join(testPkgPath, currCaseDirRelPath, k)
+					k = filepath.ToSlash(filepath.Join(testPkgPath, currCaseDirRelPath, k))
 				case pkgpath.Absolute:
-					k = path.Join(wd, currCaseDirRelPath, k)
+					k = filepath.Join(wd, currCaseDirRelPath, k)
 				default:
 					require.Fail(t, "Unhandled case: %v", mode)
 				}
@@ -299,7 +300,7 @@ func TestListPackagesSetGoPath(t *testing.T) {
 	err = os.Setenv("GOPATH", tmpDir)
 	require.NoError(t, err)
 
-	projectDir := path.Join(tmpDir, "src", "github.com", "test")
+	projectDir := filepath.Join(tmpDir, "src", "github.com", "test")
 	err = os.MkdirAll(projectDir, 0755)
 	require.NoError(t, err)
 
@@ -323,9 +324,18 @@ func TestListPackagesSetGoPath(t *testing.T) {
 }
 
 func TestPkgPathOutsideGoPathFails(t *testing.T) {
-	goPathSrc := path.Join(os.Getenv("GOPATH"), "src")
-	msg := fmt.Sprintf(`^resolving /foo against base %s produced relative path starting with ../: .+/foo$`, goPathSrc)
+	goPathSrc := filepath.Join(os.Getenv("GOPATH"), "src")
+	fooPath := string(filepath.Separator) + "foo"
+	absPath, err := filepath.Abs(fooPath)
+	require.NoError(t, err)
 
-	_, err := pkgpath.NewAbsPkgPath("/foo").GoPathSrcRel()
+	msg := fmt.Sprintf(`^resolving %s against base %s produced relative path starting with %s: .+%s$`,
+		absPath, goPathSrc, ".."+string(filepath.Separator), fooPath)
+
+	if runtime.GOOS == "windows" {
+		msg = strings.Replace(msg, "\\", "\\\\", -1)
+	}
+
+	_, err = pkgpath.NewAbsPkgPath(absPath).GoPathSrcRel()
 	require.Regexp(t, msg, err.Error())
 }

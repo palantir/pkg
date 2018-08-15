@@ -5,11 +5,14 @@
 package specdir_test
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"regexp"
 	"testing"
+
+	"github.com/palantir/pkg/osutil"
 
 	"github.com/nmiyake/pkg/dirs"
 	"github.com/stretchr/testify/assert"
@@ -39,13 +42,13 @@ func TestSpecDirConstruction(t *testing.T) {
 		{
 			rootDir:       "missing",
 			spec:          specdir.NewLayoutSpec(specdir.Dir(specdir.LiteralName("root"), ""), true),
-			expectedError: `^.+/missing is not a path to root$`,
+			expectedError: fmt.Sprintf(`^.+%s is not a path to root$`, osutil.MakeValidRegexPath("/missing")),
 		},
 	} {
 		currCaseTmpDir, err := ioutil.TempDir(tmpDir, "")
 		require.NoError(t, err)
 
-		rootForCreation := path.Join(currCaseTmpDir, currCase.rootDir)
+		rootForCreation := filepath.Join(currCaseTmpDir, currCase.rootDir)
 		err = os.Mkdir(rootForCreation, 0755)
 		require.NoError(t, err)
 
@@ -69,7 +72,7 @@ func TestSpecDirCreateMode(t *testing.T) {
 		specdir.Dir(specdir.LiteralName("root"), "",
 			specdir.Dir(specdir.LiteralName("child"), ""),
 		), true)
-	rootForCreation := path.Join(tmpDir, "root")
+	rootForCreation := filepath.Join(tmpDir, "root")
 	_, err = specdir.New(rootForCreation, spec, nil, specdir.Create)
 	require.NoError(t, err)
 
@@ -118,7 +121,7 @@ func TestSpecDirGetPath(t *testing.T) {
 		currCaseTmpDir, err := ioutil.TempDir(tmpDir, "")
 		require.NoError(t, err)
 
-		rootForCreation := path.Join(currCaseTmpDir, currCase.rootDir)
+		rootForCreation := filepath.Join(currCaseTmpDir, currCase.rootDir)
 		err = os.Mkdir(rootForCreation, 0755)
 		require.NoError(t, err)
 
@@ -129,6 +132,6 @@ func TestSpecDirGetPath(t *testing.T) {
 
 		actualPath := specDir.Path("VeryInnerDir")
 
-		assert.Equal(t, path.Join(currCaseTmpDir, currCase.expectedPath), actualPath, "Case %d", i)
+		assert.Equal(t, filepath.Join(currCaseTmpDir, currCase.expectedPath), actualPath, "Case %d", i)
 	}
 }
