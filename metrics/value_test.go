@@ -1,3 +1,7 @@
+// Copyright 2016 Palantir Technologies. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 // Copyright 2018 Palantir Technologies. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
@@ -8,11 +12,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/palantir/pkg/objmatcher"
 	metricspkg "github.com/rcrowley/go-metrics"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/palantir/pkg/metrics"
+	"github.com/palantir/pkg/objmatcher"
 )
 
 func TestCounter(t *testing.T) {
