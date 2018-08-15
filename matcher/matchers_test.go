@@ -59,6 +59,8 @@ func TestPathMatcher(t *testing.T) {
 	}{
 		{[]string{"foo"}, "foo/bar/regular", true},
 		{[]string{"foo"}, "bar/foo/inner", false},
+		{[]string{"foo"}, "../foo/bar/foo/inner", false},
+		{[]string{"../foo"}, "../foo/bar/foo/inner", true},
 		// full match required
 		{[]string{"foo"}, "fooLongerName/inner", false},
 		// glob matching
@@ -109,6 +111,7 @@ func TestHiddenMatcher(t *testing.T) {
 		want bool
 	}{
 		{"foo/bar/regular", false},
+		{"../foo/bar/regular", false},
 		{"foo/bar/.hidden", true},
 		{"foo/.bar/inHidden", true},
 		{"foo/.bar/inHidden", true},

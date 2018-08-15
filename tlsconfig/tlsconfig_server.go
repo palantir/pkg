@@ -66,3 +66,12 @@ func ServerClientAuthType(authType tls.ClientAuthType) ServerParam {
 func ServerCipherSuites(cipherSuites ...uint16) ServerParam {
 	return serverParam(cipherSuitesParam(cipherSuites...))
 }
+
+// ServerNextProtos sets the list of application level protocols supported by
+// the server e.g. "http/1.1" or "h2".
+func ServerNextProtos(protos ...string) ServerParam {
+	return serverParam(func(cfg *tls.Config) error {
+		cfg.NextProtos = protos
+		return nil
+	})
+}
