@@ -56,7 +56,7 @@ type RootRegistry interface {
 // MetricVisitor is a callback function type that can be passed into Registry.Each to report
 // metrics into systems which consume metrics. An example use case is a MetricVisitor which
 // writes its argument into a log file.
-type MetricVisitor = func(name string, tags Tags, value MetricVal)
+type MetricVisitor func(name string, tags Tags, value MetricVal)
 
 const (
 	defaultReservoirSize = 1028
