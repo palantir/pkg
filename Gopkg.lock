@@ -25,7 +25,7 @@
     "hcl/token",
     "json/parser",
     "json/scanner",
-    "json/token",
+    "json/token"
   ]
   revision = "392dba7d905ed5d04a5794ba89f558b27e2ba1ca"
 
@@ -59,7 +59,7 @@
   packages = [
     "dirs",
     "errorstringer",
-    "gofiles",
+    "gofiles"
   ]
   revision = "b64318170fdef93b4462420e0badef8050dbb7ec"
 
@@ -89,10 +89,16 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/rcrowley/go-metrics"
+  packages = ["."]
+  revision = "e2704e165165ec55d062f5919b4b29494e9fa790"
+
+[[projects]]
+  branch = "master"
   name = "github.com/spf13/afero"
   packages = [
     ".",
-    "mem",
+    "mem"
   ]
   revision = "9be650865eab0c12963d8753212f4f9c66cdcf12"
 
@@ -130,7 +136,7 @@
   name = "github.com/stretchr/testify"
   packages = [
     "assert",
-    "require",
+    "require"
   ]
   revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
   version = "v1.2.1"
@@ -148,7 +154,7 @@
     "http2",
     "http2/hpack",
     "idna",
-    "lex/httplex",
+    "lex/httplex"
   ]
   revision = "66aacef3dd8a676686c7ae3716979581e8b03c47"
 
@@ -170,7 +176,7 @@
     "unicode/bidi",
     "unicode/cldr",
     "unicode/norm",
-    "unicode/rangetable",
+    "unicode/rangetable"
   ]
   revision = "6353ef0f924300eea566d3438817aa4d3374817e"
 
@@ -183,6 +189,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "17df180660c34f7b108a9d7be5b7ae395b10f0b746d3ae9a0ec83b36a126c30e"
+  inputs-digest = "3250a03945d2c83688449aa0bc41494fccb39e6eff508683160f840d275135ac"
   solver-name = "gps-cdcl"
   solver-version = 1
