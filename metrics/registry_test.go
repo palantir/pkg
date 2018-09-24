@@ -118,7 +118,6 @@ func TestRegistryRegistrationWithMemStats(t *testing.T) {
 
 	wantNames := []string{
 		"go.runtime.MemStats.Alloc",
-		"go.runtime.MemStats.Frees",
 		"go.runtime.MemStats.GCCPUFraction",
 		"go.runtime.MemStats.HeapAlloc",
 		"go.runtime.MemStats.HeapIdle",
@@ -126,13 +125,9 @@ func TestRegistryRegistrationWithMemStats(t *testing.T) {
 		"go.runtime.MemStats.HeapObjects",
 		"go.runtime.MemStats.HeapReleased",
 		"go.runtime.MemStats.HeapSys",
-		"go.runtime.MemStats.Mallocs",
 		"go.runtime.MemStats.NumGC",
 		"go.runtime.MemStats.PauseNs",
-		"go.runtime.MemStats.PauseTotalNs",
 		"go.runtime.MemStats.StackInuse",
-		"go.runtime.MemStats.StackSys",
-		"go.runtime.NumCgoCall",
 		"go.runtime.NumGoroutine",
 		"go.runtime.NumThread",
 		"go.runtime.ReadMemStats",
