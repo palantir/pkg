@@ -16,18 +16,23 @@ import (
 
 var (
 	goRuntimeMetricsToExclude = map[string]struct{}{
-		"go.runtime.MemStats.BuckHashSys": {},
-		"go.runtime.MemStats.DebugGC":     {},
-		"go.runtime.MemStats.EnableGC":    {},
-		"go.runtime.MemStats.NextGC":      {},
-		"go.runtime.MemStats.LastGC":      {},
-		"go.runtime.MemStats.Lookups":     {},
-		"go.runtime.MemStats.TotalAlloc":  {}, // TotalAlloc increases as heap objects are allocated, but unlike Alloc and HeapAlloc, it does not decrease when objects are freed
-		"go.runtime.MemStats.MCacheInuse": {},
-		"go.runtime.MemStats.MCacheSys":   {},
-		"go.runtime.MemStats.MSpanInuse":  {},
-		"go.runtime.MemStats.MSpanSys":    {},
-		"go.runtime.MemStats.Sys":         {},
+		"go.runtime.MemStats.BuckHashSys":  {},
+		"go.runtime.MemStats.DebugGC":      {},
+		"go.runtime.MemStats.EnableGC":     {},
+		"go.runtime.MemStats.NextGC":       {},
+		"go.runtime.MemStats.LastGC":       {},
+		"go.runtime.MemStats.Lookups":      {},
+		"go.runtime.MemStats.TotalAlloc":   {}, // TotalAlloc increases as heap objects are allocated, but unlike Alloc and HeapAlloc, it does not decrease when objects are freed
+		"go.runtime.MemStats.MCacheInuse":  {},
+		"go.runtime.MemStats.MCacheSys":    {},
+		"go.runtime.MemStats.MSpanInuse":   {},
+		"go.runtime.MemStats.MSpanSys":     {},
+		"go.runtime.MemStats.Sys":          {},
+		"go.runtime.MemStats.Frees":        {},
+		"go.runtime.MemStats.Mallocs":      {},
+		"go.runtime.MemStats.StackSys":     {},
+		"go.runtime.NumCgoCall":            {},
+		"go.runtime.MemStats.PauseTotalNs": {},
 	}
 
 	_ Registry = &NoopRegistry{}
