@@ -243,6 +243,32 @@ func TestRootRegistry_Unregister(t *testing.T) {
 	assert.Equal(t, 0, registrySize(t, registry))
 }
 
+func TestRootRegistry_ConcurrentUnregisterAndEachDoesNotPanic(t *testing.T) {
+	registry := metrics.NewRootMetricsRegistry()
+	registry.Gauge("gauge1").Update(0)
+	registry.Gauge("gauge2").Update(0)
+
+	var firstMetricVisited, metricUnregistered, goRoutineFinished sync.WaitGroup
+	firstMetricVisited.Add(1)
+	metricUnregistered.Add(1)
+	goRoutineFinished.Add(1)
+
+	go func() {
+		registry.Each(metrics.MetricVisitor(func(name string, tags metrics.Tags, metric metrics.MetricVal) {
+			if name == "gauge1" {
+				firstMetricVisited.Done()
+				metricUnregistered.Wait()
+			}
+		}))
+		goRoutineFinished.Done()
+	}()
+
+	firstMetricVisited.Wait()
+	registry.Unregister("gauge2")
+	metricUnregistered.Done()
+	goRoutineFinished.Wait()
+}
+
 func TestRootRegistry_SubregistryWithTags(t *testing.T) {
 	rootRegistry := metrics.NewRootMetricsRegistry()
 
