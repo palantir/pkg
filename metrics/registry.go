@@ -214,17 +214,19 @@ func (r *rootRegistry) Subregistry(prefix string, tags ...Tag) Registry {
 func (r *rootRegistry) Each(f MetricVisitor) {
 	// sort names so that iteration order is consistent
 	var sortedNames []string
+	allMetrics := make(map[string]interface{})
 	r.registry.Each(func(name string, metric interface{}) {
 		// filter out the runtime metrics that are defined in the exclude list
 		if _, ok := goRuntimeMetricsToExclude[name]; ok {
 			return
 		}
 		sortedNames = append(sortedNames, name)
+		allMetrics[name] = metric
 	})
 	sort.Strings(sortedNames)
 
 	for _, name := range sortedNames {
-		metric := r.registry.Get(name)
+		metric := allMetrics[name]
 
 		var tags Tags
 		r.idToMetricMutex.RLock()
@@ -238,10 +240,6 @@ func (r *rootRegistry) Each(f MetricVisitor) {
 			sort.Slice(tags, func(i, j int) bool {
 				return tags[i].String() < tags[j].String()
 			})
-		} else {
-			// if metric was not in idToMetricWithTags map, then it is a built-in metric. Trim the prefix since the
-			// registry lookup will automatically prepend the prefix.
-			metric = r.registry.Get(name)
 		}
 		val := ToMetricVal(metric)
 		if val == nil {
