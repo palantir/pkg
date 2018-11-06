@@ -31,22 +31,28 @@ steps: &steps
 
 version: 2
 jobs:
-  go-latest:
+  go-1.11:
     <<: *working_dir
     environment:
       VERIFY: 1
     docker:
       - image: golang:1.11.2
     steps: *steps
-  go-prev:
+  go-1.10:
     <<: *working_dir
     docker:
       - image: golang:1.10.5
+    steps: *steps
+  go-1.9:
+    <<: *working_dir
+    docker:
+    - image: golang:1.9.7
     steps: *steps
 
 workflows:
   version: 2
   verify:
     jobs:
-      - go-latest
-      - go-prev
+      - go-1.11
+      - go-1.10
+      - go-1.9
