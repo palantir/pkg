@@ -92,3 +92,66 @@ func TestEqualsMatcher(t *testing.T) {
 		}
 	}
 }
+
+func TestMapMatcher(t *testing.T) {
+	for i, tc := range []struct {
+		name    string
+		matcher objmatcher.MapMatcher
+		given   interface{}
+		wantErr string
+	}{
+		{
+			name: "map matches",
+			matcher: objmatcher.MapMatcher(map[string]objmatcher.Matcher{
+				"key": objmatcher.NewEqualsMatcher("value"),
+			}),
+			given: map[string]interface{}{
+				"key": "value",
+			},
+		},
+	} {
+		gotErr := tc.matcher.Matches(tc.given)
+		if tc.wantErr == "" {
+			assert.NoError(t, gotErr, "Case %d: %v", i, tc.name)
+		} else {
+			assert.EqualError(t, gotErr, tc.wantErr, "Case %d: %v", i, tc.name)
+		}
+	}
+}
+
+func TestSliceMatcher(t *testing.T) {
+	for i, tc := range []struct {
+		name    string
+		matcher objmatcher.SliceMatcher
+		given   interface{}
+		wantErr string
+	}{
+		{
+			name: "strings slice matches",
+			matcher: objmatcher.SliceMatcher([]objmatcher.Matcher{
+				objmatcher.NewEqualsMatcher("hello"),
+			}),
+			given: []string{
+				"hello",
+			},
+		},
+		{
+			name: "unequal slice length fails",
+			matcher: objmatcher.SliceMatcher([]objmatcher.Matcher{
+				objmatcher.NewEqualsMatcher("hello"),
+			}),
+			given: []string{
+				"hello",
+				"goodbye",
+			},
+			wantErr: "want: [equals(string(hello))]\ngot:  [hello goodbye]\nsize 1 != 2",
+		},
+	} {
+		gotErr := tc.matcher.Matches(tc.given)
+		if tc.wantErr == "" {
+			assert.NoError(t, gotErr, "Case %d: %v", i, tc.name)
+		} else {
+			assert.EqualError(t, gotErr, tc.wantErr, "Case %d: %v", i, tc.name)
+		}
+	}
+}
