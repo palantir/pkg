@@ -51,6 +51,8 @@ type RootRegistry interface {
 	// Subregistry returns a new subregistry of the root registry on which metrics can be registered.
 	//
 	// Specified tags will be always included in metrics emitted by a subregistry.
+	// Deprecated: Use metrics.FromContext(ctx) instead to get a child registry with tags. Using subregistries and metric names
+	// to namespace metrics is discouraged; metric tags should handle this instead.
 	Subregistry(prefix string, tags ...Tag) Registry
 }
 
