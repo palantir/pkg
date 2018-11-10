@@ -22,10 +22,22 @@ func WithRegistry(ctx context.Context, registry Registry) context.Context {
 }
 
 func FromContext(ctx context.Context) Registry {
-	if registry, ok := ctx.Value(registryKey).(Registry); ok {
+	registry, ok := ctx.Value(registryKey).(Registry)
+	if !ok {
+		registry = DefaultMetricsRegistry
+	}
+	rootRegistry, ok := registry.(*rootRegistry)
+	if !ok {
 		return registry
 	}
-	return DefaultMetricsRegistry
+	tagsContainer, ok := ctx.Value(tagsKey).(*tagsContainer)
+	if !ok {
+		return registry
+	}
+	return &childRegistry{
+		root: rootRegistry,
+		tags: tagsContainer.Tags,
+	}
 }
 
 // AddTags adds the provided tags to the provided context. If the provided context already has tag storage, the new tags
