@@ -5,6 +5,7 @@
 package metrics
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
@@ -81,6 +82,10 @@ type Registry interface {
 	Unregister(name string, tags ...Tag)
 }
 
+type metricsRegistryProvider interface {
+	Registry() metrics.Registry
+}
+
 // NewRootMetricsRegistry creates a new root registry for metrics. This call also starts a goroutine that captures Go
 // runtime information as metrics at the specified frequency.
 func NewRootMetricsRegistry() RootRegistry {
@@ -93,7 +98,15 @@ func NewRootMetricsRegistry() RootRegistry {
 var runtimeMemStats sync.Once
 
 // CaptureRuntimeMemStats registers runtime memory metrics collectors and spawns
-// a goroutine which collects them every collectionFreq.
+// a goroutine which collects them every collectionFreq. This function can only be called once per lifetime of the
+// process and only records metrics if the provided RootRegistry is a *rootRegistry.
+//
+// Deprecated: use CaptureRuntimeMemStatsWithCancel instead. CaptureRuntimeMemStatsWithCancel has the following
+// advantages over this function:
+//   * Does not make assumptions about the concrete struct implementing of RootRegistry
+//   * Does not restrict the function to being called only once globally
+//   * Provides a means of cancelling the goroutine (when provided context is done or returned cancel function is invoked)
+//   * Can distinguish whether or not goroutine was started based on return value
 func CaptureRuntimeMemStats(registry RootRegistry, collectionFreq time.Duration) {
 	runtimeMemStats.Do(func() {
 		if reg, ok := registry.(*rootRegistry); ok {
@@ -102,6 +115,40 @@ func CaptureRuntimeMemStats(registry RootRegistry, collectionFreq time.Duration)
 			go metrics.CaptureRuntimeMemStats(goRegistry, collectionFreq)
 		}
 	})
+}
+
+// CaptureRuntimeMemStatsWithCancel creates a child registry of the provided registry that tracks Go runtime memory
+// metrics and starts a goroutine that captures them to that registry every collectionFreq. The goroutine runs until
+// the provided context is done or the returned cancelFn is called. This function only supports RootRegistry
+// implementations that implement the metricsRegistryProvider interface -- if the provided RootRegistry does not satisfy
+// this interface, this function is a no-op and the returned cancelFn is nil.
+//
+// The gauges/metrics etc. used to track runtime statistics are shared globally and the values are reset every time this
+// function is called (if it is not a no-op). Note that this function should typically only be called once per Go
+// runtime, but no enforcement of this is performed.
+func CaptureRuntimeMemStatsWithCancel(ctx context.Context, registry RootRegistry, collectionFreq time.Duration) (cancelFn func()) {
+	mRegProvider, ok := registry.(metricsRegistryProvider)
+	if !ok {
+		return nil
+	}
+
+	goRegistry := metrics.NewPrefixedChildRegistry(mRegProvider.Registry(), "go.")
+	metrics.RegisterRuntimeMemStats(goRegistry)
+
+	ctxWithCancel, cancelFn := context.WithCancel(ctx)
+	go func() {
+		ticker := time.NewTicker(collectionFreq)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				metrics.CaptureRuntimeMemStatsOnce(goRegistry)
+			case <-ctxWithCancel.Done():
+				return
+			}
+		}
+	}()
+	return cancelFn
 }
 
 type rootRegistry struct {
@@ -283,6 +330,10 @@ func (r *rootRegistry) Histogram(name string, tags ...Tag) metrics.Histogram {
 
 func (r *rootRegistry) HistogramWithSample(name string, sample metrics.Sample, tags ...Tag) metrics.Histogram {
 	return metrics.GetOrRegisterHistogram(r.registerMetric(name, tags), r.registry, sample)
+}
+
+func (r *rootRegistry) Registry() metrics.Registry {
+	return r.registry
 }
 
 func DefaultSample() metrics.Sample {
