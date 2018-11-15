@@ -105,8 +105,8 @@ var runtimeMemStats sync.Once
 // advantages over this function:
 //   * Does not make assumptions about the concrete struct implementing of RootRegistry
 //   * Does not restrict the function to being called only once globally
-//   * Provides a means of cancelling the goroutine (when provided context is done or returned cancel function is invoked)
-//   * Can distinguish whether or not goroutine was started based on return value
+//   * Supports cancellation using a provided context
+//   * Can tell if provided RootRegistry does not support Go runtime metric collection based on return value
 func CaptureRuntimeMemStats(registry RootRegistry, collectionFreq time.Duration) {
 	runtimeMemStats.Do(func() {
 		if reg, ok := registry.(*rootRegistry); ok {
@@ -117,25 +117,24 @@ func CaptureRuntimeMemStats(registry RootRegistry, collectionFreq time.Duration)
 	})
 }
 
-// CaptureRuntimeMemStatsWithCancel creates a child registry of the provided registry that tracks Go runtime memory
-// metrics and starts a goroutine that captures them to that registry every collectionFreq. The goroutine runs until
-// the provided context is done or the returned cancelFn is called. This function only supports RootRegistry
-// implementations that implement the metricsRegistryProvider interface -- if the provided RootRegistry does not satisfy
-// this interface, this function is a no-op and the returned cancelFn is nil.
+// CaptureRuntimeMemStatsWithContext creates a child registry of the provided registry that tracks Go runtime memory
+// metrics and starts a goroutine that captures them to that registry every collectionFreq. This function only supports
+// RootRegistry implementations that implement the metricsRegistryProvider interface -- if the provided RootRegistry
+// does not satisfy this interface, this function is a no-op. This function returns true if it starts the runtime metric
+// collection goroutine, false otherwise. If this function starts a goroutine, the goroutine runs until the provided
+// context is done.
 //
 // The gauges/metrics etc. used to track runtime statistics are shared globally and the values are reset every time this
 // function is called (if it is not a no-op). Note that this function should typically only be called once per Go
 // runtime, but no enforcement of this is performed.
-func CaptureRuntimeMemStatsWithCancel(ctx context.Context, registry RootRegistry, collectionFreq time.Duration) (cancelFn func()) {
+func CaptureRuntimeMemStatsWithContext(ctx context.Context, registry RootRegistry, collectionFreq time.Duration) bool {
 	mRegProvider, ok := registry.(metricsRegistryProvider)
 	if !ok {
-		return nil
+		return false
 	}
 
 	goRegistry := metrics.NewPrefixedChildRegistry(mRegProvider.Registry(), "go.")
 	metrics.RegisterRuntimeMemStats(goRegistry)
-
-	ctxWithCancel, cancelFn := context.WithCancel(ctx)
 	go func() {
 		ticker := time.NewTicker(collectionFreq)
 		defer ticker.Stop()
@@ -143,12 +142,12 @@ func CaptureRuntimeMemStatsWithCancel(ctx context.Context, registry RootRegistry
 			select {
 			case <-ticker.C:
 				metrics.CaptureRuntimeMemStatsOnce(goRegistry)
-			case <-ctxWithCancel.Done():
+			case <-ctx.Done():
 				return
 			}
 		}
 	}()
-	return cancelFn
+	return true
 }
 
 type rootRegistry struct {
