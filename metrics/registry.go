@@ -86,8 +86,7 @@ type metricsRegistryProvider interface {
 	Registry() metrics.Registry
 }
 
-// NewRootMetricsRegistry creates a new root registry for metrics. This call also starts a goroutine that captures Go
-// runtime information as metrics at the specified frequency.
+// NewRootMetricsRegistry creates a new root registry for metrics.
 func NewRootMetricsRegistry() RootRegistry {
 	return &rootRegistry{
 		registry:           metrics.NewRegistry(),
