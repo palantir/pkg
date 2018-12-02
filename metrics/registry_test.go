@@ -208,19 +208,19 @@ func TestSubregistry_Unregister(t *testing.T) {
 	registry.Gauge("gauge1", metrics.MustNewTag("tagKey", "tagValue1")).Update(0)
 	registry.Gauge("gauge1", metrics.MustNewTag("tagKey", "tagValue2")).Update(0)
 	registry.Gauge("gauge2").Update(0)
-	assert.True(t, registryContains(t, registry, "gauge1", []metrics.Tag{metrics.MustNewTag("tagKey", "tagValue1")}))
-	assert.True(t, registryContains(t, registry, "gauge1", []metrics.Tag{metrics.MustNewTag("tagKey", "tagValue2")}))
-	assert.True(t, registryContains(t, registry, "gauge2", nil))
-	assert.Equal(t, 3, registrySize(t, registry))
+	assert.True(t, registryContains(registry, "gauge1", []metrics.Tag{metrics.MustNewTag("tagKey", "tagValue1")}))
+	assert.True(t, registryContains(registry, "gauge1", []metrics.Tag{metrics.MustNewTag("tagKey", "tagValue2")}))
+	assert.True(t, registryContains(registry, "gauge2", nil))
+	assert.Equal(t, 3, registrySize(registry))
 	registry.Unregister("gauge1", metrics.MustNewTag("tagKey", "tagValue1"))
-	assert.True(t, registryContains(t, registry, "gauge1", []metrics.Tag{metrics.MustNewTag("tagKey", "tagValue2")}))
-	assert.True(t, registryContains(t, registry, "gauge2", nil))
-	assert.Equal(t, 2, registrySize(t, registry))
+	assert.True(t, registryContains(registry, "gauge1", []metrics.Tag{metrics.MustNewTag("tagKey", "tagValue2")}))
+	assert.True(t, registryContains(registry, "gauge2", nil))
+	assert.Equal(t, 2, registrySize(registry))
 	registry.Unregister("gauge1", metrics.MustNewTag("tagKey", "tagValue2"))
-	assert.True(t, registryContains(t, registry, "gauge2", nil))
-	assert.Equal(t, 1, registrySize(t, registry))
+	assert.True(t, registryContains(registry, "gauge2", nil))
+	assert.Equal(t, 1, registrySize(registry))
 	registry.Unregister("gauge2")
-	assert.Equal(t, 0, registrySize(t, registry))
+	assert.Equal(t, 0, registrySize(registry))
 }
 
 func TestRootRegistry_Unregister(t *testing.T) {
@@ -228,19 +228,19 @@ func TestRootRegistry_Unregister(t *testing.T) {
 	registry.Gauge("gauge1", metrics.MustNewTag("tagKey", "tagValue1")).Update(0)
 	registry.Gauge("gauge1", metrics.MustNewTag("tagKey", "tagValue2")).Update(0)
 	registry.Gauge("gauge2").Update(0)
-	assert.True(t, registryContains(t, registry, "gauge1", []metrics.Tag{metrics.MustNewTag("tagKey", "tagValue1")}))
-	assert.True(t, registryContains(t, registry, "gauge1", []metrics.Tag{metrics.MustNewTag("tagKey", "tagValue2")}))
-	assert.True(t, registryContains(t, registry, "gauge2", nil))
-	assert.Equal(t, 3, registrySize(t, registry))
+	assert.True(t, registryContains(registry, "gauge1", []metrics.Tag{metrics.MustNewTag("tagKey", "tagValue1")}))
+	assert.True(t, registryContains(registry, "gauge1", []metrics.Tag{metrics.MustNewTag("tagKey", "tagValue2")}))
+	assert.True(t, registryContains(registry, "gauge2", nil))
+	assert.Equal(t, 3, registrySize(registry))
 	registry.Unregister("gauge1", metrics.MustNewTag("tagKey", "tagValue1"))
-	assert.True(t, registryContains(t, registry, "gauge1", []metrics.Tag{metrics.MustNewTag("tagKey", "tagValue2")}))
-	assert.True(t, registryContains(t, registry, "gauge2", nil))
-	assert.Equal(t, 2, registrySize(t, registry))
+	assert.True(t, registryContains(registry, "gauge1", []metrics.Tag{metrics.MustNewTag("tagKey", "tagValue2")}))
+	assert.True(t, registryContains(registry, "gauge2", nil))
+	assert.Equal(t, 2, registrySize(registry))
 	registry.Unregister("gauge1", metrics.MustNewTag("tagKey", "tagValue2"))
-	assert.True(t, registryContains(t, registry, "gauge2", nil))
-	assert.Equal(t, 1, registrySize(t, registry))
+	assert.True(t, registryContains(registry, "gauge2", nil))
+	assert.Equal(t, 1, registrySize(registry))
 	registry.Unregister("gauge2")
-	assert.Equal(t, 0, registrySize(t, registry))
+	assert.Equal(t, 0, registrySize(registry))
 }
 
 func TestRootRegistry_ConcurrentUnregisterAndEachDoesNotPanic(t *testing.T) {
@@ -315,7 +315,7 @@ func TestRootRegistry_SubregistryWithTags(t *testing.T) {
 	}))
 }
 
-func registrySize(t *testing.T, registry metrics.Registry) int {
+func registrySize(registry metrics.Registry) int {
 	count := 0
 	registry.Each(metrics.MetricVisitor(func(name string, tags metrics.Tags, metric metrics.MetricVal) {
 		count++
@@ -323,14 +323,14 @@ func registrySize(t *testing.T, registry metrics.Registry) int {
 	return count
 }
 
-func registryContains(t *testing.T, registry metrics.Registry, name string, tags metrics.Tags) bool {
+func registryContains(registry metrics.Registry, name string, tags metrics.Tags) bool {
 	contains := false
-	tagStrings := []string{}
+	var tagStrings []string
 	for _, tag := range tags {
 		tagStrings = append(tagStrings, tag.String())
 	}
 	registry.Each(metrics.MetricVisitor(func(eachName string, eachTags metrics.Tags, metric metrics.MetricVal) {
-		eachTagStrings := []string{}
+		var eachTagStrings []string
 		for _, eachTag := range eachTags {
 			eachTagStrings = append(eachTagStrings, eachTag.String())
 		}
