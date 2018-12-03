@@ -84,10 +84,9 @@ func Do(ctx context.Context, action func() error, options ...Option) error {
 	return lastActionErr
 }
 
-// Retrier allows to control retry loop.
+// Retrier allows controlling a retry loop.
 //
-// Note that retry loop can be often replaced with simpler and less error-prone Do() function.
-//
+// Note that an explict loop using a Retrier can be often replaced with simpler and less error-prone Do() function.
 type Retrier interface {
 	// Reset the retrier to its initial state, meaning that the next call to
 	// Next will return immediately and subsequent calls will behave as if
