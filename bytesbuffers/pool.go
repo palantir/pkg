@@ -4,6 +4,17 @@
 
 // Package bytesbuffers provides multiple implementations of a "byte buffer pool" allowing for reuse
 // of preallocated memory in the form of a *bytes.Buffer.
+//
+// Example Usage: Marshal a JSON request body to a buffer, then put it back in the pool after the request.
+//
+//    pool := bytesbuffers.NewSyncPool(4)
+//    var obj MyInput{}
+//
+//    buffer := pool.Get()
+//    defer pool.Put(buffer)
+//    _ = json.NewEncoder(buffer).Encode(obj)
+//    _, _ = http.Post("http://localhost:1234", "application/json", buffer)
+//
 package bytesbuffers
 
 import (
