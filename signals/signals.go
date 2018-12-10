@@ -5,6 +5,7 @@
 package signals
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"os"
@@ -60,6 +61,19 @@ func RegisterStackTraceWriter(out io.Writer, errHandler func(error)) (unregister
 // error, that error is provided to the errHandler function if one is provided. Returns a function that unregisters the
 // listener when called.
 func RegisterStackTraceWriterOnSignals(out io.Writer, errHandler func(error), sig ...os.Signal) (unregister func()) {
+	handler := func(body []byte) {
+		if _, err := out.Write(body); err != nil && errHandler != nil {
+			errHandler(err)
+		}
+	}
+	return RegisterStackTraceHandlerOnSignals(handler, errHandler, sig...)
+}
+
+// RegisterStackTraceHandlerOnSignals starts a goroutine that listens for the specified signals and calls outHandler with a
+// pprof-formatted snapshot of all running goroutines when any of the provided signals are received. If writing to out returns an
+// error, that error is provided to the errHandler function if one is provided. Returns a function that unregisters the
+// listener when called.
+func RegisterStackTraceHandlerOnSignals(outHandler func([]byte), errHandler func(error), sig ...os.Signal) (unregister func()) {
 	cancel := make(chan bool, 1)
 	unregister = func() {
 		cancel <- true
@@ -70,9 +84,13 @@ func RegisterStackTraceWriterOnSignals(out io.Writer, errHandler func(error), si
 		for {
 			select {
 			case <-signals:
-				err := pprof.Lookup("goroutine").WriteTo(out, 2)
+				var buf bytes.Buffer
+				err := pprof.Lookup("goroutine").WriteTo(&buf, 2)
 				if err != nil && errHandler != nil {
 					errHandler(err)
+				}
+				if outHandler != nil {
+					outHandler(buf.Bytes())
 				}
 			case <-cancel:
 				return
