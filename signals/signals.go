@@ -61,22 +61,24 @@ func RegisterStackTraceWriter(out io.Writer, errHandler func(error)) (unregister
 // error, that error is provided to the errHandler function if one is provided. Returns a function that unregisters the
 // listener when called.
 func RegisterStackTraceWriterOnSignals(out io.Writer, errHandler func(error), sig ...os.Signal) (unregister func()) {
+	ctx, cancel := context.WithCancel(context.Background())
 	handler := func(stackTraceOutput []byte) error {
 		_, err := out.Write(stackTraceOutput)
 		return err
 	}
-	return RegisterStackTraceHandlerOnSignals(handler, errHandler, sig...)
+	RegisterStackTraceHandlerOnSignals(ctx, handler, errHandler, sig...)
+	return cancel
 }
 
 // RegisterStackTraceHandlerOnSignals starts a goroutine that listens for the specified signals and calls stackTraceHandler with a
 // pprof-formatted snapshot of all running goroutines when any of the provided signals are received. If stackTraceHandler returns
-// an error, that error is provided to the errHandler function if one is provided. Returns a function that unregisters the listener when called.
-func RegisterStackTraceHandlerOnSignals(stackTraceHandler func(stackTraceOutput []byte) error, errHandler func(error), sig ...os.Signal) (unregister func()) {
-	cancel := make(chan bool, 1)
-	unregister = func() {
-		cancel <- true
+// an error, that error is provided to the errHandler function if one is provided. No goroutine is created if stackTraceHandler is nil.
+// If no signals are provided, the handler will receive notifications for all signals (matching the os/signal.Notify API).
+// The handler will exit when ctx is cancelled.
+func RegisterStackTraceHandlerOnSignals(ctx context.Context, stackTraceHandler func(stackTraceOutput []byte) error, errHandler func(error), sig ...os.Signal) {
+	if stackTraceHandler == nil {
+		return
 	}
-
 	signals := NewSignalReceiver(sig...)
 	go func() {
 		for {
@@ -84,17 +86,14 @@ func RegisterStackTraceHandlerOnSignals(stackTraceHandler func(stackTraceOutput 
 			case <-signals:
 				var buf bytes.Buffer
 				_ = pprof.Lookup("goroutine").WriteTo(&buf, 2) // bytes.Buffer's Write never returns an error, so we swallow it
-				if stackTraceHandler != nil {
-					if err := stackTraceHandler(buf.Bytes()); err != nil && errHandler != nil {
-						errHandler(err)
-					}
+				if err := stackTraceHandler(buf.Bytes()); err != nil && errHandler != nil {
+					errHandler(err)
 				}
-			case <-cancel:
+			case <-ctx.Done():
 				return
 			}
 		}
 	}()
-	return unregister
 }
 
 // NewSignalReceiver returns a buffered channel that is registered to receive the provided signals.
