@@ -103,13 +103,15 @@ func NewTag(k, v string) (Tag, error) {
 		return Tag{}, errors.New(`full tag ("key:value") must be <= 200 characters`)
 	}
 
-	tag := Tag{
-		key:   normalizeTag(k),
-		value: normalizeTag(v),
-	}
-	tag.keyValue = tag.key + ":" + tag.value
+	return newTag(normalizeTag(k), normalizeTag(v)), nil
+}
 
-	return tag, nil
+func newTag(normalizedKey, normakizedValue string) Tag {
+	return Tag{
+		key:      normalizedKey,
+		value:    normakizedValue,
+		keyValue: normalizedKey + ":" + normakizedValue,
+	}
 }
 
 // MustNewTags returns the result of calling NewTags, but panics if NewTags returns an error. Should only be used in
