@@ -5,8 +5,8 @@
 package metrics
 
 import (
+	"bytes"
 	"context"
-	"fmt"
 	"sort"
 	"strings"
 	"sync"
@@ -260,35 +260,37 @@ func (r *rootRegistry) Subregistry(prefix string, tags ...Tag) Registry {
 
 func (r *rootRegistry) Each(f MetricVisitor) {
 	// sort names so that iteration order is consistent
-	var sortedNames []string
+	var sortedMetricIDs []string
 	allMetrics := make(map[string]interface{})
 	r.registry.Each(func(name string, metric interface{}) {
 		// filter out the runtime metrics that are defined in the exclude list
 		if _, ok := goRuntimeMetricsToExclude[name]; ok {
 			return
 		}
-		sortedNames = append(sortedNames, name)
+		sortedMetricIDs = append(sortedMetricIDs, name)
 		allMetrics[name] = metric
 	})
-	sort.Strings(sortedNames)
+	sort.Strings(sortedMetricIDs)
 
-	for _, name := range sortedNames {
-		metric := allMetrics[name]
-
-		var tags Tags
+	for _, id := range sortedMetricIDs {
 		r.idToMetricMutex.RLock()
-		metricWithTags, ok := r.idToMetricWithTags[metricTagsID(name)]
+		metricWithTags, ok := r.idToMetricWithTags[metricTagsID(id)]
 		r.idToMetricMutex.RUnlock()
+
+		var name string
+		var tags Tags
 		if ok {
 			name = metricWithTags.name
-			for t := range metricWithTags.tags {
-				tags = append(tags, t)
-			}
-			sort.Slice(tags, func(i, j int) bool {
-				return tags[i].String() < tags[j].String()
-			})
+			tags = make(Tags, len(metricWithTags.tags))
+			copy(tags, metricWithTags.tags)
+			sort.Sort(tags)
+		} else {
+			// Metric was added to rcrowley registry outside of our registry.
+			// This is likely a go runtime metric (nothing else is exposed).
+			name = id
 		}
-		val := ToMetricVal(metric)
+
+		val := ToMetricVal(allMetrics[id])
 		if val == nil {
 			// this should never happen as all the things we put inside the registry can be turned into MetricVal
 			panic("could not convert metric to MetricVal")
@@ -343,7 +345,7 @@ func (r *rootRegistry) registerMetric(name string, tags Tags) string {
 	r.idToMetricMutex.Lock()
 	r.idToMetricWithTags[metricID] = metricWithTags{
 		name: name,
-		tags: tags.ToSet(),
+		tags: tags,
 	}
 	r.idToMetricMutex.Unlock()
 	return string(metricID)
@@ -352,29 +354,31 @@ func (r *rootRegistry) registerMetric(name string, tags Tags) string {
 // metricWithTags stores a specific metric with its set of tags.
 type metricWithTags struct {
 	name string
-	tags map[Tag]struct{}
+	tags Tags
 }
 
 // metricTagsID is the unique identifier for a given metric. Each {metricName, set<Tag>} pair is considered to be a
-// unique metric. A metricTagsID is a string of the following form: "<name>|tags:|<tag1>|<tag2>|". The tags appear in
-// ascending alphanumeric order. If a metric does not have any tags, its metricsTagsID is of the form: "<name>|tags:||".
+// unique metric. A metricTagsID is a string of the following form: "<name>|<tag1>|<tag2>". The tags appear in
+// ascending alphanumeric order. If a metric does not have any tags, its metricsTagsID is of the form: "<name>".
 type metricTagsID string
 
-// toID generates the metricTagsID identifier for the metricWithTags. A unique {metricName, set<Tag>} input will
-// generate a unique output.
-func (m *metricWithTags) toID() metricTagsID {
-	var sortedTags []string
-	for t := range m.tags {
-		sortedTags = append(sortedTags, t.String())
-	}
-	sort.Strings(sortedTags)
-
-	return metricTagsID(fmt.Sprintf("%s|tags:|%s|", m.name, strings.Join(sortedTags, "|")))
-}
-
+// toMetricTagsID generates the metricTagsID identifier for the metricWithTags. A unique {metricName, set<Tag>} input will
+// generate a unique output. This implementation tries to minimize memory allocation and runtime.
 func toMetricTagsID(name string, tags Tags) metricTagsID {
-	return (&metricWithTags{
-		name: name,
-		tags: tags.ToSet(),
-	}).toID()
+	// TODO(maybe): Ensure tags is already sorted when it comes in so we can remove this.
+	sort.Sort(tags)
+
+	// calculate how large to make our byte buffer below
+	bufSize := len(name)
+	for _, t := range tags {
+		bufSize += len(t.keyValue) + 1 // 1 for separator
+	}
+
+	buf := bytes.NewBuffer(make([]byte, 0, bufSize))
+	_, _ = buf.WriteString(name)
+	for _, tag := range tags {
+		_, _ = buf.WriteRune('|')
+		_, _ = buf.WriteString(tag.keyValue)
+	}
+	return metricTagsID(buf.Bytes())
 }
