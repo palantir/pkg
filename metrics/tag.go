@@ -103,14 +103,16 @@ func NewTag(k, v string) (Tag, error) {
 		return Tag{}, errors.New(`full tag ("key:value") must be <= 200 characters`)
 	}
 
-	return newTag(normalizeTag(k), normalizeTag(v)), nil
+	return newTag(k, v), nil
 }
 
-func newTag(normalizedKey, normakizedValue string) Tag {
+func newTag(k, v string) Tag {
+	normalizedKey := normalizeTag(k)
+	normalizedValue := normalizeTag(v)
 	return Tag{
 		key:      normalizedKey,
-		value:    normakizedValue,
-		keyValue: normalizedKey + ":" + normakizedValue,
+		value:    normalizedValue,
+		keyValue: normalizedKey + ":" + normalizedValue,
 	}
 }
 
