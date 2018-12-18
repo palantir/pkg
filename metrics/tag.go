@@ -16,6 +16,8 @@ import (
 type Tag struct {
 	key   string
 	value string
+	// Store the concatenated key and value so we don't need to reconstruct it in String() (used in toMetricTagID)
+	keyValue string
 }
 
 func (t Tag) Key() string {
@@ -28,7 +30,7 @@ func (t Tag) Value() string {
 
 // The full representation of the tag, which is "key:value".
 func (t Tag) String() string {
-	return t.key + ":" + t.value
+	return t.keyValue
 }
 
 type Tags []Tag
@@ -50,6 +52,18 @@ func (t Tags) ToMap() map[string]string {
 		tags[currTag.key] = currTag.value
 	}
 	return tags
+}
+
+func (t Tags) Len() int {
+	return len(t)
+}
+
+func (t Tags) Less(i, j int) bool {
+	return t[i].keyValue < t[j].keyValue
+}
+
+func (t Tags) Swap(i, j int) {
+	t[i], t[j] = t[j], t[i]
 }
 
 // MustNewTag returns the result of calling NewTag, but panics if NewTag returns an error. Should only be used in
@@ -89,10 +103,13 @@ func NewTag(k, v string) (Tag, error) {
 		return Tag{}, errors.New(`full tag ("key:value") must be <= 200 characters`)
 	}
 
-	return Tag{
+	tag := Tag{
 		key:   normalizeTag(k),
 		value: normalizeTag(v),
-	}, nil
+	}
+	tag.keyValue = tag.key + ":" + tag.value
+
+	return tag, nil
 }
 
 // MustNewTags returns the result of calling NewTags, but panics if NewTags returns an error. Should only be used in

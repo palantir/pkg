@@ -5,8 +5,8 @@
 package metrics
 
 import (
+	"bytes"
 	"context"
-	"fmt"
 	"sort"
 	"strings"
 	"sync"
@@ -280,13 +280,8 @@ func (r *rootRegistry) Each(f MetricVisitor) {
 		metricWithTags, ok := r.idToMetricWithTags[metricTagsID(name)]
 		r.idToMetricMutex.RUnlock()
 		if ok {
-			name = metricWithTags.name
-			for t := range metricWithTags.tags {
-				tags = append(tags, t)
-			}
-			sort.Slice(tags, func(i, j int) bool {
-				return tags[i].String() < tags[j].String()
-			})
+			copy(tags, metricWithTags.tags)
+			sort.Sort(tags)
 		}
 		val := ToMetricVal(metric)
 		if val == nil {
@@ -343,7 +338,7 @@ func (r *rootRegistry) registerMetric(name string, tags Tags) string {
 	r.idToMetricMutex.Lock()
 	r.idToMetricWithTags[metricID] = metricWithTags{
 		name: name,
-		tags: tags.ToSet(),
+		tags: tags,
 	}
 	r.idToMetricMutex.Unlock()
 	return string(metricID)
@@ -352,29 +347,31 @@ func (r *rootRegistry) registerMetric(name string, tags Tags) string {
 // metricWithTags stores a specific metric with its set of tags.
 type metricWithTags struct {
 	name string
-	tags map[Tag]struct{}
+	tags Tags
 }
 
 // metricTagsID is the unique identifier for a given metric. Each {metricName, set<Tag>} pair is considered to be a
-// unique metric. A metricTagsID is a string of the following form: "<name>|tags:|<tag1>|<tag2>|". The tags appear in
-// ascending alphanumeric order. If a metric does not have any tags, its metricsTagsID is of the form: "<name>|tags:||".
+// unique metric. A metricTagsID is a string of the following form: "<name>|<tag1>|<tag2>". The tags appear in
+// ascending alphanumeric order. If a metric does not have any tags, its metricsTagsID is of the form: "<name>".
 type metricTagsID string
 
-// toID generates the metricTagsID identifier for the metricWithTags. A unique {metricName, set<Tag>} input will
-// generate a unique output.
-func (m *metricWithTags) toID() metricTagsID {
-	var sortedTags []string
-	for t := range m.tags {
-		sortedTags = append(sortedTags, t.String())
-	}
-	sort.Strings(sortedTags)
-
-	return metricTagsID(fmt.Sprintf("%s|tags:|%s|", m.name, strings.Join(sortedTags, "|")))
-}
-
+// toMetricTagsID generates the metricTagsID identifier for the metricWithTags. A unique {metricName, set<Tag>} input will
+// generate a unique output. This implementation tries to minimize memory allocation and runtime.
 func toMetricTagsID(name string, tags Tags) metricTagsID {
-	return (&metricWithTags{
-		name: name,
-		tags: tags.ToSet(),
-	}).toID()
+	// TODO(maybe): Ensure tags is already sorted when it comes in so we can remove this.
+	sort.Sort(tags)
+
+	// calculate how large to make our byte buffer below
+	bufSize := len(name)
+	for _, t := range tags {
+		bufSize += len(t.keyValue) + 1 // 1 for separator
+	}
+
+	buf := bytes.NewBuffer(make([]byte, 0, bufSize))
+	_, _ = buf.WriteString(name)
+	for _, tag := range tags {
+		_, _ = buf.WriteRune('|')
+		_, _ = buf.WriteString(tag.keyValue)
+	}
+	return metricTagsID(buf.Bytes())
 }

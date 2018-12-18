@@ -1,3 +1,7 @@
+// Copyright (c) 2018 Palantir Technologies. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package metrics
 
 import (
@@ -6,7 +10,7 @@ import (
 	"testing"
 )
 
-func BenchmarkRegisterMetric(b *testing.B)  {
+func BenchmarkRegisterMetric(b *testing.B) {
 	b.Run("1 tag", func(b *testing.B) {
 		doBench(b, 1)
 	})
