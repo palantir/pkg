@@ -2,20 +2,28 @@ package metrics
 
 import (
 	"context"
+	"fmt"
 	"testing"
 )
 
 func BenchmarkRegisterMetric(b *testing.B)  {
-	ctx := AddTags(WithRegistry(context.Background(), NewRootMetricsRegistry()),
-		MustNewTag("key1", "val1"),
-		MustNewTag("key2", "val2"),
-		MustNewTag("key3", "val3"),
-		MustNewTag("key4", "val4"),
-		MustNewTag("key5", "val5"),
-		MustNewTag("key6", "val6"),
-		MustNewTag("key7", "val7"),
-		MustNewTag("key8", "val8"),
-		)
+	b.Run("1 tag", func(b *testing.B) {
+		doBench(b, 1)
+	})
+	b.Run("10 tag", func(b *testing.B) {
+		doBench(b, 10)
+	})
+	b.Run("100 tag", func(b *testing.B) {
+		doBench(b, 100)
+	})
+}
+
+func doBench(b *testing.B, n int) {
+	var tags Tags
+	for i := 0; i < n; i++ {
+		tags = append(tags, MustNewTag(fmt.Sprintf("key%d", i), fmt.Sprintf("val%d", i)))
+	}
+	ctx := AddTags(WithRegistry(context.Background(), NewRootMetricsRegistry()), tags...)
 	b.ResetTimer()
 	b.ReportAllocs()
 	reg := FromContext(ctx)
