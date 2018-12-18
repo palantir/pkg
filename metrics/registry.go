@@ -260,30 +260,37 @@ func (r *rootRegistry) Subregistry(prefix string, tags ...Tag) Registry {
 
 func (r *rootRegistry) Each(f MetricVisitor) {
 	// sort names so that iteration order is consistent
-	var sortedNames []string
+	var sortedMetricIDs []string
 	allMetrics := make(map[string]interface{})
 	r.registry.Each(func(name string, metric interface{}) {
 		// filter out the runtime metrics that are defined in the exclude list
 		if _, ok := goRuntimeMetricsToExclude[name]; ok {
 			return
 		}
-		sortedNames = append(sortedNames, name)
+		sortedMetricIDs = append(sortedMetricIDs, name)
 		allMetrics[name] = metric
 	})
-	sort.Strings(sortedNames)
+	sort.Strings(sortedMetricIDs)
 
-	for _, name := range sortedNames {
-		metric := allMetrics[name]
-
-		var tags Tags
+	for _, id := range sortedMetricIDs {
 		r.idToMetricMutex.RLock()
-		metricWithTags, ok := r.idToMetricWithTags[metricTagsID(name)]
+		metricWithTags, ok := r.idToMetricWithTags[metricTagsID(id)]
 		r.idToMetricMutex.RUnlock()
+
+		var name string
+		var tags Tags
 		if ok {
+			name = metricWithTags.name
+			tags = make(Tags, len(metricWithTags.tags))
 			copy(tags, metricWithTags.tags)
 			sort.Sort(tags)
+		} else {
+			// Metric was added to rcrowley registry outside of our registry.
+			// This is likely a go runtime metric (nothing else is exposed).
+			name = id
 		}
-		val := ToMetricVal(metric)
+
+		val := ToMetricVal(allMetrics[id])
 		if val == nil {
 			// this should never happen as all the things we put inside the registry can be turned into MetricVal
 			panic("could not convert metric to MetricVal")
