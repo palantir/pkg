@@ -35,8 +35,8 @@ type ResourceIdentifier struct {
 }
 
 const (
-	RidClass  = "ri"
-	Separator = "."
+	ridClass  = "ri"
+	separator = "."
 )
 
 func MustNew(service, instance, resourceType, locator string) ResourceIdentifier {
@@ -58,7 +58,7 @@ func New(service, instance, resourceType, locator string) (ResourceIdentifier, e
 }
 
 func (rid ResourceIdentifier) String() string {
-	return RidClass + Separator + rid.Service + Separator + rid.Instance + Separator + rid.Type + Separator + rid.Locator
+	return ridClass + separator + rid.Service + separator + rid.Instance + separator + rid.Type + separator + rid.Locator
 }
 
 // MarshalText implements encoding.TextMarshaler (used by encoding/json and others).
@@ -79,8 +79,8 @@ func (rid *ResourceIdentifier) UnmarshalText(text []byte) error {
 
 // ParseRID parses a string into a 4-part resource identifier.
 func ParseRID(s string) (ResourceIdentifier, error) {
-	segments := strings.SplitN(s, Separator, 5)
-	if len(segments) != 5 || segments[0] != RidClass {
+	segments := strings.SplitN(s, separator, 5)
+	if len(segments) != 5 || segments[0] != ridClass {
 		return ResourceIdentifier{}, errors.New("invalid resource identifier")
 	}
 	rid := ResourceIdentifier{
