@@ -30,7 +30,17 @@ func TestResourceIdentifier(t *testing.T) {
 				Type:     "my-type",
 				Locator:  "my.locator.with.dots",
 			},
-			Expected: "my-service.my-instance.my-type.my.locator.with.dots",
+			Expected: "ri.my-service.my-instance.my-type.my.locator.with.dots",
+		},
+		{
+			Name: "empty instance",
+			Input: rid.ResourceIdentifier{
+				Service:  "my-service",
+				Instance: "",
+				Type:     "my-type",
+				Locator:  "my.locator.with.dots",
+			},
+			Expected: "ri.my-service..my-type.my.locator.with.dots",
 		},
 		{
 			Name: "invalid casing",
@@ -40,7 +50,7 @@ func TestResourceIdentifier(t *testing.T) {
 				Type:     "myType",
 				Locator:  "my.locator.with.dots",
 			},
-			ExpectedErr: `rid first segment (service) does not match ^[a-z][a-z0-9\-]*$ pattern: rid second segment (instance) does not match ^[a-z0-9][a-z0-9\-]*$ pattern: rid third segment (type) does not match ^[a-z][a-z0-9\-]*$ pattern`,
+			ExpectedErr: `rid first segment (service) does not match ^[a-z][a-z0-9\-]*$ pattern: rid second segment (instance) does not match ^([a-z0-9][a-z0-9\-]*)?$ pattern: rid third segment (type) does not match ^[a-z][a-z0-9\-]*$ pattern`,
 		},
 	} {
 		t.Run(test.Name, func(t *testing.T) {
