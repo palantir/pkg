@@ -39,15 +39,15 @@ const (
 	Separator = "."
 )
 
-func MustOf(service, instance, resourceType, locator string) ResourceIdentifier {
-	resourceIdentifier, err := Of(service, instance, resourceType, locator)
+func MustNew(service, instance, resourceType, locator string) ResourceIdentifier {
+	resourceIdentifier, err := New(service, instance, resourceType, locator)
 	if err != nil {
 		panic(err)
 	}
 	return resourceIdentifier
 }
 
-func Of(service, instance, resourceType, locator string) (ResourceIdentifier, error) {
+func New(service, instance, resourceType, locator string) (ResourceIdentifier, error) {
 	resourceIdentifier := ResourceIdentifier{
 		Service:  service,
 		Instance: instance,
@@ -58,7 +58,7 @@ func Of(service, instance, resourceType, locator string) (ResourceIdentifier, er
 }
 
 func (rid ResourceIdentifier) String() string {
-	return strings.Join([]string{RidClass, rid.Service, rid.Instance, rid.Type, rid.Locator}, Separator)
+	return RidClass + Separator + rid.Service + Separator + rid.Instance + Separator + rid.Type + Separator + rid.Locator
 }
 
 // MarshalText implements encoding.TextMarshaler (used by encoding/json and others).
@@ -79,8 +79,8 @@ func (rid *ResourceIdentifier) UnmarshalText(text []byte) error {
 
 // ParseRID parses a string into a 4-part resource identifier.
 func ParseRID(s string) (ResourceIdentifier, error) {
-	segments := strings.SplitN(s, ".", 5)
-	if len(segments) != 5 || segments[0] != "ri" {
+	segments := strings.SplitN(s, Separator, 5)
+	if len(segments) != 5 || segments[0] != RidClass {
 		return ResourceIdentifier{}, errors.New("invalid resource identifier")
 	}
 	rid := ResourceIdentifier{
