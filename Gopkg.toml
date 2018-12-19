@@ -20,15 +20,6 @@
 #  name = "github.com/x/y"
 #  version = "2.4.0"
 
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/mitchellh/go-wordwrap"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/spf13/viper"
-
-[[constraint]]
-  branch = "v2"
-  name = "gopkg.in/yaml.v2"
+[prune]
+  go-tests = true
+  unused-packages = true
