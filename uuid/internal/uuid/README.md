@@ -1,4 +1,4 @@
-**conjure-go note**: This package was adapted from https://github.com/google/uuid/tree/v1.1.0
+**Provenance**: This package was adapted from https://github.com/google/uuid/tree/v1.1.0
 to minimize external dependencies of generated code. We use a subset of the API and have
 removed all references to non-V4 UUIDs.
 

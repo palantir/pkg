@@ -95,6 +95,3 @@ func (rid ResourceIdentifier) validate() error {
 	}
 	return nil
 }
-
-// Rid is deprecated: use ResourceIdentifier.
-type Rid string
