@@ -52,6 +52,66 @@ func TestResourceIdentifier(t *testing.T) {
 			},
 			ExpectedErr: `rid first segment (service) does not match ^[a-z][a-z0-9\-]*$ pattern: rid second segment (instance) does not match ^([a-z0-9][a-z0-9\-]*)?$ pattern: rid third segment (type) does not match ^[a-z][a-z0-9\-]*$ pattern`,
 		},
+		{
+			Name: "service can't be empty",
+			Input: rid.ResourceIdentifier{
+				Service:  "",
+				Instance: "b",
+				Type:     "c",
+				Locator:  "d",
+			},
+			ExpectedErr: `rid first segment (service) does not match ^[a-z][a-z0-9\-]*$ pattern`,
+		},
+		{
+			Name: "service can't contain '.'",
+			Input: rid.ResourceIdentifier{
+				Service:  "a.a",
+				Instance: "b",
+				Type:     "c",
+				Locator:  "d",
+			},
+			ExpectedErr: `rid first segment (service) does not match ^[a-z][a-z0-9\-]*$ pattern`,
+		},
+		{
+			Name: "instance can't contain '.'",
+			Input: rid.ResourceIdentifier{
+				Service:  "a",
+				Instance: "b.b",
+				Type:     "c",
+				Locator:  "d",
+			},
+			ExpectedErr: `rid second segment (instance) does not match ^([a-z0-9][a-z0-9\-]*)?$ pattern`,
+		},
+		{
+			Name: "type can't be empty",
+			Input: rid.ResourceIdentifier{
+				Service:  "a",
+				Instance: "b",
+				Type:     "",
+				Locator:  "d",
+			},
+			ExpectedErr: `rid third segment (type) does not match ^[a-z][a-z0-9\-]*$ pattern`,
+		},
+		{
+			Name: "type can't contain '.'",
+			Input: rid.ResourceIdentifier{
+				Service:  "a",
+				Instance: "b",
+				Type:     "c.c",
+				Locator:  "d",
+			},
+			ExpectedErr: `rid third segment (type) does not match ^[a-z][a-z0-9\-]*$ pattern`,
+		},
+		{
+			Name: "locator can't be empty",
+			Input: rid.ResourceIdentifier{
+				Service:  "a",
+				Instance: "b",
+				Type:     "c",
+				Locator:  "",
+			},
+			ExpectedErr: `rid fourth segment (locator) does not match ^[a-zA-Z0-9\-\._]+$ pattern`,
+		},
 	} {
 		t.Run(test.Name, func(t *testing.T) {
 			type ridContainer struct {

@@ -34,8 +34,31 @@ type ResourceIdentifier struct {
 	Locator string
 }
 
+const (
+	RidClass  = "ri"
+	Separator = "."
+)
+
+func MustOf(service, instance, resourceType, locator string) ResourceIdentifier {
+	resourceIdentifier, err := Of(service, instance, resourceType, locator)
+	if err != nil {
+		panic(err)
+	}
+	return resourceIdentifier
+}
+
+func Of(service, instance, resourceType, locator string) (ResourceIdentifier, error) {
+	resourceIdentifier := ResourceIdentifier{
+		Service:  service,
+		Instance: instance,
+		Type:     resourceType,
+		Locator:  locator,
+	}
+	return resourceIdentifier, resourceIdentifier.validate()
+}
+
 func (rid ResourceIdentifier) String() string {
-	return "ri." + rid.Service + "." + rid.Instance + "." + rid.Type + "." + rid.Locator
+	return strings.Join([]string{RidClass, rid.Service, rid.Instance, rid.Type, rid.Locator}, Separator)
 }
 
 // MarshalText implements encoding.TextMarshaler (used by encoding/json and others).
