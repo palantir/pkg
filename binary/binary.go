@@ -20,14 +20,22 @@ func New(data []byte) Binary {
 	return Binary(encoding.EncodeToString(data))
 }
 
-func (b *Binary) Bytes() ([]byte, error) {
-	return encoding.DecodeString(string(*b))
+func (b Binary) Bytes() ([]byte, error) {
+	return encoding.DecodeString(string(b))
+}
+
+func (b Binary) MarshalText() (text []byte, err error) {
+	// Test that we can decode data before returning invalid base64
+	if _, err := b.Bytes(); err != nil {
+		return nil, err
+	}
+
+	return []byte(b), nil
 }
 
 func (b *Binary) UnmarshalText(data []byte) error {
-	// Test that we can decode data
-	decoded := make([]byte, encoding.DecodedLen(len(data)))
-	if _, err := encoding.Decode(decoded, data); err != nil {
+	// Test that we can decode data before storing invalid base64
+	if _, err := b.Bytes(); err != nil {
 		return err
 	}
 
