@@ -5,6 +5,7 @@
 package binary_test
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,7 +13,7 @@ import (
 	"github.com/palantir/pkg/binary"
 )
 
-func TestBinary_MarshalText(t *testing.T) {
+func TestBinary_Marshal(t *testing.T) {
 	for _, test := range []struct {
 		Name   string
 		Input  []byte
@@ -21,18 +22,18 @@ func TestBinary_MarshalText(t *testing.T) {
 		{
 			Name:   "hello world",
 			Input:  []byte(`hello world`),
-			Output: []byte(`aGVsbG8gd29ybGQ=`),
+			Output: []byte(`"aGVsbG8gd29ybGQ="`),
 		},
 	} {
 		t.Run(test.Name, func(t *testing.T) {
-			out, err := binary.New(test.Input).MarshalText()
+			out, err := json.Marshal(binary.New(test.Input))
 			assert.NoError(t, err)
 			assert.Equal(t, string(test.Output), string(out))
 		})
 	}
 }
 
-func TestBinary_UnmarshalText(t *testing.T) {
+func TestBinary_Unmarshal(t *testing.T) {
 	for _, test := range []struct {
 		Name   string
 		Input  []byte
@@ -40,15 +41,17 @@ func TestBinary_UnmarshalText(t *testing.T) {
 	}{
 		{
 			Name:   "hello world",
-			Input:  []byte(`aGVsbG8gd29ybGQ=`),
+			Input:  []byte(`"aGVsbG8gd29ybGQ="`),
 			Output: []byte(`hello world`),
 		},
 	} {
 		t.Run(test.Name, func(t *testing.T) {
 			var bin binary.Binary
-			err := bin.UnmarshalText(test.Input)
+			err := json.Unmarshal(test.Input, &bin)
 			assert.NoError(t, err)
-			assert.Equal(t, string(test.Output), string(bin.Data))
+			bytes, err := bin.Bytes()
+			assert.NoError(t, err)
+			assert.Equal(t, string(test.Output), string(bytes))
 		})
 	}
 }

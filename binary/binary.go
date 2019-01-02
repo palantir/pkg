@@ -8,34 +8,29 @@ import (
 	"encoding/base64"
 )
 
-// Binary wraps binary data and provides MarshalText/UnmarshalText encoding helpers using base64.StdEncoding.
-// We use a struct instead of an aliased []byte so this type can be used as a map key.
-type Binary struct {
-	Data []byte
-}
-
-func New(data []byte) Binary {
-	return Binary{Data: data}
-}
-
 var encoding = base64.StdEncoding
 
-func (b Binary) String() string {
-	return encoding.EncodeToString(b.Data)
+// Binary wraps binary data and provides encoding helpers using base64.StdEncoding.
+// Use this type for binary fields serialized/deserialized as base64 text.
+// We store then encoded string instead of an aliased []byte so this type can be used as a map key.
+// Use Bytes() to access the raw bytes.
+type Binary string
+
+func New(data []byte) Binary {
+	return Binary(encoding.EncodeToString(data))
 }
 
-func (b Binary) MarshalText() ([]byte, error) {
-	encoded := make([]byte, encoding.EncodedLen(len(b.Data)))
-	encoding.Encode(encoded, b.Data)
-	return encoded, nil
+func (b *Binary) Bytes() ([]byte, error) {
+	return encoding.DecodeString(string(*b))
 }
 
 func (b *Binary) UnmarshalText(data []byte) error {
+	// Test that we can decode data
 	decoded := make([]byte, encoding.DecodedLen(len(data)))
-	n, err := encoding.Decode(decoded, data)
-	if err != nil {
+	if _, err := encoding.Decode(decoded, data); err != nil {
 		return err
 	}
-	b.Data = decoded[:n]
+
+	*b = Binary(data)
 	return nil
 }
