@@ -8,14 +8,25 @@ import (
 	"encoding/base64"
 )
 
-// Binary wraps a []byte and provides MarshalText/UnmarshalText encoding helpers using base64.StdEncoding.
-type Binary []byte
+// Binary wraps binary data and provides MarshalText/UnmarshalText encoding helpers using base64.StdEncoding.
+// We use a struct instead of an aliased []byte so this type can be used as a map key.
+type Binary struct {
+	Data []byte
+}
+
+func New(data []byte) Binary {
+	return Binary{Data: data}
+}
 
 var encoding = base64.StdEncoding
 
+func (b Binary) String() string {
+	return encoding.EncodeToString(b.Data)
+}
+
 func (b Binary) MarshalText() ([]byte, error) {
-	encoded := make([]byte, encoding.EncodedLen(len(b)))
-	encoding.Encode(encoded, b)
+	encoded := make([]byte, encoding.EncodedLen(len(b.Data)))
+	encoding.Encode(encoded, b.Data)
 	return encoded, nil
 }
 
@@ -25,6 +36,6 @@ func (b *Binary) UnmarshalText(data []byte) error {
 	if err != nil {
 		return err
 	}
-	*b = Binary(decoded[:n])
+	b.Data = decoded[:n]
 	return nil
 }

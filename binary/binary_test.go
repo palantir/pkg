@@ -25,7 +25,7 @@ func TestBinary_MarshalText(t *testing.T) {
 		},
 	} {
 		t.Run(test.Name, func(t *testing.T) {
-			out, err := binary.Binary(test.Input).MarshalText()
+			out, err := binary.New(test.Input).MarshalText()
 			assert.NoError(t, err)
 			assert.Equal(t, string(test.Output), string(out))
 		})
@@ -48,7 +48,7 @@ func TestBinary_UnmarshalText(t *testing.T) {
 			var bin binary.Binary
 			err := bin.UnmarshalText(test.Input)
 			assert.NoError(t, err)
-			assert.Equal(t, string(test.Output), string(bin))
+			assert.Equal(t, string(test.Output), string(bin.Data))
 		})
 	}
 }
