@@ -8,24 +8,25 @@ import (
 	"encoding/base64"
 )
 
-var encoding = base64.StdEncoding
+var b64 = base64.StdEncoding
 
 // Binary wraps binary data and provides encoding helpers using base64.StdEncoding.
 // Use this type for binary fields serialized/deserialized as base64 text.
-// We store then encoded string instead of an aliased []byte so this type can be used as a map key.
+// Type is specified as string rather than []byte so that it can be used as a map key.
 // Use Bytes() to access the raw bytes.
+// Values of this type are only valid when the backing string is Base64-encoded using standard encoding.
 type Binary string
 
 func New(data []byte) Binary {
-	return Binary(encoding.EncodeToString(data))
+	return Binary(b64.EncodeToString(data))
 }
 
 func (b Binary) Bytes() ([]byte, error) {
-	return encoding.DecodeString(string(b))
+	return b64.DecodeString(string(b))
 }
 
 func (b Binary) MarshalText() (text []byte, err error) {
-	// Test that we can decode data before returning invalid base64
+	// Verify that data is base64-encoded
 	if _, err := b.Bytes(); err != nil {
 		return nil, err
 	}
@@ -34,8 +35,8 @@ func (b Binary) MarshalText() (text []byte, err error) {
 }
 
 func (b *Binary) UnmarshalText(data []byte) error {
-	// Test that we can decode data before storing invalid base64
-	if _, err := b.Bytes(); err != nil {
+	// Verify that data is base64-encoded
+	if _, err := Binary(data).Bytes(); err != nil {
 		return err
 	}
 
