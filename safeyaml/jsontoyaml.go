@@ -12,10 +12,10 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// JSONtoYAML converts json data to yaml while preserving order of object fields.
-// When we encounter a JSON object/map, we use yaml.MapSlice to represent the ordered object.
-// Invoke yaml.Marshal on the returned interface{}.
-// This will most commonly be used in a type's MarshalYAML method. For example:
+// JSONtoYAMLMapSlice decodes JSON bytes into an interface{} where all objects and maps are decoded
+// as a yaml.MapSlice to preserve key ordering. This can be useful if a type defines custom JSON
+// marshal logic and translating the JSON representation to a YAML representation while
+// preserving key ordering is sufficient for serialization. For example:
 //
 //		func (o Foo) MarshalYAML() (interface{}, error) {
 //			jsonBytes, err := json.Marshal(o)
@@ -24,15 +24,22 @@ import (
 //			}
 //			return JSONtoYAML(jsonBytes)
 //		}
-func JSONtoYAML(jsonBytes []byte) (interface{}, error) {
+func JSONtoYAMLMapSlice(jsonBytes []byte) (interface{}, error) {
 	dec := json.NewDecoder(bytes.NewReader(jsonBytes))
 	dec.UseNumber()
-	return tokenizerToYAML(dec)
+	val, err := tokenizerToYAML(dec)
+	if err != nil {
+		return val, err
+	}
+	if dec.More() {
+		return nil, fmt.Errorf("failed to convert json to yaml: invalid input after top-level json value")
+	}
+	return val, nil
 }
 
 // JSONtoYAMLBytes converts json data to yaml output while preserving order of object fields.
 func JSONtoYAMLBytes(jsonBytes []byte) ([]byte, error) {
-	obj, err := JSONtoYAML(jsonBytes)
+	obj, err := JSONtoYAMLMapSlice(jsonBytes)
 	if err != nil {
 		return nil, err
 	}

@@ -15,6 +15,7 @@ func TestJSONtoYAML(t *testing.T) {
 		Name string
 		JSON string
 		YAML string
+		Err  string
 	}{
 		{
 			Name: "object",
@@ -41,11 +42,21 @@ func TestJSONtoYAML(t *testing.T) {
 			JSON: `{"foo": null}`,
 			YAML: "foo: null\n",
 		},
+		{
+			Name: "extra json",
+			JSON: `["foo"]{}`,
+			Err:  "invalid input after top-level json value",
+		},
 	} {
 		t.Run(test.Name, func(t *testing.T) {
 			out, err := JSONtoYAMLBytes([]byte(test.JSON))
-			require.NoError(t, err)
-			require.Equal(t, test.YAML, string(out))
+			if test.Err == "" {
+				require.NoError(t, err)
+				require.Equal(t, test.YAML, string(out))
+			} else {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), test.Err)
+			}
 		})
 	}
 }
