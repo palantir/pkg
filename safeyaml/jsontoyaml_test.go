@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v2"
 )
 
 func TestJSONtoYAML(t *testing.T) {
@@ -19,8 +18,8 @@ func TestJSONtoYAML(t *testing.T) {
 	}{
 		{
 			Name: "object",
-			JSON: `{"z":"a", "y":"b", "x": 1, "w": 1.2, "v": {"foo": "bar", "baz": "qux"}}`,
-			YAML: "z: a\n\"y\": b\nx: 1\nw: 1.2\nv:\n  foo: bar\n  baz: qux\n",
+			JSON: `{"z":"a", "y": true, "x": 1, "w": 1.2, "v": {"foo": "bar", "baz": "qux"}}`,
+			YAML: "z: a\n\"y\": true\nx: 1\nw: 1.2\nv:\n  foo: bar\n  baz: qux\n",
 		},
 		{
 			Name: "slice",
@@ -44,9 +43,7 @@ func TestJSONtoYAML(t *testing.T) {
 		},
 	} {
 		t.Run(test.Name, func(t *testing.T) {
-			obj, err := JSONtoYAML([]byte(test.JSON))
-			require.NoError(t, err)
-			out, err := yaml.Marshal(obj)
+			out, err := JSONtoYAMLBytes([]byte(test.JSON))
 			require.NoError(t, err)
 			require.Equal(t, test.YAML, string(out))
 		})

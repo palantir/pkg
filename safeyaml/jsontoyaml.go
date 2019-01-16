@@ -13,17 +13,36 @@ import (
 )
 
 // JSONtoYAML converts json data to yaml while preserving order of object fields.
+// When we encounter a JSON object/map, we use yaml.MapSlice to represent the ordered object.
 // Invoke yaml.Marshal on the returned interface{}.
+// This will most commonly be used in a type's MarshalYAML method. For example:
+//
+//		func (o Foo) MarshalYAML() (interface{}, error) {
+//			jsonBytes, err := json.Marshal(o)
+//			if err != nil {
+//				return nil, err
+//			}
+//			return JSONtoYAML(jsonBytes)
+//		}
 func JSONtoYAML(jsonBytes []byte) (interface{}, error) {
 	dec := json.NewDecoder(bytes.NewReader(jsonBytes))
 	dec.UseNumber()
-	return tokenizerToYaml(dec)
+	return tokenizerToYAML(dec)
+}
+
+// JSONtoYAMLBytes converts json data to yaml output while preserving order of object fields.
+func JSONtoYAMLBytes(jsonBytes []byte) ([]byte, error) {
+	obj, err := JSONtoYAML(jsonBytes)
+	if err != nil {
+		return nil, err
+	}
+	return yaml.Marshal(obj)
 }
 
 var errClosingArrayDelim = fmt.Errorf("unexpected ']' delimiter")
 var errClosingObjectDelim = fmt.Errorf("unexpected '}' delimiter")
 
-func tokenizerToYaml(dec *json.Decoder) (interface{}, error) {
+func tokenizerToYAML(dec *json.Decoder) (interface{}, error) {
 	tok, err := dec.Token()
 	if err != nil {
 		return nil, err
@@ -32,11 +51,7 @@ func tokenizerToYaml(dec *json.Decoder) (interface{}, error) {
 		return nil, nil
 	}
 	switch v := tok.(type) {
-	case string:
-		return v, nil
-	case bool:
-		return v, nil
-	case float64:
+	case string, bool, float64:
 		return v, nil
 	case json.Number:
 		if numI, err := v.Int64(); err == nil {
@@ -51,7 +66,7 @@ func tokenizerToYaml(dec *json.Decoder) (interface{}, error) {
 		case '[':
 			arr := make([]interface{}, 0)
 			for {
-				elem, err := tokenizerToYaml(dec)
+				elem, err := tokenizerToYAML(dec)
 				if err == errClosingArrayDelim {
 					break
 				}
@@ -64,14 +79,14 @@ func tokenizerToYaml(dec *json.Decoder) (interface{}, error) {
 		case '{':
 			obj := make(yaml.MapSlice, 0)
 			for {
-				objectKeyI, err := tokenizerToYaml(dec)
+				objectKeyI, err := tokenizerToYAML(dec)
 				if err == errClosingObjectDelim {
 					break
 				}
 				if err != nil {
 					return nil, err
 				}
-				objectValueI, err := tokenizerToYaml(dec)
+				objectValueI, err := tokenizerToYAML(dec)
 				if err != nil {
 					return nil, err
 				}
