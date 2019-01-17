@@ -17,13 +17,13 @@ import (
 // marshal logic and translating the JSON representation to a YAML representation while
 // preserving key ordering is sufficient for serialization. For example:
 //
-//		func (o Foo) MarshalYAML() (interface{}, error) {
-//			jsonBytes, err := json.Marshal(o)
-//			if err != nil {
-//				return nil, err
-//			}
-//			return JSONtoYAML(jsonBytes)
+//	func (o Foo) MarshalYAML() (interface{}, error) {
+//		jsonBytes, err := json.Marshal(o)
+//		if err != nil {
+//			return nil, err
 //		}
+//		return JSONtoYAML(jsonBytes)
+//	}
 func JSONtoYAMLMapSlice(jsonBytes []byte) (interface{}, error) {
 	dec := json.NewDecoder(bytes.NewReader(jsonBytes))
 	dec.UseNumber()
