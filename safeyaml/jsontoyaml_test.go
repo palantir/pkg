@@ -54,8 +54,7 @@ func TestJSONtoYAML(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, test.YAML, string(out))
 			} else {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), test.Err)
+				require.EqualError(t, err, test.Err)
 			}
 		})
 	}

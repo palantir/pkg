@@ -32,7 +32,7 @@ func JSONtoYAMLMapSlice(jsonBytes []byte) (interface{}, error) {
 		return val, err
 	}
 	if dec.More() {
-		return nil, fmt.Errorf("failed to convert json to yaml: invalid input after top-level json value")
+		return nil, fmt.Errorf("invalid input after top-level json value")
 	}
 	return val, nil
 }
