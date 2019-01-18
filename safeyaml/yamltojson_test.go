@@ -47,6 +47,11 @@ func TestYAMLUnmarshalerToJSONBytes(t *testing.T) {
 			YAML: "1: 2",
 			JSON: `{"1":2}`,
 		},
+		{
+			Name: "object with invalid map key",
+			YAML: "{1: 2}: 3",
+			Err: `yaml: invalid map key: map[interface {}]interface {}{1:2}`,
+		},
 	} {
 		t.Run(test.Name, func(t *testing.T) {
 			out, err := YAMLtoJSONBytes([]byte(test.YAML))
