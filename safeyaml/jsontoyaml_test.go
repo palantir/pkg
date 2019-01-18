@@ -45,7 +45,7 @@ func TestJSONtoYAML(t *testing.T) {
 		{
 			Name: "extra json",
 			JSON: `["foo"]{}`,
-			Err:  "invalid input after top-level json value",
+			Err:  "invalid input after top-level JSON value",
 		},
 	} {
 		t.Run(test.Name, func(t *testing.T) {
