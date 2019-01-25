@@ -305,31 +305,31 @@ func (r *rootRegistry) Unregister(name string, tags ...Tag) {
 }
 
 func (r *rootRegistry) Counter(name string, tags ...Tag) metrics.Counter {
-	return metrics.GetOrRegisterCounter(r.registerMetric(name, tags), r.registry)
+	return metrics.GetOrRegisterCounter(r.registerMetric(name, copyTags(tags)), r.registry)
 }
 
 func (r *rootRegistry) Gauge(name string, tags ...Tag) metrics.Gauge {
-	return metrics.GetOrRegisterGauge(r.registerMetric(name, tags), r.registry)
+	return metrics.GetOrRegisterGauge(r.registerMetric(name, copyTags(tags)), r.registry)
 }
 
 func (r *rootRegistry) GaugeFloat64(name string, tags ...Tag) metrics.GaugeFloat64 {
-	return metrics.GetOrRegisterGaugeFloat64(r.registerMetric(name, tags), r.registry)
+	return metrics.GetOrRegisterGaugeFloat64(r.registerMetric(name, copyTags(tags)), r.registry)
 }
 
 func (r *rootRegistry) Meter(name string, tags ...Tag) metrics.Meter {
-	return metrics.GetOrRegisterMeter(r.registerMetric(name, tags), r.registry)
+	return metrics.GetOrRegisterMeter(r.registerMetric(name, copyTags(tags)), r.registry)
 }
 
 func (r *rootRegistry) Timer(name string, tags ...Tag) metrics.Timer {
-	return metrics.GetOrRegisterTimer(r.registerMetric(name, tags), r.registry)
+	return metrics.GetOrRegisterTimer(r.registerMetric(name, copyTags(tags)), r.registry)
 }
 
 func (r *rootRegistry) Histogram(name string, tags ...Tag) metrics.Histogram {
-	return r.HistogramWithSample(name, DefaultSample(), tags...)
+	return r.HistogramWithSample(name, DefaultSample(), copyTags(tags)...)
 }
 
 func (r *rootRegistry) HistogramWithSample(name string, sample metrics.Sample, tags ...Tag) metrics.Histogram {
-	return metrics.GetOrRegisterHistogram(r.registerMetric(name, tags), r.registry, sample)
+	return metrics.GetOrRegisterHistogram(r.registerMetric(name, copyTags(tags)), r.registry, sample)
 }
 
 func (r *rootRegistry) Registry() metrics.Registry {
@@ -381,4 +381,11 @@ func toMetricTagsID(name string, tags Tags) metricTagsID {
 		_, _ = buf.WriteString(tag.keyValue)
 	}
 	return metricTagsID(buf.Bytes())
+}
+
+// We copy the tag slice so that subsequent in-place mutations (sorting) do not affect the input slice.
+func copyTags(tags Tags) Tags {
+	tagsCopy := make(Tags, len(tags))
+	copy(tagsCopy, tags)
+	return tagsCopy
 }

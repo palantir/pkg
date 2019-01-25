@@ -73,6 +73,16 @@ func TestMetricsWithTags(t *testing.T) {
 	assert.Equal(t, wantTags, gotTags)
 }
 
+func TestMetricDoesNotMutateInputTagSlice(t *testing.T) {
+	root := metrics.NewRootMetricsRegistry()
+
+	unsortedTags := metrics.Tags{metrics.MustNewTag("b", "b"), metrics.MustNewTag("a", "a")}
+
+	root.Counter("my-counter", unsortedTags...).Inc(1)
+
+	assert.Equal(t, metrics.Tags{metrics.MustNewTag("b", "b"), metrics.MustNewTag("a", "a")}, unsortedTags)
+}
+
 // Prefix should be used as provided (no case conversion/normalization), while tags should always be converted to
 // lowercase.
 func TestMetricsCasing(t *testing.T) {
