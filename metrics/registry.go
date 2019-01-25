@@ -283,7 +283,6 @@ func (r *rootRegistry) Each(f MetricVisitor) {
 			name = metricWithTags.name
 			tags = make(Tags, len(metricWithTags.tags))
 			copy(tags, metricWithTags.tags)
-			sort.Sort(tags)
 		} else {
 			// Metric was added to rcrowley registry outside of our registry.
 			// This is likely a go runtime metric (nothing else is exposed).
