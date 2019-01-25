@@ -299,36 +299,38 @@ func (r *rootRegistry) Each(f MetricVisitor) {
 }
 
 func (r *rootRegistry) Unregister(name string, tags ...Tag) {
-	metricID := toMetricTagsID(name, tags)
+	// We copy the tag slice so that subsequent in-place mutations (sorting) do not affect the input slice.
+	tagsCopy := append(tags[:0:0], tags...) // https://github.com/go101/go101/wiki/How-to-efficiently-clone-a-slice%3F
+	metricID := toMetricTagsID(name, tagsCopy)
 	r.registry.Unregister(string(metricID))
 }
 
 func (r *rootRegistry) Counter(name string, tags ...Tag) metrics.Counter {
-	return metrics.GetOrRegisterCounter(r.registerMetric(name, copyTags(tags)), r.registry)
+	return metrics.GetOrRegisterCounter(r.registerMetric(name, tags), r.registry)
 }
 
 func (r *rootRegistry) Gauge(name string, tags ...Tag) metrics.Gauge {
-	return metrics.GetOrRegisterGauge(r.registerMetric(name, copyTags(tags)), r.registry)
+	return metrics.GetOrRegisterGauge(r.registerMetric(name, tags), r.registry)
 }
 
 func (r *rootRegistry) GaugeFloat64(name string, tags ...Tag) metrics.GaugeFloat64 {
-	return metrics.GetOrRegisterGaugeFloat64(r.registerMetric(name, copyTags(tags)), r.registry)
+	return metrics.GetOrRegisterGaugeFloat64(r.registerMetric(name, tags), r.registry)
 }
 
 func (r *rootRegistry) Meter(name string, tags ...Tag) metrics.Meter {
-	return metrics.GetOrRegisterMeter(r.registerMetric(name, copyTags(tags)), r.registry)
+	return metrics.GetOrRegisterMeter(r.registerMetric(name, tags), r.registry)
 }
 
 func (r *rootRegistry) Timer(name string, tags ...Tag) metrics.Timer {
-	return metrics.GetOrRegisterTimer(r.registerMetric(name, copyTags(tags)), r.registry)
+	return metrics.GetOrRegisterTimer(r.registerMetric(name, tags), r.registry)
 }
 
 func (r *rootRegistry) Histogram(name string, tags ...Tag) metrics.Histogram {
-	return r.HistogramWithSample(name, DefaultSample(), copyTags(tags)...)
+	return r.HistogramWithSample(name, DefaultSample(), tags...)
 }
 
 func (r *rootRegistry) HistogramWithSample(name string, sample metrics.Sample, tags ...Tag) metrics.Histogram {
-	return metrics.GetOrRegisterHistogram(r.registerMetric(name, copyTags(tags)), r.registry, sample)
+	return metrics.GetOrRegisterHistogram(r.registerMetric(name, tags), r.registry, sample)
 }
 
 func (r *rootRegistry) Registry() metrics.Registry {
@@ -340,11 +342,14 @@ func DefaultSample() metrics.Sample {
 }
 
 func (r *rootRegistry) registerMetric(name string, tags Tags) string {
-	metricID := toMetricTagsID(name, tags)
+	// We copy the tag slice so that subsequent in-place mutations (sorting) do not affect the input slice.
+	tagsCopy := append(tags[:0:0], tags...) // https://github.com/go101/go101/wiki/How-to-efficiently-clone-a-slice%3F
+
+	metricID := toMetricTagsID(name, tagsCopy)
 	r.idToMetricMutex.Lock()
 	r.idToMetricWithTags[metricID] = metricWithTags{
 		name: name,
-		tags: tags,
+		tags: tagsCopy,
 	}
 	r.idToMetricMutex.Unlock()
 	return string(metricID)
@@ -380,9 +385,4 @@ func toMetricTagsID(name string, tags Tags) metricTagsID {
 		_, _ = buf.WriteString(tag.keyValue)
 	}
 	return metricTagsID(buf.Bytes())
-}
-
-// We copy the tag slice so that subsequent in-place mutations (sorting) do not affect the input slice.
-func copyTags(tags Tags) Tags {
-	return append(tags[:0:0], tags...) // https://github.com/go101/go101/wiki/How-to-efficiently-clone-a-slice%3F
 }
