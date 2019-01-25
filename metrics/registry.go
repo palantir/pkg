@@ -385,7 +385,5 @@ func toMetricTagsID(name string, tags Tags) metricTagsID {
 
 // We copy the tag slice so that subsequent in-place mutations (sorting) do not affect the input slice.
 func copyTags(tags Tags) Tags {
-	tagsCopy := make(Tags, len(tags))
-	copy(tagsCopy, tags)
-	return tagsCopy
+	return append(tags[:0:0], tags...) // https://github.com/go101/go101/wiki/How-to-efficiently-clone-a-slice%3F
 }
