@@ -88,10 +88,11 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "master"
+  branch = "aj/rescale-on-reads"
   name = "github.com/rcrowley/go-metrics"
   packages = ["."]
-  revision = "e2704e165165ec55d062f5919b4b29494e9fa790"
+  revision = "8a1c6440d5ecea16bca03c41b46d570e61936d22"
+  source = "github.com/ashrayjain/go-metrics"
 
 [[projects]]
   branch = "master"
@@ -189,6 +190,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "99022f0b816e423682330b6a098abaaf80c53ce18e9fae74291209faba0ae3ce"
+  inputs-digest = "81c50c78f3eca5532d4b94f7748c0870361b024561e6af16b0367ceb2e025121"
   solver-name = "gps-cdcl"
   solver-version = 1
