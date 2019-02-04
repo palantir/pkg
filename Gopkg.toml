@@ -20,6 +20,13 @@
 #  name = "github.com/x/y"
 #  version = "2.4.0"
 
+# Adding this while https://github.com/rcrowley/go-metrics/pull/254 is open
+# to get the desired histogram rescaling behaviour.
+[[constraint]]
+  name = "github.com/rcrowley/go-metrics"
+  source = "github.com/ashrayjain/go-metrics"
+  branch = "aj/rescale-on-reads"
+
 [prune]
   go-tests = true
   unused-packages = true
