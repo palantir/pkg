@@ -283,10 +283,13 @@ func (r *rootRegistry) Each(f MetricVisitor) {
 			name = metricWithTags.name
 			tags = make(Tags, len(metricWithTags.tags))
 			copy(tags, metricWithTags.tags)
-		} else {
+		} else if r.registry.Get(id) != nil {
 			// Metric was added to rcrowley registry outside of our registry.
 			// This is likely a go runtime metric (nothing else is exposed).
 			name = id
+		} else {
+			// Metric was unregistered between us looking at the registry and idToMetricWithTags, move on
+			continue
 		}
 
 		val := ToMetricVal(allMetrics[id])
@@ -301,6 +304,11 @@ func (r *rootRegistry) Each(f MetricVisitor) {
 func (r *rootRegistry) Unregister(name string, tags ...Tag) {
 	metricID := toMetricTagsID(name, newSortedTags(tags))
 	r.registry.Unregister(string(metricID))
+
+	// This must happen after the registry Unregister() above to preserve the correctness guarantees in Each()
+	r.idToMetricMutex.Lock()
+	delete(r.idToMetricWithTags, metricID)
+	r.idToMetricMutex.Unlock()
 }
 
 func (r *rootRegistry) Counter(name string, tags ...Tag) metrics.Counter {
