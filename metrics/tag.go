@@ -76,6 +76,16 @@ func MustNewTag(k, v string) Tag {
 	return t
 }
 
+// MustNewTagWithKnownKey returns the result of calling NewTag, but panics only if the key input is invalid.
+// If the value input is invalid, it will be replaced with the fallback value.
+func MustNewTagWithFallbackValue(k, v, fallback string) Tag {
+	tag, err := NewTag(k, v)
+	if err != nil {
+		return MustNewTag(k, fallback)
+	}
+	return tag
+}
+
 // NewTag returns a tag that uses the provided key and value. The returned tag is normalized to conform with the DataDog
 // tag specification. The key and value must be non-empty and the key must begin with a letter. The string form of the
 // returned tag is "normalized(k):normalized(v)".
