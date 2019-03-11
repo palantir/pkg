@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	metricspkg "github.com/rcrowley/go-metrics"
+	metricspkg "github.com/palantir/go-metrics"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/palantir/pkg/metrics"

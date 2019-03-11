@@ -64,6 +64,12 @@
   revision = "b64318170fdef93b4462420e0badef8050dbb7ec"
 
 [[projects]]
+  name = "github.com/palantir/go-metrics"
+  packages = ["."]
+  revision = "073ec68383a8f2243d5761897332f1a8397856e1"
+  version = "1.0.0"
+
+[[projects]]
   name = "github.com/pelletier/go-buffruneio"
   packages = ["."]
   revision = "c37440a7cf42ac63b919c752ca73a85067e05992"
@@ -86,13 +92,6 @@
   packages = ["difflib"]
   revision = "792786c7400a136282c1664665ae0a8db921c6c2"
   version = "v1.0.0"
-
-[[projects]]
-  branch = "aj/rescale-on-reads"
-  name = "github.com/rcrowley/go-metrics"
-  packages = ["."]
-  revision = "8a1c6440d5ecea16bca03c41b46d570e61936d22"
-  source = "github.com/ashrayjain/go-metrics"
 
 [[projects]]
   branch = "master"
@@ -190,6 +189,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "81c50c78f3eca5532d4b94f7748c0870361b024561e6af16b0367ceb2e025121"
+  inputs-digest = "c4b9c54b03d407b88010d5ac95547195cbec86ed5f29361982c9c67503786e41"
   solver-name = "gps-cdcl"
   solver-version = 1

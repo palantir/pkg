@@ -1,31 +1,6 @@
-
-# Gopkg.toml example
-#
-# Refer to https://github.com/golang/dep/blob/master/docs/Gopkg.toml.md
-# for detailed Gopkg.toml documentation.
-#
-# required = ["github.com/user/thing/cmd/thing"]
-# ignored = ["github.com/user/project/pkgX", "bitbucket.org/user/project/pkgA/pkgY"]
-#
-# [[constraint]]
-#   name = "github.com/user/project"
-#   version = "1.0.0"
-#
-# [[constraint]]
-#   name = "github.com/user/project2"
-#   branch = "dev"
-#   source = "github.com/myfork/project2"
-#
-# [[override]]
-#  name = "github.com/x/y"
-#  version = "2.4.0"
-
-# Adding this while https://github.com/rcrowley/go-metrics/pull/254 is open
-# to get the desired histogram rescaling behaviour.
 [[constraint]]
-  name = "github.com/rcrowley/go-metrics"
-  source = "github.com/ashrayjain/go-metrics"
-  branch = "aj/rescale-on-reads"
+  name = "github.com/palantir/go-metrics"
+  version = "1.0.0"
 
 [prune]
   go-tests = true

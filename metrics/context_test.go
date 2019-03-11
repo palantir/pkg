@@ -8,7 +8,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/rcrowley/go-metrics"
+	"github.com/palantir/go-metrics"
 	"github.com/stretchr/testify/assert"
 )
 
