@@ -76,9 +76,9 @@ func MustNewTag(k, v string) Tag {
 	return t
 }
 
-// MustNewTagWithFallbackValue returns the result of calling NewTag, but panics only if the key input is invalid.
-// If the value input is invalid, it will be replaced with the fallback value.
-func MustNewTagWithFallbackValue(k, v, fallback string) Tag {
+// NewTagWithFallbackValue returns the result of calling NewTag, and if that fails, calls MustNewTag with a fallback
+// value. Note: because MustNewTag will panic if it fails, both the key and fallback value must be known to be valid.
+func NewTagWithFallbackValue(k, v, fallback string) Tag {
 	tag, err := NewTag(k, v)
 	if err != nil {
 		return MustNewTag(k, fallback)
