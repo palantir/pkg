@@ -70,6 +70,36 @@
   version = "1.0.0"
 
 [[projects]]
+  name = "github.com/palantir/pkg"
+  packages = [
+    "binary",
+    "bytesbuffers",
+    "cli",
+    "cli/cliviper",
+    "cli/completion",
+    "cli/flag",
+    "cobracli",
+    "datetime",
+    "httpserver",
+    "matcher",
+    "metrics",
+    "objmatcher",
+    "pkgpath",
+    "rid",
+    "safehttp",
+    "safejson",
+    "safelong",
+    "signals",
+    "specdir",
+    "tlsconfig",
+    "transform",
+    "uuid",
+    "uuid/internal/uuid",
+  ]
+  revision = "332184900c68094416680529ecbe2592135374b6"
+  version = "0.10.2"
+
+[[projects]]
   name = "github.com/pelletier/go-buffruneio"
   packages = ["."]
   revision = "c37440a7cf42ac63b919c752ca73a85067e05992"
@@ -189,6 +219,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c4b9c54b03d407b88010d5ac95547195cbec86ed5f29361982c9c67503786e41"
+  inputs-digest = "2aee35cc9884edb269f67bb3dda053f32fe373eeecfec7463807329580d8e67e"
   solver-name = "gps-cdcl"
   solver-version = 1
