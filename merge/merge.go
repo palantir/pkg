@@ -9,7 +9,7 @@ import (
 	"reflect"
 )
 
-// Both inputs are required to be maps. If both input maps have the same type,
+// Maps requires both inputs to be maps. If both input maps have the same type,
 // the returned map has the same type as well. If the input maps have different
 // types, src is returned unchanged.
 func Maps(dest, src interface{}) (interface{}, error) {
