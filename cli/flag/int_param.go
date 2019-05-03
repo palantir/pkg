@@ -4,7 +4,9 @@
 
 package flag
 
-import "strconv"
+import (
+	"strconv"
+)
 
 type IntParam struct {
 	Name  string
