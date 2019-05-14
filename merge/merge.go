@@ -9,13 +9,7 @@ import (
 	"reflect"
 )
 
-// Maps requires both inputs to be maps. If both input maps have the same type,
-// the returned map has the same type as well. If the input maps have different
-// types, src is returned unchanged. Otherwise, a new map is created and populated
-// with the merge result for the return value. For map entries with the same key, the following rules apply:
-// 1. If the values have different types, the value from 'src' is used.
-// 2. If the values are the same type and are slices or primitives, the value from 'src' is used.
-// 3. If the values are maps, the maps are recursively merged.
+// Maps merges two interfaces using the mergeMaps method, and returns the resulting value.
 func Maps(dest, src interface{}) (interface{}, error) {
 	result, err := mergeMaps(reflect.ValueOf(dest), reflect.ValueOf(src))
 	if err != nil {
@@ -24,6 +18,15 @@ func Maps(dest, src interface{}) (interface{}, error) {
 	return result.Interface(), nil
 }
 
+// mergeMaps requires both inputs to be maps; if not, an error is returned. If both input maps have the same type,
+// the returned map has the same type as well. If the input maps have different
+// types, src is returned unchanged. Otherwise, a new map is created and populated
+// with the merge result for the return value. For map entries with the same key, the following rules apply:
+// 1. If the values have different types, the value from 'src' is used.
+// 2. If the src value is nil, the entry is absent from the resulting map.
+// 3. If the values are the same type and are structs, the value of dest is persisted (this method is not intended to handle struct value merging).
+// 4. If the values are the same type and are slices or primitives, the value from 'src' is used.
+// 5. If the values are maps, the maps are recursively merged using the mergeMaps helper method.
 func mergeMaps(dest, src reflect.Value) (reflect.Value, error) {
 	if dest.Kind() != reflect.Map {
 		return reflect.Value{}, fmt.Errorf("expected destination to be a map")

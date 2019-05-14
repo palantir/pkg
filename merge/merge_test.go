@@ -112,6 +112,19 @@ func TestMergeMaps(t *testing.T) {
 				"b": "c",
 			},
 		},
+		{
+			name: "explicit nil value for a src map entry results in no entry for that key",
+			src: map[string]interface{}{
+				"a": nil,
+			},
+			dest: map[string]interface{}{
+				"a": "foo",
+				"b": "c",
+			},
+			expected: map[string]interface{}{
+				"b": "c",
+			},
+		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			merged, err := merge.Maps(test.dest, test.src)
