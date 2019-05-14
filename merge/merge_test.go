@@ -98,6 +98,20 @@ func TestMergeMaps(t *testing.T) {
 				"b": "b",
 			},
 		},
+		{
+			name: "different map entry value types return the value from src",
+			src: map[string]interface{}{
+				"a": "a string",
+			},
+			dest: map[string]interface{}{
+				"a": []string{"a string in a slice that will be overridden"},
+				"b": "c",
+			},
+			expected: map[string]interface{}{
+				"a": "a string",
+				"b": "c",
+			},
+		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			merged, err := merge.Maps(test.dest, test.src)

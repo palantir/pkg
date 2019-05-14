@@ -11,7 +11,11 @@ import (
 
 // Maps requires both inputs to be maps. If both input maps have the same type,
 // the returned map has the same type as well. If the input maps have different
-// types, src is returned unchanged.
+// types, src is returned unchanged. Otherwise, a new map is created and populated
+// with the merge result for the return value. For map entries with the same key, the following rules apply:
+// 1. If the values have different types, the value from 'src' is used.
+// 2. If the values are the same type and are slices or primitives, the value from 'src' is used.
+// 3. If the values are maps, the maps are recursively merged.
 func Maps(dest, src interface{}) (interface{}, error) {
 	result, err := mergeMaps(reflect.ValueOf(dest), reflect.ValueOf(src))
 	if err != nil {
