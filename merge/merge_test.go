@@ -12,6 +12,19 @@ import (
 	"github.com/palantir/pkg/merge"
 )
 
+type TestStruct1 struct {
+	Foo string
+}
+
+type TestStruct2 struct {
+	Bar string
+}
+
+type TestStruct3 struct {
+	MapField map[string]interface{}
+	StrField string
+}
+
 func TestMergeMaps(t *testing.T) {
 	srcVal := "src"
 	destVal := "dest"
@@ -123,6 +136,86 @@ func TestMergeMaps(t *testing.T) {
 			},
 			expected: map[string]interface{}{
 				"b": "c",
+			},
+		},
+		{
+			name: "src val used for differing struct types",
+			src: map[string]interface{}{
+				"a": TestStruct1{
+					Foo: "src foo value",
+				},
+			},
+			dest: map[string]interface{}{
+				"a": "dest bar value",
+			},
+			expected: map[string]interface{}{
+				"a": TestStruct1{
+					Foo: "src foo value",
+				},
+			},
+		},
+		{
+			name: "src val used for differing struct types",
+			src: map[string]interface{}{
+				"a": TestStruct1{
+					Foo: "src foo value",
+				},
+			},
+			dest: map[string]interface{}{
+				"a": TestStruct2{
+					Bar: "dest bar value",
+				},
+			},
+			expected: map[string]interface{}{
+				"a": TestStruct1{
+					Foo: "src foo value",
+				},
+			},
+		},
+		{
+			name: "src struct field values used for same struct types",
+			src: map[string]interface{}{
+				"a": TestStruct1{
+					Foo: "src foo value",
+				},
+			},
+			dest: map[string]interface{}{
+				"a": TestStruct1{
+					Foo: "dest foo value",
+				},
+			},
+			expected: map[string]interface{}{
+				"a": TestStruct1{
+					Foo: "src foo value",
+				},
+			},
+		},
+		{
+			name: "merge struct fields of type map",
+			src: map[string]interface{}{
+				"a": TestStruct3{
+					MapField: map[string]interface{}{
+						"b": "c",
+					},
+					StrField: "override it",
+				},
+			},
+			dest: map[string]interface{}{
+				"a": TestStruct3{
+					MapField: map[string]interface{}{
+						"d": "e",
+					},
+					StrField: "dest str field in struct",
+				},
+			},
+			expected: map[string]interface{}{
+				"a": TestStruct3{
+					MapField: map[string]interface{}{
+						"b": "c",
+						"d": "e",
+					},
+					StrField: "override it",
+				},
 			},
 		},
 	} {

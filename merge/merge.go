@@ -24,7 +24,7 @@ func Maps(dest, src interface{}) (interface{}, error) {
 // with the merge result for the return value. For map entries with the same key, the following rules apply:
 // 1. If the values have different types, the value from 'src' is used.
 // 2. If the src value is nil, the entry is absent from the resulting map.
-// 3. If the values are the same type and are structs, the value of dest is persisted (this method is not intended to handle struct value merging).
+// 3. If the values are the same type and are structs, then src's value for each struct field is used, excepting map type fields, which are merged.
 // 4. If the values are the same type and are slices or primitives, the value from 'src' is used.
 // 5. If the values are maps, the maps are recursively merged using the mergeMaps helper method.
 func mergeMaps(dest, src reflect.Value) (reflect.Value, error) {
@@ -72,6 +72,22 @@ func mergeValues(destVal, srcVal reflect.Value) (reflect.Value, error) {
 			return reflect.Value{}, err
 		}
 		return val.Addr(), nil
+	case reflect.Struct:
+		if srcVal.Type() != destVal.Type() {
+			return srcVal, nil
+		}
+		val := reflect.New(srcVal.Type())
+		for i := 0; i < srcVal.NumField(); i++ {
+			_ = destVal.Field(i)
+			fieldVal, err := mergeValues(destVal.Field(i), srcVal.Field(i))
+			if err != nil {
+				return reflect.Value{}, err
+			}
+			if val.Elem().Field(i).CanSet() {
+				val.Elem().Field(i).Set(fieldVal)
+			}
+		}
+		return val.Elem(), nil
 	default:
 		return srcVal, nil
 	}
