@@ -21,8 +21,9 @@ type TestStruct2 struct {
 }
 
 type TestStruct3 struct {
-	MapField map[string]interface{}
-	StrField string
+	MapField        map[string]interface{}
+	StrField        string
+	unexportedField string
 }
 
 func TestMergeMaps(t *testing.T) {
@@ -191,13 +192,14 @@ func TestMergeMaps(t *testing.T) {
 			},
 		},
 		{
-			name: "merge struct fields of type map",
+			name: "handle same-type struct merging",
 			src: map[string]interface{}{
 				"a": TestStruct3{
 					MapField: map[string]interface{}{
 						"b": "c",
 					},
-					StrField: "override it",
+					StrField:        "override it",
+					unexportedField: "should not appear in result",
 				},
 			},
 			dest: map[string]interface{}{
