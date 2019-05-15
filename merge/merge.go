@@ -21,12 +21,8 @@ func Maps(dest, src interface{}) (interface{}, error) {
 // mergeMaps requires both inputs to be maps; if not, an error is returned. If both input maps have the same type,
 // the returned map has the same type as well. If the input maps have different
 // types, src is returned unchanged. Otherwise, a new map is created and populated
-// with the merge result for the return value. For map entries with the same key, the following rules apply:
-// 1. If the values have different types, the value from 'src' is used.
-// 2. If the src value is nil, the entry is absent from the resulting map.
-// 3. If the values are the same type and are structs, then src's value for each struct field is used, excepting map type fields, which are recursively merged.
-// 4. If the values are the same type and are slices or primitives, the value from 'src' is used.
-// 5. If the values are maps, the maps are recursively merged using the mergeMaps helper method.
+// with the merge result for the return value. For map entries with the same key,
+// the mergeValues helper method is used to determine the resulting value for the key.
 func mergeMaps(dest, src reflect.Value) (reflect.Value, error) {
 	if dest.Kind() != reflect.Map {
 		return reflect.Value{}, fmt.Errorf("expected destination to be a map")
@@ -57,6 +53,14 @@ func mergeMaps(dest, src reflect.Value) (reflect.Value, error) {
 	return result, nil
 }
 
+// mergeValues follows these rules when merging values:
+// 1. If the values have different types, the value from 'src' is returned.
+// 2. If the src value is nil, the entry is absent from the resulting map.
+// 3. If the values are the same type and are structs, then the value from 'src' is returned.
+// 4. If the values are the same type and are slices or primitives, the value from 'src' is returned.
+// 5. If the values are maps, the maps are recursively merged using the mergeMaps helper method.
+// 6. If the values are pointers to maps, the value from 'src' is returned.
+// 7. If the values are pointers to non-maps, the return value is determined by recursing on the dereferenced pointer values.
 func mergeValues(destVal, srcVal reflect.Value) (reflect.Value, error) {
 	if destVal.Kind() != srcVal.Kind() {
 		return srcVal, nil
@@ -67,27 +71,14 @@ func mergeValues(destVal, srcVal reflect.Value) (reflect.Value, error) {
 	case reflect.Interface:
 		return mergeValues(destVal.Elem(), srcVal.Elem())
 	case reflect.Ptr:
+		if destVal.Elem().Kind() == srcVal.Elem().Kind() && srcVal.Elem().Kind() == reflect.Map {
+			return srcVal, nil
+		}
 		val, err := mergeValues(destVal.Elem(), srcVal.Elem())
 		if err != nil {
 			return reflect.Value{}, err
 		}
 		return val.Addr(), nil
-	case reflect.Struct:
-		if srcVal.Type() != destVal.Type() {
-			return srcVal, nil
-		}
-		val := reflect.New(srcVal.Type())
-		for i := 0; i < srcVal.NumField(); i++ {
-			_ = destVal.Field(i)
-			fieldVal, err := mergeValues(destVal.Field(i), srcVal.Field(i))
-			if err != nil {
-				return reflect.Value{}, err
-			}
-			if val.Elem().Field(i).CanSet() {
-				val.Elem().Field(i).Set(fieldVal)
-			}
-		}
-		return val.Elem(), nil
 	default:
 		return srcVal, nil
 	}

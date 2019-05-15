@@ -192,32 +192,33 @@ func TestMergeMaps(t *testing.T) {
 			},
 		},
 		{
-			name: "handle same-type struct merging",
+			name: "src value for pointers to maps is used",
 			src: map[string]interface{}{
-				"a": TestStruct3{
-					MapField: map[string]interface{}{
-						"b": "c",
-					},
-					StrField:        "override it",
-					unexportedField: "should not appear in result",
+				"a": &map[string]interface{}{
+					"b": "c",
 				},
 			},
 			dest: map[string]interface{}{
-				"a": TestStruct3{
-					MapField: map[string]interface{}{
-						"d": "e",
-					},
-					StrField: "dest str field in struct",
+				"a": &map[string]interface{}{
+					"c": "d",
 				},
 			},
 			expected: map[string]interface{}{
-				"a": TestStruct3{
-					MapField: map[string]interface{}{
-						"b": "c",
-						"d": "e",
-					},
-					StrField: "override it",
+				"a": &map[string]interface{}{
+					"b": "c",
 				},
+			},
+		},
+		{
+			name: "src value for pointers to arrays is used",
+			src: map[string]interface{}{
+				"a": &[]string{"b", "c"},
+			},
+			dest: map[string]interface{}{
+				"a": &[]string{"d"},
+			},
+			expected: map[string]interface{}{
+				"a": &[]string{"b", "c"},
 			},
 		},
 	} {
