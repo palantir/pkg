@@ -22,7 +22,7 @@ func Maps(dest, src interface{}) (interface{}, error) {
 // the returned map has the same type as well. If the input maps have different
 // types, src is returned unchanged. Otherwise, a new map is created and populated
 // with the merge result for the return value. For map entries with the same key,
-// the mergeValues helper method is used to determine the resulting value for the key.
+// the determineValue helper method is used to determine the resulting value for the key.
 func mergeMaps(dest, src reflect.Value) (reflect.Value, error) {
 	if dest.Kind() != reflect.Map {
 		return reflect.Value{}, fmt.Errorf("expected destination to be a map")
@@ -44,24 +44,31 @@ func mergeMaps(dest, src reflect.Value) (reflect.Value, error) {
 		var resultVal reflect.Value
 		var err error
 		if !destVal.IsValid() {
+			if safeIsNil(srcVal) {
+				continue
+			}
 			resultVal = srcVal
-		} else if resultVal, err = mergeValues(destVal, srcVal); err != nil {
-			return reflect.Value{}, err
+		} else {
+			if safeIsNil(srcVal) {
+				result.SetMapIndex(srcKey, reflect.Value{})
+				continue
+			}
+			if resultVal, err = determineValue(destVal, srcVal); err != nil {
+				return reflect.Value{}, err
+			}
 		}
 		result.SetMapIndex(srcKey, resultVal)
 	}
 	return result, nil
 }
 
-// mergeValues follows these rules when merging values:
-// 1. If the values have different types, the value from 'src' is returned.
-// 2. If the src value is nil, the entry is absent from the resulting map.
-// 3. If the values are the same type and are structs, then the value from 'src' is returned.
-// 4. If the values are the same type and are slices or primitives, the value from 'src' is returned.
-// 5. If the values are maps, the maps are recursively merged using the mergeMaps helper method.
-// 6. If the values are pointers to maps, the value from 'src' is returned.
-// 7. If the values are pointers to non-maps, the return value is determined by recursing on the dereferenced pointer values.
-func mergeValues(destVal, srcVal reflect.Value) (reflect.Value, error) {
+// determineValue inspects the 'dest' and 'src' values and follows these rules:
+// 1. If the values have different kinds, the value of 'src' is returned.
+// 2. If the values are maps, the maps are recursively merged using the mergeMaps helper method.
+// 3. If the values are interfaces, determineValue is called with the element values that the interfaces contain.
+// 4. If the values are pointers, determineValue is called with the pointer's elements, and the address of the result is returned.
+// 5. If the values are any other kind, the value of 'src' is returned.
+func determineValue(destVal, srcVal reflect.Value) (reflect.Value, error) {
 	if destVal.Kind() != srcVal.Kind() {
 		return srcVal, nil
 	}
@@ -69,17 +76,20 @@ func mergeValues(destVal, srcVal reflect.Value) (reflect.Value, error) {
 	case reflect.Map:
 		return mergeMaps(destVal, srcVal)
 	case reflect.Interface:
-		return mergeValues(destVal.Elem(), srcVal.Elem())
-	case reflect.Ptr:
-		if destVal.Elem().Kind() == srcVal.Elem().Kind() && srcVal.Elem().Kind() == reflect.Map {
-			return srcVal, nil
-		}
-		val, err := mergeValues(destVal.Elem(), srcVal.Elem())
-		if err != nil {
-			return reflect.Value{}, err
-		}
-		return val.Addr(), nil
+		return determineValue(destVal.Elem(), srcVal.Elem())
 	default:
 		return srcVal, nil
+	}
+}
+
+// safeIsNil only calls IsNil if the value is an interface, pointer, map, or slice (IsNil will not panic in these cases)
+func safeIsNil(val reflect.Value) bool {
+	switch val.Kind() {
+	case reflect.Interface, reflect.Ptr:
+		return val.IsNil() || safeIsNil(val.Elem())
+	case reflect.Slice, reflect.Map:
+		return val.IsNil()
+	default:
+		return false
 	}
 }

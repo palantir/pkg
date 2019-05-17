@@ -16,16 +16,6 @@ type TestStruct1 struct {
 	Foo string
 }
 
-type TestStruct2 struct {
-	Bar string
-}
-
-type TestStruct3 struct {
-	MapField        map[string]interface{}
-	StrField        string
-	unexportedField string
-}
-
 func TestMergeMaps(t *testing.T) {
 	srcVal := "src"
 	destVal := "dest"
@@ -127,9 +117,9 @@ func TestMergeMaps(t *testing.T) {
 			},
 		},
 		{
-			name: "explicit nil value for a src map entry results in no entry for that key",
+			name: "typed nil value for a src map entry results in no entry for that key",
 			src: map[string]interface{}{
-				"a": nil,
+				"a": (*string)(nil),
 			},
 			dest: map[string]interface{}{
 				"a": "foo",
@@ -140,7 +130,21 @@ func TestMergeMaps(t *testing.T) {
 			},
 		},
 		{
-			name: "src val used for differing struct types",
+			name: "untyped nil value for a src map entry results in no entry for that key",
+			src: map[string]interface{}{
+				"a": nil,
+				"c": nil,
+			},
+			dest: map[string]interface{}{
+				"a": "foo",
+				"b": "c",
+			},
+			expected: map[string]interface{}{
+				"b": "c",
+			},
+		},
+		{
+			name: "src val for structs is used",
 			src: map[string]interface{}{
 				"a": TestStruct1{
 					Foo: "src foo value",
@@ -156,69 +160,28 @@ func TestMergeMaps(t *testing.T) {
 			},
 		},
 		{
-			name: "src val used for differing struct types",
-			src: map[string]interface{}{
-				"a": TestStruct1{
-					Foo: "src foo value",
-				},
-			},
-			dest: map[string]interface{}{
-				"a": TestStruct2{
-					Bar: "dest bar value",
-				},
-			},
-			expected: map[string]interface{}{
-				"a": TestStruct1{
-					Foo: "src foo value",
-				},
-			},
-		},
-		{
-			name: "src struct field values used for same struct types",
-			src: map[string]interface{}{
-				"a": TestStruct1{
-					Foo: "src foo value",
-				},
-			},
-			dest: map[string]interface{}{
-				"a": TestStruct1{
-					Foo: "dest foo value",
-				},
-			},
-			expected: map[string]interface{}{
-				"a": TestStruct1{
-					Foo: "src foo value",
-				},
-			},
-		},
-		{
-			name: "src value for pointers to maps is used",
+			name: "src value for pointers is used",
 			src: map[string]interface{}{
 				"a": &map[string]interface{}{
 					"b": "c",
 				},
+				"b": (*string)(nil),
+				"c": &[]string{"d"},
 			},
 			dest: map[string]interface{}{
 				"a": &map[string]interface{}{
 					"c": "d",
 				},
+				"b": &destVal,
+				"c": "d",
+				"d": "non-pointer type",
 			},
 			expected: map[string]interface{}{
 				"a": &map[string]interface{}{
 					"b": "c",
 				},
-			},
-		},
-		{
-			name: "src value for pointers to arrays is used",
-			src: map[string]interface{}{
-				"a": &[]string{"b", "c"},
-			},
-			dest: map[string]interface{}{
-				"a": &[]string{"d"},
-			},
-			expected: map[string]interface{}{
-				"a": &[]string{"b", "c"},
+				"c": &[]string{"d"},
+				"d": "non-pointer type",
 			},
 		},
 	} {
