@@ -23,6 +23,7 @@ func Maps(dest, src interface{}) (interface{}, error) {
 // types, src is returned unchanged. Otherwise, a new map is created and populated
 // with the merge result for the return value. For map entries with the same key,
 // the determineValue helper method is used to determine the resulting value for the key.
+// Entries with nil values are preserved in the map.
 func mergeMaps(dest, src reflect.Value) (reflect.Value, error) {
 	if dest.Kind() != reflect.Map {
 		return reflect.Value{}, fmt.Errorf("expected destination to be a map")
@@ -45,12 +46,13 @@ func mergeMaps(dest, src reflect.Value) (reflect.Value, error) {
 		var err error
 		if !destVal.IsValid() {
 			if safeIsNil(srcVal) {
+				result.SetMapIndex(srcKey, srcVal)
 				continue
 			}
 			resultVal = srcVal
 		} else {
 			if safeIsNil(srcVal) {
-				result.SetMapIndex(srcKey, reflect.Value{})
+				result.SetMapIndex(srcKey, srcVal)
 				continue
 			}
 			if resultVal, err = determineValue(destVal, srcVal); err != nil {

@@ -117,7 +117,7 @@ func TestMergeMaps(t *testing.T) {
 			},
 		},
 		{
-			name: "typed nil value for a src map entry results in no entry for that key",
+			name: "typed nil value for a src map entry results in a typed nil entry for that key",
 			src: map[string]interface{}{
 				"a": (*string)(nil),
 			},
@@ -126,11 +126,12 @@ func TestMergeMaps(t *testing.T) {
 				"b": "c",
 			},
 			expected: map[string]interface{}{
+				"a": (*string)(nil),
 				"b": "c",
 			},
 		},
 		{
-			name: "untyped nil value for a src map entry results in no entry for that key",
+			name: "untyped nil value for a src map entry results in a nil entry for that key",
 			src: map[string]interface{}{
 				"a": nil,
 				"c": nil,
@@ -140,7 +141,9 @@ func TestMergeMaps(t *testing.T) {
 				"b": "c",
 			},
 			expected: map[string]interface{}{
+				"a": nil,
 				"b": "c",
+				"c": nil,
 			},
 		},
 		{
@@ -180,6 +183,7 @@ func TestMergeMaps(t *testing.T) {
 				"a": &map[string]interface{}{
 					"b": "c",
 				},
+				"b": (*string)(nil),
 				"c": &[]string{"d"},
 				"d": "non-pointer type",
 			},
