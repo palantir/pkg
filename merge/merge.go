@@ -9,7 +9,10 @@ import (
 	"reflect"
 )
 
-// Maps merges two interfaces using the mergeMaps method, and returns the resulting value.
+// Maps returns a new map that is the result of merging the two provided inputs, which must both be maps. Returns an
+// error if either of the inputs are not maps. If the types of the input values differ, a copy of the src map is returned.
+// Merging is performed by creating a new map, setting its contents to be "dest", and then setting the key/value pairs in
+// "src" on the new map (unless the value is a map, in which case a merge is performed recursively).
 func Maps(dest, src interface{}) (interface{}, error) {
 	result, err := mergeMaps(reflect.ValueOf(dest), reflect.ValueOf(src))
 	if err != nil {
@@ -20,7 +23,7 @@ func Maps(dest, src interface{}) (interface{}, error) {
 
 // mergeMaps requires both inputs to be maps; if not, an error is returned. If both input maps have the same type,
 // the returned map has the same type as well. If the input maps have different
-// types, src is returned unchanged. Otherwise, a new map is created and populated
+// types, a copy of src is returned. Otherwise, a new map is created and populated
 // with the merge result for the return value. For map entries with the same key,
 // the determineValue helper method is used to determine the resulting value for the key.
 // Entries with nil values are preserved in the map.
@@ -33,7 +36,11 @@ func mergeMaps(dest, src reflect.Value) (reflect.Value, error) {
 	}
 
 	if dest.Type() != src.Type() {
-		return src, nil
+		result := reflect.MakeMap(src.Type())
+		for _, srcKey := range src.MapKeys() {
+			result.SetMapIndex(srcKey, src.MapIndex(srcKey))
+		}
+		return result, nil
 	}
 	result := reflect.MakeMap(dest.Type())
 	for _, destKey := range dest.MapKeys() {
