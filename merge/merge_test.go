@@ -7,7 +7,7 @@ package merge_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/palantir/pkg/merge"
 )
@@ -22,6 +22,7 @@ func TestMergeMaps(t *testing.T) {
 	for _, test := range []struct {
 		name                string
 		src, dest, expected interface{}
+		expectedErr         string
 	}{
 		{
 			name: "config maps",
@@ -88,7 +89,7 @@ func TestMergeMaps(t *testing.T) {
 			},
 		},
 		{
-			name: "different types returns src unchanged",
+			name: "different map types returns error",
 			src: map[string]interface{}{
 				"a": "a",
 				"b": "b",
@@ -97,10 +98,7 @@ func TestMergeMaps(t *testing.T) {
 				"a": "a",
 				"c": "c",
 			},
-			expected: map[string]interface{}{
-				"a": "a",
-				"b": "b",
-			},
+			expectedErr: "expected maps of same type",
 		},
 		{
 			name: "different map entry value types return the value from src",
@@ -191,8 +189,13 @@ func TestMergeMaps(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			merged, err := merge.Maps(test.dest, test.src)
-			require.NoError(t, err)
-			require.Equal(t, test.expected, merged)
+			if test.expectedErr == "" {
+				assert.NoError(t, err)
+				assert.Equal(t, test.expected, merged)
+			} else {
+				assert.EqualError(t, err, test.expectedErr)
+				assert.Nil(t, merged)
+			}
 		})
 	}
 }
