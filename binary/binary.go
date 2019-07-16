@@ -25,6 +25,10 @@ func (b Binary) Bytes() ([]byte, error) {
 	return b64.DecodeString(string(b))
 }
 
+func (b Binary) String() string {
+	return string(b)
+}
+
 func (b Binary) MarshalText() (text []byte, err error) {
 	// Verify that data is base64-encoded
 	if _, err := b.Bytes(); err != nil {
