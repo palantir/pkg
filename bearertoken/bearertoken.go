@@ -8,6 +8,10 @@ package bearertoken
 // Authorization or Cookie header for authentication purposes.
 type Token string
 
+func (t Token) String() string {
+	return string(t)
+}
+
 func (t Token) MarshalText() ([]byte, error) {
 	return []byte(t), nil
 }
