@@ -2,57 +2,34 @@
 # To request a modification to the general template, file an issue on Excavator.
 # To manually manage the CircleCI configuration for this project, remove the .circleci/template.sh file.
 
-working_dir: &working_dir
-  working_directory: /go/src/github.com/palantir/pkg
+owner-repo: &owner-repo
+  owner-repo: palantir/pkg
 
-steps: &steps
-  - checkout
-  - restore_cache:
-      keys:
-        - godel-cache-{{ checksum "godelw" }}-{{ checksum "godel/config/godel.yml" }}-v1
-  - run: ./godelw version
-  - save_cache:
-      key: godel-cache-{{ checksum "godelw" }}-{{ checksum "godel/config/godel.yml" }}-v1
-      paths:
-        - ~/.godel
-  - run: echo 'export TESTS_DIR=/tmp/test-results' >> $BASH_ENV
-  - run: mkdir -p "${TESTS_DIR}"
-  - run: |
-         if [ ! -z "$VERIFY" ]; then
-           echo "Verify" && ./godelw verify --apply=false --junit-output="$TESTS_DIR/$CIRCLE_PROJECT_REPONAME-tests.xml"
-         else
-           echo "Test" && ./godelw test --junit-output="$TESTS_DIR/$CIRCLE_PROJECT_REPONAME-tests.xml"
-         fi
-  - type: test-results-store
-    path: /tmp/test-results
-  - type: artifacts-store
-    path: /tmp/test-results
-    destination: test-results
+version: 2.1
 
-version: 2
-jobs:
-  go-1.11:
-    <<: *working_dir
-    environment:
-      VERIFY: 1
-    docker:
-      - image: golang:1.11.2
-    steps: *steps
-  go-1.10:
-    <<: *working_dir
-    docker:
-      - image: golang:1.10.5
-    steps: *steps
-  go-1.9:
-    <<: *working_dir
-    docker:
-    - image: golang:1.9.7
-    steps: *steps
+orbs:
+  go: palantir/go@0.0.11
+  godel: palantir/godel@0.0.8
 
 workflows:
   version: 2
-  verify:
+  verify-test:
     jobs:
-      - go-1.11
-      - go-1.10
-      - go-1.9
+      - godel/verify:
+          name: verify
+          executor:
+            name: go/golang
+            version: 1.12.9
+            <<: *owner-repo
+      - godel/test:
+          name: test-go-1.12
+          executor:
+            name: go/golang
+            version: 1.12.9
+            <<: *owner-repo
+      - godel/test:
+          name: test-go-1.11
+          executor:
+            name: go/golang
+            version: 1.11.13
+            <<: *owner-repo
