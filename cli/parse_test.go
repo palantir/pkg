@@ -336,18 +336,18 @@ func printFlags(w io.Writer, ctx cli.Context, flags []flag.Flag) {
 	for _, currFlag := range flags {
 		switch currFlag := currFlag.(type) {
 		case flag.StringFlag:
-			fmt.Fprintf(w, "%v: %v", currFlag.Name, ctx.String(currFlag.Name))
-			fmt.Fprintf(w, " %v: %v", currFlag.Name, ctx.StringSlice(currFlag.Name))
+			_, _ = fmt.Fprintf(w, "%v: %v", currFlag.Name, ctx.String(currFlag.Name))
+			_, _ = fmt.Fprintf(w, " %v: %v", currFlag.Name, ctx.StringSlice(currFlag.Name))
 		case flag.StringParam:
-			fmt.Fprintf(w, "%v: %v ", currFlag.Name, ctx.String(currFlag.Name))
-			fmt.Fprintf(w, "%v: %v", currFlag.Name, ctx.StringSlice(currFlag.Name))
+			_, _ = fmt.Fprintf(w, "%v: %v ", currFlag.Name, ctx.String(currFlag.Name))
+			_, _ = fmt.Fprintf(w, "%v: %v", currFlag.Name, ctx.StringSlice(currFlag.Name))
 		case flag.BoolFlag:
-			fmt.Fprintf(w, "%v: %v", currFlag.Name, ctx.Bool(currFlag.Name))
+			_, _ = fmt.Fprintf(w, "%v: %v", currFlag.Name, ctx.Bool(currFlag.Name))
 		case flag.StringSlice:
-			fmt.Fprintf(w, "%v: %v", currFlag.Name, ctx.Slice(currFlag.Name))
+			_, _ = fmt.Fprintf(w, "%v: %v", currFlag.Name, ctx.Slice(currFlag.Name))
 		case flag.IntFlag:
-			fmt.Fprintf(w, "%v: %v", currFlag.Name, ctx.Int(currFlag.Name))
-			fmt.Fprintf(w, " %v: %v", currFlag.Name, ctx.IntSlice(currFlag.Name))
+			_, _ = fmt.Fprintf(w, "%v: %v", currFlag.Name, ctx.Int(currFlag.Name))
+			_, _ = fmt.Fprintf(w, " %v: %v", currFlag.Name, ctx.IntSlice(currFlag.Name))
 		default:
 			panic(fmt.Sprintf("unsupported type: %v", currFlag))
 		}

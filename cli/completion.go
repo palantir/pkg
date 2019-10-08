@@ -21,7 +21,7 @@ func (app *App) doCompletion(args []string) (exitCode int) {
 	if hasCompletionFlag(args) {
 		completions, exitCode := doCompletion(app, args[1:])
 		for _, completion := range completions {
-			fmt.Fprintln(app.Stdout, completion)
+			_, _ = fmt.Fprintln(app.Stdout, completion)
 		}
 		return int(exitCode)
 	}

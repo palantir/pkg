@@ -18,7 +18,7 @@ import (
 
 func TestDefaultClientLeaksNoClose(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "Hello, client")
+		_, _ = fmt.Fprintln(w, "Hello, client")
 	}))
 	defer ts.Close()
 
@@ -46,7 +46,7 @@ func TestDefaultClientLeaksNoClose(t *testing.T) {
 
 func TestDefaultClientDoesNotLeakWhenClosed(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "Hello, client")
+		_, _ = fmt.Fprintln(w, "Hello, client")
 	}))
 	defer ts.Close()
 

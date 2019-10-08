@@ -59,7 +59,7 @@ func TestUseTLSConfigClientAuthConnection(t *testing.T) {
 	} {
 		func() {
 			server := httptest.NewUnstartedServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-				fmt.Fprintf(rw, "OK: %s", req.URL.Path)
+				_, _ = fmt.Fprintf(rw, "OK: %s", req.URL.Path)
 			}))
 			serverCfg, err := tlsconfig.NewServerConfig(tc.serverTLSProvider, tc.serverParams...)
 			require.NoError(t, err)
