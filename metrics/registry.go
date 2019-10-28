@@ -328,7 +328,7 @@ func (r *rootRegistry) Meter(name string, tags ...Tag) metrics.Meter {
 }
 
 func (r *rootRegistry) Timer(name string, tags ...Tag) metrics.Timer {
-	return metrics.GetOrRegisterTimer(r.registerMetric(name, tags), r.registry)
+	return getOrRegisterMicroSecondsTimer(r.registerMetric(name, tags), r.registry)
 }
 
 func (r *rootRegistry) Histogram(name string, tags ...Tag) metrics.Histogram {
