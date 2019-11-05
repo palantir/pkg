@@ -5,6 +5,7 @@
 package metrics
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,4 +24,9 @@ func TestRootRegistry_UnregisterReleasesResources(t *testing.T) {
 	// unregister metric
 	root.Unregister("my-counter")
 	assert.NotContains(t, root.idToMetricWithTags, id)
+}
+
+func TestRegistry(t *testing.T) {
+	fmt.Println(len(goRuntimeLiteMetricsToExclude))
+	fmt.Println(len(goRuntimeMetricsToExclude))
 }

@@ -35,6 +35,34 @@ var (
 		"go.runtime.NumCgoCall":            {},
 		"go.runtime.MemStats.PauseTotalNs": {},
 	}
+	goRuntimeLiteMetricsToExclude = map[string]struct{}{
+		"go.runtime.MemStats.Alloc":         {},
+		"go.runtime.MemStats.BuckHashSys":   {},
+		"go.runtime.MemStats.DebugGC":       {},
+		"go.runtime.MemStats.EnableGC":      {},
+		"go.runtime.MemStats.Frees":         {},
+		"go.runtime.MemStats.HeapAlloc":     {},
+		"go.runtime.MemStats.HeapInuse":     {},
+		"go.runtime.MemStats.HeapObjects":   {},
+		"go.runtime.MemStats.LastGC":        {},
+		"go.runtime.MemStats.Lookups":       {},
+		"go.runtime.MemStats.Mallocs":       {},
+		"go.runtime.MemStats.MCacheInuse":   {},
+		"go.runtime.MemStats.MCacheSys":     {},
+		"go.runtime.MemStats.MSpanInuse":    {},
+		"go.runtime.MemStats.MSpanSys":      {},
+		"go.runtime.MemStats.NextGC":        {},
+		"go.runtime.MemStats.NumGC":         {},
+		"go.runtime.MemStats.GCCPUFraction": {},
+		"go.runtime.MemStats.PauseTotalNs":  {},
+		"go.runtime.MemStats.StackInuse":    {},
+		"go.runtime.MemStats.StackSys":      {},
+		"go.runtime.MemStats.Sys":           {},
+		"go.runtime.MemStats.TotalAlloc":    {}, // TotalAlloc increases as heap objects are allocated, but unlike Alloc and HeapAlloc, it does not decrease when objects are freed
+		"go.runtime.NumCgoCall":             {},
+		"go.runtime.ReadMemStats":           {},
+		"go.runtime.NumThread":              {},
+	}
 
 	_ Registry = &NoopRegistry{}
 	_ Registry = &rootRegistry{}
@@ -110,6 +138,7 @@ func CaptureRuntimeMemStats(registry RootRegistry, collectionFreq time.Duration)
 	runtimeMemStats.Do(func() {
 		if reg, ok := registry.(*rootRegistry); ok {
 			goRegistry := metrics.NewPrefixedChildRegistry(reg.registry, "go.")
+			reg.metricsToExclude = goRuntimeMetricsToExclude
 			metrics.RegisterRuntimeMemStats(goRegistry)
 			go metrics.CaptureRuntimeMemStats(goRegistry, collectionFreq)
 		}
@@ -131,6 +160,48 @@ func CaptureRuntimeMemStatsWithContext(ctx context.Context, registry RootRegistr
 	if !ok {
 		return false
 	}
+	rootRegistry, ok := registry.(*rootRegistry)
+	if !ok {
+		return false
+	}
+	rootRegistry.metricsToExclude = goRuntimeMetricsToExclude
+	goRegistry := metrics.NewPrefixedChildRegistry(mRegProvider.Registry(), "go.")
+	metrics.RegisterRuntimeMemStats(goRegistry)
+	go func() {
+		ticker := time.NewTicker(collectionFreq)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				metrics.CaptureRuntimeMemStatsOnce(goRegistry)
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+	return true
+}
+
+// CaptureLiteRuntimeMemStatsWithContext creates a child registry of the provided registry that tracks Go runtime memory
+// metrics and starts a goroutine that captures them to that registry every collectionFreq. This function only supports
+// RootRegistry implementations that implement the metricsRegistryProvider interface -- if the provided RootRegistry
+// does not satisfy this interface, this function is a no-op. This function returns true if it starts the runtime metric
+// collection goroutine, false otherwise. If this function starts a goroutine, the goroutine runs until the provided
+// context is done.
+//
+// The gauges/metrics etc. used to track runtime statistics are shared globally and the values are reset every time this
+// function is called (if it is not a no-op). Note that this function should typically only be called once per Go
+// runtime, but no enforcement of this is performed.
+func CaptureLiteRuntimeMemStatsWithContext(ctx context.Context, registry RootRegistry, collectionFreq time.Duration) bool {
+	mRegProvider, ok := registry.(metricsRegistryProvider)
+	if !ok {
+		return false
+	}
+	rootRegistry, ok := registry.(*rootRegistry)
+	if !ok {
+		return false
+	}
+	rootRegistry.metricsToExclude = goRuntimeLiteMetricsToExclude
 
 	goRegistry := metrics.NewPrefixedChildRegistry(mRegProvider.Registry(), "go.")
 	metrics.RegisterRuntimeMemStats(goRegistry)
@@ -152,6 +223,9 @@ func CaptureRuntimeMemStatsWithContext(ctx context.Context, registry RootRegistr
 type rootRegistry struct {
 	// the actual metrics.Registry on which all metrics are installed.
 	registry metrics.Registry
+
+	// metricsToExclude determines which metrics will actually get visited in the registry's 'Each' function
+	metricsToExclude map[string]struct{}
 
 	// map from metricTagsID to metricWithTags for all of the metrics in the userDefinedMetricsRegistry.
 	idToMetricWithTags map[metricTagsID]metricWithTags
@@ -264,7 +338,7 @@ func (r *rootRegistry) Each(f MetricVisitor) {
 	allMetrics := make(map[string]interface{})
 	r.registry.Each(func(name string, metric interface{}) {
 		// filter out the runtime metrics that are defined in the exclude list
-		if _, ok := goRuntimeMetricsToExclude[name]; ok {
+		if _, ok := r.metricsToExclude[name]; ok {
 			return
 		}
 		sortedMetricIDs = append(sortedMetricIDs, name)
