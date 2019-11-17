@@ -10,10 +10,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/palantir/pkg/cli"
 	"github.com/palantir/pkg/cli/flag"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRunErrorOutput(t *testing.T) {

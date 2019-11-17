@@ -7,10 +7,9 @@ package cli
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/palantir/pkg/cli/completion"
 	"github.com/palantir/pkg/cli/flag"
+	"github.com/stretchr/testify/assert"
 )
 
 var cases = []struct {

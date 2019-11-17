@@ -9,10 +9,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/palantir/pkg/tlsconfig"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/palantir/pkg/tlsconfig"
 )
 
 func TestNewServerConfig(t *testing.T) {

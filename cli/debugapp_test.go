@@ -9,9 +9,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/palantir/pkg/cli"
+	"github.com/stretchr/testify/assert"
 )
 
 type testExitCoder struct {

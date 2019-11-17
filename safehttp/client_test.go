@@ -12,10 +12,9 @@ import (
 	"net/http/httptrace"
 	"testing"
 
+	"github.com/palantir/pkg/safehttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/palantir/pkg/safehttp"
 )
 
 func TestSafeClientDoesNotLeakNoClose(t *testing.T) {

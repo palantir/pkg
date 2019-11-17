@@ -11,10 +11,9 @@ import (
 	"testing"
 
 	"github.com/nmiyake/pkg/dirs"
+	"github.com/palantir/pkg/matcher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/palantir/pkg/matcher"
 )
 
 func TestListFiles(t *testing.T) {

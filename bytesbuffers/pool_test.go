@@ -8,10 +8,9 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/palantir/pkg/bytesbuffers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/palantir/pkg/bytesbuffers"
 )
 
 func TestPool_ProvidesResetBuffer(t *testing.T) {

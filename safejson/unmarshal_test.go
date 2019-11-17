@@ -9,10 +9,9 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/palantir/pkg/safejson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/palantir/pkg/safejson"
 )
 
 func TestMarshal(t *testing.T) {

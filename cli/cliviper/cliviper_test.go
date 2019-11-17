@@ -7,12 +7,11 @@ package cliviper_test
 import (
 	"testing"
 
-	"github.com/spf13/viper"
-	"github.com/stretchr/testify/assert"
-
 	"github.com/palantir/pkg/cli"
 	"github.com/palantir/pkg/cli/cliviper"
 	"github.com/palantir/pkg/cli/flag"
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCLIViperApp(t *testing.T) {

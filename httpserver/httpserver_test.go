@@ -11,9 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/palantir/pkg/httpserver"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestURLReady(t *testing.T) {

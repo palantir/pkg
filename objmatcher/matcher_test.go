@@ -7,9 +7,8 @@ package objmatcher_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/palantir/pkg/objmatcher"
+	"github.com/stretchr/testify/assert"
 )
 
 type testStruct struct {
