@@ -8,9 +8,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/palantir/pkg/binary"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBinary_Marshal(t *testing.T) {

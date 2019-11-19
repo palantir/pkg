@@ -8,11 +8,10 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/palantir/pkg/matcher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
-
-	"github.com/palantir/pkg/matcher"
 )
 
 func TestNamesPathsCfgMatcher(t *testing.T) {

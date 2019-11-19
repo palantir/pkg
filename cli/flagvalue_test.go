@@ -7,13 +7,12 @@ package cli_test
 import (
 	"testing"
 
-	"github.com/spf13/viper"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	"github.com/palantir/pkg/cli"
 	"github.com/palantir/pkg/cli/cliviper"
 	"github.com/palantir/pkg/cli/flag"
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBindFlagValues(t *testing.T) {

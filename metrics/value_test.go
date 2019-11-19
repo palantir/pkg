@@ -9,10 +9,9 @@ import (
 	"time"
 
 	metricspkg "github.com/palantir/go-metrics"
-	"github.com/stretchr/testify/assert"
-
 	"github.com/palantir/pkg/metrics"
 	"github.com/palantir/pkg/objmatcher"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCounter(t *testing.T) {

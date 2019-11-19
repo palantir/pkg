@@ -8,10 +8,9 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/palantir/pkg/cobracli"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/palantir/pkg/cobracli"
 )
 
 func TestVersionCmd(t *testing.T) {

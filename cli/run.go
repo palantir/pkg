@@ -12,9 +12,8 @@ import (
 	"sync"
 	"syscall"
 
-	"golang.org/x/crypto/ssh/terminal"
-
 	"github.com/palantir/pkg/cli/flag"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 var (

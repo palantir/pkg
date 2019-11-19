@@ -9,12 +9,11 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/palantir/pkg/cobracli"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/palantir/pkg/cobracli"
 )
 
 func TestExecuteWithParams(t *testing.T) {

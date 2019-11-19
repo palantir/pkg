@@ -12,10 +12,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/palantir/pkg/metrics"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/palantir/pkg/metrics"
 )
 
 func TestRegistryRegistration(t *testing.T) {

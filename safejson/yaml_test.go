@@ -7,11 +7,10 @@ package safejson_test
 import (
 	"testing"
 
+	"github.com/palantir/pkg/safejson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
-
-	"github.com/palantir/pkg/safejson"
 )
 
 var tests = []struct {

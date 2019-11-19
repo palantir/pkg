@@ -11,10 +11,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/palantir/pkg/cli/flag"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/palantir/pkg/cli/flag"
 )
 
 func TestHasReturnsTrueForPresentValue(t *testing.T) {

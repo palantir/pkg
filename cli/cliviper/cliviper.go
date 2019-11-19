@@ -5,9 +5,8 @@
 package cliviper
 
 import (
-	"github.com/spf13/viper"
-
 	"github.com/palantir/pkg/cli"
+	"github.com/spf13/viper"
 )
 
 func FlagValueSet(ctx *cli.Context) viper.FlagValueSet {

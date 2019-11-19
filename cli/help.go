@@ -12,7 +12,6 @@ import (
 	"text/template"
 
 	"github.com/mitchellh/go-wordwrap"
-
 	"github.com/palantir/pkg/cli/flag"
 )
 

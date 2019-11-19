@@ -7,9 +7,8 @@ package merge_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/palantir/pkg/merge"
+	"github.com/stretchr/testify/assert"
 )
 
 type TestStruct1 struct {

@@ -9,10 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/palantir/pkg/datetime"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/palantir/pkg/datetime"
 )
 
 var dateTimeJSONs = []struct {

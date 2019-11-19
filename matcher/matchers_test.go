@@ -7,9 +7,8 @@ package matcher_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/palantir/pkg/matcher"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMatcherCreationFunction(t *testing.T) {

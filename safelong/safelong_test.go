@@ -9,10 +9,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/palantir/pkg/safelong"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/palantir/pkg/safelong"
 )
 
 var safeLongJSONs = []struct {

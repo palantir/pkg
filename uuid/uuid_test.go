@@ -8,10 +8,9 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/palantir/pkg/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/palantir/pkg/uuid"
 )
 
 var testUUID = uuid.UUID{
