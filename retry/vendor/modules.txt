@@ -1,0 +1,2 @@
+# github.com/palantir/pkg v1.0.1
+github.com/palantir/pkg
