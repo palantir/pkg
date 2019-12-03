@@ -2,6 +2,8 @@
 github.com/davecgh/go-spew/spew
 # github.com/nmiyake/pkg/dirs v1.0.0
 github.com/nmiyake/pkg/dirs
+# github.com/palantir/pkg v1.0.1
+github.com/palantir/pkg
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
 # github.com/stretchr/testify v1.4.0

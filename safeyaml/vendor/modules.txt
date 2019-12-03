@@ -1,5 +1,7 @@
 # github.com/davecgh/go-spew v1.1.0
 github.com/davecgh/go-spew/spew
+# github.com/palantir/pkg v1.0.1
+github.com/palantir/pkg
 # github.com/palantir/pkg/transform v1.0.0
 github.com/palantir/pkg/transform
 # github.com/pmezard/go-difflib v1.0.0
