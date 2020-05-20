@@ -1,6 +1,6 @@
 # github.com/davecgh/go-spew v1.1.0
 github.com/davecgh/go-spew/spew
-# github.com/palantir/go-metrics v1.1.0
+# github.com/palantir/go-metrics v1.1.1
 github.com/palantir/go-metrics
 # github.com/palantir/pkg v1.0.1
 github.com/palantir/pkg
