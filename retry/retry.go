@@ -247,7 +247,11 @@ func (r *retrier) Next() bool {
 func (r retrier) retryIn() time.Duration {
 	backoff := float64(r.options.initialBackoff) * math.Pow(r.options.multiplier, float64(r.currentAttempt))
 	if r.options.maxBackoff != 0 && backoff > float64(r.options.maxBackoff) {
-		backoff = float64(r.options.maxBackoff)
+		if r.options.initialBackoff > r.options.maxBackoff {
+			backoff = float64(r.options.initialBackoff)
+		} else {
+			backoff = float64(r.options.maxBackoff)
+		}
 	}
 
 	var delta = r.options.randomizationFactor * backoff
