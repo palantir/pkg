@@ -72,3 +72,12 @@ func ClientRootCAs(certPoolProvider CertPoolProvider) ClientParam {
 func ClientCipherSuites(cipherSuites ...uint16) ClientParam {
 	return clientParam(cipherSuitesParam(cipherSuites...))
 }
+
+// ClientInsecureSkipTLSVerify configures the client to skip validity check for server`s certificate. Enabling
+// this will make your HTTPS connections insecure
+func ClientInsecureSkipTLSVerify(skipTLS bool) ClientParam {
+ return clientParam(func(cfg *tls.Config) error {
+     cfg.InsecureSkipVerify = skipTLS
+     return nil
+ })
+}
