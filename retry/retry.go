@@ -181,8 +181,10 @@ func Start(ctx context.Context, opts ...Option) Retrier {
 	for _, option := range opts {
 		option(&r.options)
 	}
-	// If initial backoff is larger than max backoff, it takes precedence.
-	r.options.maxBackoff = max(r.options.maxBackoff, r.options.initialBackoff)
+	if r.options.maxBackoff != 0 {
+		// If initial backoff is larger than max backoff, it takes precedence.
+		r.options.maxBackoff = max(r.options.maxBackoff, r.options.initialBackoff)
+	}
 	r.Reset()
 	return r
 }
