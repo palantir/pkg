@@ -113,8 +113,8 @@ func TestRetrier_Next_WithInitialBackoffLargerThanMaxAndMaxNotSet(t *testing.T) 
 	r := Start(context.Background(), options...).(*retrier)
 	r.currentAttempt = 1
 	d := r.retryIn()
-	if d != initialBackoff * multiplier {
-		t.Fatalf("expected second attempt to increase backoff: %s vs %s", d, initialBackoff * multiplier)
+	if d != initialBackoff*multiplier {
+		t.Fatalf("expected second attempt to increase backoff: %s vs %s", d, initialBackoff*multiplier)
 	}
 }
 
