@@ -115,8 +115,6 @@ type Option func(r *options)
 // Max attempts of 0 indicates no limit.
 //
 // If max attempts option is not used, then default value of 0 is used.
-// If initial backoff is larger than max backoff and the max backoff is nonzero, the initial backoff will be
-// used as the max.
 func WithMaxAttempts(maxAttempts int) Option {
 	return func(o *options) {
 		o.maxAttempts = maxAttempts
