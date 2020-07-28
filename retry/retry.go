@@ -115,6 +115,8 @@ type Option func(r *options)
 // Max attempts of 0 indicates no limit.
 //
 // If max attempts option is not used, then default value of 0 is used.
+// If initial backoff is larger than max backoff and the max backoff is nonzero, the initial backoff will be
+// used as the max.
 func WithMaxAttempts(maxAttempts int) Option {
 	return func(o *options) {
 		o.maxAttempts = maxAttempts
@@ -124,7 +126,8 @@ func WithMaxAttempts(maxAttempts int) Option {
 // WithInitialBackoff sets initial backoff.
 //
 // If initial backoff option is not used, then default value of 50 milliseconds is used.
-// If initial backoff is larger than max backoff, it takes precedence.
+// If initial backoff is larger than max backoff and the max backoff is nonzero, the initial backoff will be
+// used as the max.
 func WithInitialBackoff(initialBackoff time.Duration) Option {
 	return func(o *options) {
 		o.initialBackoff = initialBackoff
@@ -182,7 +185,7 @@ func Start(ctx context.Context, opts ...Option) Retrier {
 		option(&r.options)
 	}
 	if r.options.maxBackoff != 0 {
-		// If initial backoff is larger than max backoff, it takes precedence.
+		// If initial backoff is larger than max backoff and the max backoff is set, initial takes precedence.
 		r.options.maxBackoff = max(r.options.maxBackoff, r.options.initialBackoff)
 	}
 	r.Reset()

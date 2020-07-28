@@ -97,6 +97,27 @@ func TestRetrier_Next_WithInitialBackoffLargerThanMax(t *testing.T) {
 	}
 }
 
+func TestRetrier_Next_WithInitialBackoffLargerThanMaxAndMaxNotSet(t *testing.T) {
+	const initialBackoff = time.Second * 5
+	const maxBackoff = 0
+	const multiplier = 2
+
+	options := []Option{
+		WithInitialBackoff(initialBackoff),
+		WithMaxBackoff(maxBackoff),
+		WithMultiplier(multiplier),
+		WithMaxAttempts(11),
+		WithRandomizationFactor(0),
+	}
+
+	r := Start(context.Background(), options...).(*retrier)
+	r.currentAttempt = 1
+	d := r.retryIn()
+	if d != initialBackoff * multiplier {
+		t.Fatalf("expected second attempt to increase backoff: %s vs %s", d, initialBackoff * multiplier)
+	}
+}
+
 func TestRetrier_Next_WithMaxAttempts(t *testing.T) {
 	const maxAttempts = 2
 
