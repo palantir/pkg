@@ -62,6 +62,25 @@ workflows:
           requires:
             - binary-verify
 
+      # boolean
+      - godel/verify:
+          name: boolean-verify
+          <<: *checkout-path
+          include-tests: true
+          executor:
+            name: go/golang
+            version: 1.13.4
+            owner-repo: palantir/pkg/boolean
+      - godel/test:
+          name: boolean-test-go-1.12
+          <<: *checkout-path
+          executor:
+            name: go/golang
+            version: 1.12.13
+            owner-repo: palantir/pkg/boolean
+          requires:
+            - boolean-verify
+
       # bytesbuffers
       - godel/verify:
           name: bytesbuffers-verify
