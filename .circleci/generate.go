@@ -20,29 +20,40 @@ const (
 version: 2.1
 
 orbs:
-  go: palantir/go@0.0.14
-  godel: palantir/godel@0.0.14
+  go: palantir/go@0.0.18
+  godel: palantir/godel@0.0.18
 
 jobs:
   verify-circleci:
     working_directory: /go/src/github.com/palantir/pkg
     docker:
-      - image: "golang:1.13.4"
+      - image: "golang:1.15.6"
+    resource_class: small
     steps:
       - checkout
       - run: go version
       - run: go run .circleci/generate.go .
       - run: diff  <(cat .circleci/config.yml) <(go run .circleci/generate.go .)
+  circle-all:
+    docker:
+      - image: "golang:1.15.6"
+    resource_class: small
+    steps:
+      - run: echo "All required jobs run successfully"
 
 workflows:
   version: 2
   verify-test:
     jobs:
       - verify-circleci
-
 `
 
-	moduleTemplateContent = `      # {{.Module}}
+	circleAllTemplateContent = `      - circle-all:
+          requires: [ verify-circleci{{ range $job := .JobNames }}, {{ $job }}{{end}} ]
+`
+
+	moduleTemplateContent = `
+      # {{.Module}}
       - godel/verify:
           name: {{.Module}}-verify
           <<: *checkout-path
@@ -86,11 +97,15 @@ func main() {
 	fmt.Print(configYML)
 }
 
-var moduleTemplate *template.Template
+var moduleTemplate, circleAllTemplate *template.Template
 
 func init() {
 	var err error
 	moduleTemplate, err = template.New("moduleTemplate").Parse(moduleTemplateContent)
+	if err != nil {
+		panic(fmt.Sprintf("failed to create moduleTemplate template: %v", err))
+	}
+	circleAllTemplate, err = template.New("circleAllTemplate").Parse(circleAllTemplateContent)
 	if err != nil {
 		panic(fmt.Sprintf("failed to create moduleTemplate template: %v", err))
 	}
@@ -101,23 +116,28 @@ func createConfigYML(modDirs []string, currGoVersion, prevGoVersion string) (str
 	if len(prevParts) < 2 {
 		return "", fmt.Errorf("prevGoVersion must have at least 2 parts separated by a period: %s", prevGoVersion)
 	}
+	prevGoMajorVersion := strings.Join(prevParts[:2], ".")
 
+	jobNames := make([]string, 0, len(modDirs)*2)
+	for _, modDir := range modDirs {
+		jobNames = append(jobNames, modDir+"-verify", modDir+"-test-go-"+prevGoMajorVersion)
+	}
 	outBuf := &bytes.Buffer{}
 	_, _ = fmt.Fprint(outBuf, header)
-	for i, modDir := range modDirs {
+	if err := circleAllTemplate.Execute(outBuf, map[string]interface{}{"JobNames": jobNames}); err != nil {
+		return "", fmt.Errorf("failed to execute circleAllTemplate template: %v", err)
+	}
+	for _, modDir := range modDirs {
 		modJobs, err := moduleJobs(TemplateObject{
 			Module:             modDir,
 			CurrGoVersion:      currGoVersion,
 			PrevGoVersion:      prevGoVersion,
-			PrevGoMajorVersion: strings.Join(prevParts[:2], "."),
+			PrevGoMajorVersion: prevGoMajorVersion,
 		})
 		if err != nil {
 			return "", fmt.Errorf("failed to generate jobs for moduleTemplate %s: %v", modDir, err)
 		}
 		fmt.Fprint(outBuf, modJobs)
-		if i != len(modDirs)-1 {
-			fmt.Fprintln(outBuf)
-		}
 	}
 	return outBuf.String(), nil
 }
@@ -140,7 +160,7 @@ func modules(parentDir string) ([]string, error) {
 func moduleJobs(obj TemplateObject) (string, error) {
 	buf := &bytes.Buffer{}
 	if err := moduleTemplate.Execute(buf, obj); err != nil {
-		return "", fmt.Errorf("failed to execute moduleTemplate temlpate: %v", err)
+		return "", fmt.Errorf("failed to execute moduleTemplate template: %v", err)
 	}
 	return buf.String(), nil
 }
