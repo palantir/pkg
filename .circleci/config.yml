@@ -555,3 +555,22 @@ workflows:
             owner-repo: palantir/pkg/uuid
           requires:
             - uuid-verify
+
+      # yamlpatch
+      - godel/verify:
+          name: yamlpatch-verify
+          <<: *checkout-path
+          include-tests: true
+          executor:
+            name: go/golang
+            version: 1.13.4
+            owner-repo: palantir/pkg/yamlpatch
+      - godel/test:
+          name: yamlpatch-test-go-1.12
+          <<: *checkout-path
+          executor:
+            name: go/golang
+            version: 1.12.13
+            owner-repo: palantir/pkg/yamlpatch
+          requires:
+            - yamlpatch-verify
