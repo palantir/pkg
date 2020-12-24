@@ -1,6 +1,6 @@
 module github.com/palantir/pkg/pkgpath
 
-go 1.13
+go 1.14
 
 require (
 	github.com/nmiyake/pkg/dirs v1.0.0
