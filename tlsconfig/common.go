@@ -59,13 +59,34 @@ func CertPoolFromCerts(certs ...*x509.Certificate) CertPoolProvider {
 
 type configurer func(*tls.Config) error
 
-func authKeyPairParam(provider TLSCertProvider) configurer {
+func certificatesParam(provider TLSCertProvider) configurer {
 	return func(cfg *tls.Config) error {
 		cert, err := provider()
 		if err != nil {
 			return fmt.Errorf("failed to load TLS certificate: %v", err)
 		}
 		cfg.Certificates = []tls.Certificate{cert}
+		return nil
+	}
+}
+
+func getCertificateParam(provider TLSCertProvider) configurer {
+	return func(cfg *tls.Config) error {
+		cfg.GetCertificate = func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
+			cert, err := provider()
+			return &cert, err
+		}
+
+		return nil
+	}
+}
+
+func getClientCertificateParam(provider TLSCertProvider) configurer {
+	return func(cfg *tls.Config) error {
+		cfg.GetClientCertificate = func(info *tls.CertificateRequestInfo) (*tls.Certificate, error) {
+			cert, err := provider()
+			return &cert, err
+		}
 		return nil
 	}
 }

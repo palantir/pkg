@@ -26,7 +26,7 @@ func NewServerConfig(tlsCertProvider TLSCertProvider, params ...ServerParam) (*t
 	if tlsCertProvider == nil {
 		return nil, fmt.Errorf("tlsCertProvider provided to NewServerConfig was nil")
 	}
-	configurers := []configurer{authKeyPairParam(tlsCertProvider)}
+	configurers := []configurer{certificatesParam(tlsCertProvider)}
 	for _, p := range params {
 		configurers = append(configurers, configurer(p.configureServer))
 	}

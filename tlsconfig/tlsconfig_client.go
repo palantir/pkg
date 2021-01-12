@@ -33,16 +33,24 @@ func (p clientParam) configureClient(cfg *tls.Config) error {
 }
 
 // ClientKeyPairFiles configures the client with the key pair that it should present to servers when communicating using
-// TLS with client authentication (2-way SSL). If this parameter is not provided, the client will not present a
-// certificate.
+// TLS with client authentication (2-way SSL). If neither ClientKeyPairFiles, ClientKeyPair, nor ClientKeyPairProvider
+// are provided, the client will not present a certificate.
 func ClientKeyPairFiles(certFile, keyFile string) ClientParam {
 	return ClientKeyPair(TLSCertFromFiles(certFile, keyFile))
 }
 
-// ClientKeyPair configures the client with the key pair that it should present to servers when communicating using TLS
-// with client authentication (2-way SSL). If this parameter is not provided, the client will not present a certificate.
+// ClientKeyPair configures the client with the static key pair that it should present to servers when communicating
+// using TLS with client authentication (2-way SSL). If neither ClientKeyPairFiles, ClientKeyPair, nor
+// ClientKeyPairProvider are provided, the client will not present a certificate.
 func ClientKeyPair(certProvider TLSCertProvider) ClientParam {
-	return clientParam(authKeyPairParam(certProvider))
+	return clientParam(certificatesParam(certProvider))
+}
+
+// ClientKeyPairProvider configures the client to call the given TLSCertProvider whenever a key pair is requested while
+// communicating with client authentication (2-way SSL). If neither ClientKeyPairFiles, ClientKeyPair, nor
+// ClientKeyPairProvider are provided, the client will not present a certificate.
+func ClientKeyPairProvider(certProvider TLSCertProvider) ClientParam {
+	return clientParam(getClientCertificateParam(certProvider))
 }
 
 // ClientRootCAFiles configures the client with the CA certificates used to verify the certificates provided by servers.
