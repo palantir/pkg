@@ -39,9 +39,9 @@ func ClientKeyPairFiles(certFile, keyFile string) ClientParam {
 	return ClientKeyPair(TLSCertFromFiles(certFile, keyFile))
 }
 
-// ClientKeyPair configures the client with the static key pair that it should present to servers when communicating
-// using TLS with client authentication (2-way SSL). If neither ClientKeyPairFiles, ClientKeyPair, nor
-// ClientKeyPairProvider are provided, the client will not present a certificate.
+// ClientKeyPair configures the client with a static key pair sourced from the TLSCertProvider that it should present to
+// servers when communicating using TLS with client authentication (2-way SSL). If neither ClientKeyPairFiles,
+// ClientKeyPair, nor ClientKeyPairProvider are provided, the client will not present a certificate.
 func ClientKeyPair(certProvider TLSCertProvider) ClientParam {
 	return clientParam(certificatesParam(certProvider))
 }

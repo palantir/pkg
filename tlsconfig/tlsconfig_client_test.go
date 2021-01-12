@@ -19,6 +19,7 @@ func TestNewClientConfig(t *testing.T) {
 		name         string
 		caFiles      []string
 		cipherSuites []uint16
+		certProvider tlsconfig.TLSCertProvider
 	}{
 		{
 			name: "defaults",
@@ -35,10 +36,17 @@ func TestNewClientConfig(t *testing.T) {
 				tls.TLS_RSA_WITH_AES_256_CBC_SHA,
 			},
 		},
+		{
+			name: "certProvider specified",
+			certProvider: func() (tls.Certificate, error) {
+				return tls.Certificate{}, nil
+			},
+		},
 	} {
 		cfg, err := tlsconfig.NewClientConfig(
 			tlsconfig.ClientRootCAs(tlsconfig.CertPoolFromCAFiles(currCase.caFiles...)),
 			tlsconfig.ClientCipherSuites(currCase.cipherSuites...),
+			tlsconfig.ClientKeyPairProvider(currCase.certProvider),
 		)
 		require.NoError(t, err)
 		assert.NotNil(t, cfg, "Case %d: %s", currCaseNum, currCase.name)
