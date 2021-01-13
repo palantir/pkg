@@ -69,16 +69,6 @@ func getClientCertificateParam(provider TLSCertProvider) configurer {
 	}
 }
 
-func getCertificateParam(provider TLSCertProvider) configurer {
-	return func(cfg *tls.Config) error {
-		cfg.GetCertificate = func(info *tls.ClientHelloInfo) (*tls.Certificate, error) {
-			cert, err := provider()
-			return &cert, err
-		}
-		return nil
-	}
-}
-
 func certificatesParam(provider TLSCertProvider) configurer {
 	return func(cfg *tls.Config) error {
 		cert, err := provider()

@@ -57,7 +57,6 @@ func TestNewServerConfig(t *testing.T) {
 		)
 		require.NoError(t, err)
 		assert.NotNil(t, cfg, "Case %d: %s", currCaseNum, currCase.name)
-		assert.NotNil(t, cfg.GetCertificate, "Case %d: %s", currCaseNum, currCase.name)
 	}
 }
 
