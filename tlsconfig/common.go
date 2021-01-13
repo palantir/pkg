@@ -79,6 +79,17 @@ func getCertificateParam(provider TLSCertProvider) configurer {
 	}
 }
 
+func certificatesParam(provider TLSCertProvider) configurer {
+	return func(cfg *tls.Config) error {
+		cert, err := provider()
+		if err != nil {
+			return fmt.Errorf("failed to load TLS certificate: %v", err)
+		}
+		cfg.Certificates = []tls.Certificate{cert}
+		return nil
+	}
+}
+
 func cipherSuitesParam(cipherSuites ...uint16) configurer {
 	return func(cfg *tls.Config) error {
 		cfg.CipherSuites = cipherSuites

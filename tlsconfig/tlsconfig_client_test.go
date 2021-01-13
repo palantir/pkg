@@ -62,6 +62,16 @@ func TestNewClientConfigErrors(t *testing.T) {
 		wantError string
 	}{
 		{
+			name:      "missing certificate file",
+			keyFile:   clientKeyFile,
+			wantError: "failed to load TLS certificate: open : no such file or directory",
+		},
+		{
+			name:      "missing key file",
+			certFile:  clientCertFile,
+			wantError: "failed to load TLS certificate: open : no such file or directory",
+		},
+		{
 			name:     "invalid CA file",
 			certFile: clientCertFile,
 			keyFile:  clientKeyFile,

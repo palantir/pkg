@@ -32,11 +32,11 @@ func (p clientParam) configureClient(cfg *tls.Config) error {
 	return p(cfg)
 }
 
-// ClientKeyPairFiles configures the client with the key pair that it should present to servers when communicating using
+// ClientKeyPairFiles configures the client with a static key pair for it to present to servers when communicating using
 // TLS with client authentication (2-way SSL). If neither ClientKeyPairFiles nor ClientKeyPair are provided, the client
 // will not present a certificate.
 func ClientKeyPairFiles(certFile, keyFile string) ClientParam {
-	return ClientKeyPair(TLSCertFromFiles(certFile, keyFile))
+	return clientParam(certificatesParam(TLSCertFromFiles(certFile, keyFile)))
 }
 
 // ClientKeyPair configures the client to call the provided TLSCertProvider whenever a key pair is requested when

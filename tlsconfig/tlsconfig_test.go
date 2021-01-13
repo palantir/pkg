@@ -33,7 +33,7 @@ func TestUseTLSConfigClientAuthConnection(t *testing.T) {
 		clientParams      []tlsconfig.ClientParam
 	}{
 		{
-			name:              "TLS with client cert required",
+			name:              "TLS with client cert required and static client certs",
 			serverTLSProvider: tlsconfig.TLSCertFromFiles(serverCertFile, serverKeyFile),
 			serverParams: []tlsconfig.ServerParam{
 				tlsconfig.ServerClientAuthType(tls.RequireAndVerifyClientCert),
@@ -41,6 +41,18 @@ func TestUseTLSConfigClientAuthConnection(t *testing.T) {
 			},
 			clientParams: []tlsconfig.ClientParam{
 				tlsconfig.ClientKeyPairFiles(clientCertFile, clientKeyFile),
+				tlsconfig.ClientRootCAs(tlsconfig.CertPoolFromCAFiles(caCertFile)),
+			},
+		},
+		{
+			name:              "TLS with client cert required and client cert provider",
+			serverTLSProvider: tlsconfig.TLSCertFromFiles(serverCertFile, serverKeyFile),
+			serverParams: []tlsconfig.ServerParam{
+				tlsconfig.ServerClientAuthType(tls.RequireAndVerifyClientCert),
+				tlsconfig.ServerClientCAs(tlsconfig.CertPoolFromCAFiles(caCertFile)),
+			},
+			clientParams: []tlsconfig.ClientParam{
+				tlsconfig.ClientKeyPair(tlsconfig.TLSCertFromFiles(clientCertFile, clientKeyFile)),
 				tlsconfig.ClientRootCAs(tlsconfig.CertPoolFromCAFiles(caCertFile)),
 			},
 		},
