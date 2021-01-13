@@ -56,7 +56,7 @@ func TestUseTLSConfigClientAuthConnection(t *testing.T) {
 			},
 		},
 	} {
-		func() {
+		t.Run(tc.name, func(t *testing.T) {
 			server := httptest.NewUnstartedServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 				_, _ = fmt.Fprintf(rw, "OK: %s", req.URL.Path)
 			}))
@@ -81,6 +81,6 @@ func TestUseTLSConfigClientAuthConnection(t *testing.T) {
 			require.NoError(t, err)
 
 			assert.Equal(t, "OK: /hello", string(bytes), "Case %d: %s", i, tc.name)
-		}()
+		})
 	}
 }
