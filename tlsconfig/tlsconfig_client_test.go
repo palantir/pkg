@@ -46,7 +46,7 @@ func TestNewClientConfig(t *testing.T) {
 		cfg, err := tlsconfig.NewClientConfig(
 			tlsconfig.ClientRootCAs(tlsconfig.CertPoolFromCAFiles(currCase.caFiles...)),
 			tlsconfig.ClientCipherSuites(currCase.cipherSuites...),
-			tlsconfig.ClientKeyPairProvider(currCase.certProvider),
+			tlsconfig.ClientKeyPair(currCase.certProvider),
 		)
 		require.NoError(t, err)
 		assert.NotNil(t, cfg, "Case %d: %s", currCaseNum, currCase.name)
@@ -61,16 +61,6 @@ func TestNewClientConfigErrors(t *testing.T) {
 		caFiles   []string
 		wantError string
 	}{
-		{
-			name:      "missing certificate file",
-			keyFile:   clientKeyFile,
-			wantError: "failed to load TLS certificate: open : no such file or directory",
-		},
-		{
-			name:      "missing key file",
-			certFile:  clientCertFile,
-			wantError: "failed to load TLS certificate: open : no such file or directory",
-		},
 		{
 			name:     "invalid CA file",
 			certFile: clientCertFile,
