@@ -59,7 +59,17 @@ func CertPoolFromCerts(certs ...*x509.Certificate) CertPoolProvider {
 
 type configurer func(*tls.Config) error
 
-func authKeyPairParam(provider TLSCertProvider) configurer {
+func getClientCertificateParam(provider TLSCertProvider) configurer {
+	return func(cfg *tls.Config) error {
+		cfg.GetClientCertificate = func(info *tls.CertificateRequestInfo) (*tls.Certificate, error) {
+			cert, err := provider()
+			return &cert, err
+		}
+		return nil
+	}
+}
+
+func certificatesParam(provider TLSCertProvider) configurer {
 	return func(cfg *tls.Config) error {
 		cert, err := provider()
 		if err != nil {
