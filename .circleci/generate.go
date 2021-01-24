@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	header = `checkout-path: &checkout-path
+	headerTemplateContent = `checkout-path: &checkout-path
   checkout-path: /go/src/github.com/palantir/pkg
 
 version: 2.1
@@ -27,7 +27,7 @@ jobs:
   verify-circleci:
     working_directory: /go/src/github.com/palantir/pkg
     docker:
-      - image: "golang:1.15.6"
+      - image: "golang:{{.CurrGoVersion}}"
     resource_class: small
     steps:
       - checkout
@@ -36,7 +36,7 @@ jobs:
       - run: diff  <(cat .circleci/config.yml) <(go run .circleci/generate.go .)
   circle-all:
     docker:
-      - image: "golang:1.15.6"
+      - image: "golang:{{.CurrGoVersion}}"
     resource_class: small
     steps:
       - run: echo "All required jobs run successfully"
@@ -46,9 +46,7 @@ workflows:
   verify-test:
     jobs:
       - verify-circleci
-`
-
-	circleAllTemplateContent = `      - circle-all:
+      - circle-all:
           requires: [ verify-circleci{{ range $job := .JobNames }}, {{ $job }}{{end}} ]
 `
 
@@ -90,22 +88,22 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	configYML, err := createConfigYML(mods, "1.15.6", "1.14.13")
+	configYML, err := createConfigYML(mods, "1.15.7", "1.14.14")
 	if err != nil {
 		panic(err)
 	}
 	fmt.Print(configYML)
 }
 
-var moduleTemplate, circleAllTemplate *template.Template
+var headerTemplate, moduleTemplate *template.Template
 
 func init() {
 	var err error
-	moduleTemplate, err = template.New("moduleTemplate").Parse(moduleTemplateContent)
+	headerTemplate, err = template.New("headerTemplate").Parse(headerTemplateContent)
 	if err != nil {
-		panic(fmt.Sprintf("failed to create moduleTemplate template: %v", err))
+		panic(fmt.Sprintf("failed to create headerTemplate template: %v", err))
 	}
-	circleAllTemplate, err = template.New("circleAllTemplate").Parse(circleAllTemplateContent)
+	moduleTemplate, err = template.New("moduleTemplate").Parse(moduleTemplateContent)
 	if err != nil {
 		panic(fmt.Sprintf("failed to create moduleTemplate template: %v", err))
 	}
@@ -123,21 +121,21 @@ func createConfigYML(modDirs []string, currGoVersion, prevGoVersion string) (str
 		jobNames = append(jobNames, modDir+"-verify", modDir+"-test-go-"+prevGoMajorVersion)
 	}
 	outBuf := &bytes.Buffer{}
-	_, _ = fmt.Fprint(outBuf, header)
-	if err := circleAllTemplate.Execute(outBuf, map[string]interface{}{"JobNames": jobNames}); err != nil {
-		return "", fmt.Errorf("failed to execute circleAllTemplate template: %v", err)
+	if err := headerTemplate.Execute(outBuf, map[string]interface{}{
+		"CurrGoVersion": currGoVersion,
+		"JobNames":      jobNames,
+	}); err != nil {
+		return "", fmt.Errorf("failed to execute headerTemplate template: %v", err)
 	}
 	for _, modDir := range modDirs {
-		modJobs, err := moduleJobs(TemplateObject{
+		if err := moduleTemplate.Execute(outBuf, TemplateObject{
 			Module:             modDir,
 			CurrGoVersion:      currGoVersion,
 			PrevGoVersion:      prevGoVersion,
 			PrevGoMajorVersion: prevGoMajorVersion,
-		})
-		if err != nil {
-			return "", fmt.Errorf("failed to generate jobs for moduleTemplate %s: %v", modDir, err)
+		}); err != nil {
+			return "", fmt.Errorf("failed to execute moduleTemplate template: %v", err)
 		}
-		fmt.Fprint(outBuf, modJobs)
 	}
 	return outBuf.String(), nil
 }
@@ -155,12 +153,4 @@ func modules(parentDir string) ([]string, error) {
 		dirNames = append(dirNames, fi.Name())
 	}
 	return dirNames, nil
-}
-
-func moduleJobs(obj TemplateObject) (string, error) {
-	buf := &bytes.Buffer{}
-	if err := moduleTemplate.Execute(buf, obj); err != nil {
-		return "", fmt.Errorf("failed to execute moduleTemplate template: %v", err)
-	}
-	return buf.String(), nil
 }

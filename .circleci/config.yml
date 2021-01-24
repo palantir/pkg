@@ -11,7 +11,7 @@ jobs:
   verify-circleci:
     working_directory: /go/src/github.com/palantir/pkg
     docker:
-      - image: "golang:1.15.6"
+      - image: "golang:1.15.7"
     resource_class: small
     steps:
       - checkout
@@ -20,7 +20,7 @@ jobs:
       - run: diff  <(cat .circleci/config.yml) <(go run .circleci/generate.go .)
   circle-all:
     docker:
-      - image: "golang:1.15.6"
+      - image: "golang:1.15.7"
     resource_class: small
     steps:
       - run: echo "All required jobs run successfully"
@@ -40,14 +40,14 @@ workflows:
           include-tests: true
           executor:
             name: go/golang
-            version: 1.15.6
+            version: 1.15.7
             owner-repo: palantir/pkg/bearertoken
       - godel/test:
           name: bearertoken-test-go-1.14
           <<: *checkout-path
           executor:
             name: go/golang
-            version: 1.14.13
+            version: 1.14.14
             owner-repo: palantir/pkg/bearertoken
           requires:
             - bearertoken-verify
@@ -59,14 +59,14 @@ workflows:
           include-tests: true
           executor:
             name: go/golang
-            version: 1.15.6
+            version: 1.15.7
             owner-repo: palantir/pkg/binary
       - godel/test:
           name: binary-test-go-1.14
           <<: *checkout-path
           executor:
             name: go/golang
-            version: 1.14.13
+            version: 1.14.14
             owner-repo: palantir/pkg/binary
           requires:
             - binary-verify
@@ -78,14 +78,14 @@ workflows:
           include-tests: true
           executor:
             name: go/golang
-            version: 1.15.6
+            version: 1.15.7
             owner-repo: palantir/pkg/boolean
       - godel/test:
           name: boolean-test-go-1.14
           <<: *checkout-path
           executor:
             name: go/golang
-            version: 1.14.13
+            version: 1.14.14
             owner-repo: palantir/pkg/boolean
           requires:
             - boolean-verify
@@ -97,14 +97,14 @@ workflows:
           include-tests: true
           executor:
             name: go/golang
-            version: 1.15.6
+            version: 1.15.7
             owner-repo: palantir/pkg/bytesbuffers
       - godel/test:
           name: bytesbuffers-test-go-1.14
           <<: *checkout-path
           executor:
             name: go/golang
-            version: 1.14.13
+            version: 1.14.14
             owner-repo: palantir/pkg/bytesbuffers
           requires:
             - bytesbuffers-verify
@@ -116,14 +116,14 @@ workflows:
           include-tests: true
           executor:
             name: go/golang
-            version: 1.15.6
+            version: 1.15.7
             owner-repo: palantir/pkg/cli
       - godel/test:
           name: cli-test-go-1.14
           <<: *checkout-path
           executor:
             name: go/golang
-            version: 1.14.13
+            version: 1.14.14
             owner-repo: palantir/pkg/cli
           requires:
             - cli-verify
@@ -135,14 +135,14 @@ workflows:
           include-tests: true
           executor:
             name: go/golang
-            version: 1.15.6
+            version: 1.15.7
             owner-repo: palantir/pkg/cobracli
       - godel/test:
           name: cobracli-test-go-1.14
           <<: *checkout-path
           executor:
             name: go/golang
-            version: 1.14.13
+            version: 1.14.14
             owner-repo: palantir/pkg/cobracli
           requires:
             - cobracli-verify
@@ -154,14 +154,14 @@ workflows:
           include-tests: true
           executor:
             name: go/golang
-            version: 1.15.6
+            version: 1.15.7
             owner-repo: palantir/pkg/datetime
       - godel/test:
           name: datetime-test-go-1.14
           <<: *checkout-path
           executor:
             name: go/golang
-            version: 1.14.13
+            version: 1.14.14
             owner-repo: palantir/pkg/datetime
           requires:
             - datetime-verify
@@ -173,14 +173,14 @@ workflows:
           include-tests: true
           executor:
             name: go/golang
-            version: 1.15.6
+            version: 1.15.7
             owner-repo: palantir/pkg/gittest
       - godel/test:
           name: gittest-test-go-1.14
           <<: *checkout-path
           executor:
             name: go/golang
-            version: 1.14.13
+            version: 1.14.14
             owner-repo: palantir/pkg/gittest
           requires:
             - gittest-verify
@@ -192,14 +192,14 @@ workflows:
           include-tests: true
           executor:
             name: go/golang
-            version: 1.15.6
+            version: 1.15.7
             owner-repo: palantir/pkg/httpclient
       - godel/test:
           name: httpclient-test-go-1.14
           <<: *checkout-path
           executor:
             name: go/golang
-            version: 1.14.13
+            version: 1.14.14
             owner-repo: palantir/pkg/httpclient
           requires:
             - httpclient-verify
@@ -211,14 +211,14 @@ workflows:
           include-tests: true
           executor:
             name: go/golang
-            version: 1.15.6
+            version: 1.15.7
             owner-repo: palantir/pkg/httpserver
       - godel/test:
           name: httpserver-test-go-1.14
           <<: *checkout-path
           executor:
             name: go/golang
-            version: 1.14.13
+            version: 1.14.14
             owner-repo: palantir/pkg/httpserver
           requires:
             - httpserver-verify
@@ -230,14 +230,14 @@ workflows:
           include-tests: true
           executor:
             name: go/golang
-            version: 1.15.6
+            version: 1.15.7
             owner-repo: palantir/pkg/matcher
       - godel/test:
           name: matcher-test-go-1.14
           <<: *checkout-path
           executor:
             name: go/golang
-            version: 1.14.13
+            version: 1.14.14
             owner-repo: palantir/pkg/matcher
           requires:
             - matcher-verify
@@ -249,14 +249,14 @@ workflows:
           include-tests: true
           executor:
             name: go/golang
-            version: 1.15.6
+            version: 1.15.7
             owner-repo: palantir/pkg/merge
       - godel/test:
           name: merge-test-go-1.14
           <<: *checkout-path
           executor:
             name: go/golang
-            version: 1.14.13
+            version: 1.14.14
             owner-repo: palantir/pkg/merge
           requires:
             - merge-verify
@@ -268,14 +268,14 @@ workflows:
           include-tests: true
           executor:
             name: go/golang
-            version: 1.15.6
+            version: 1.15.7
             owner-repo: palantir/pkg/metrics
       - godel/test:
           name: metrics-test-go-1.14
           <<: *checkout-path
           executor:
             name: go/golang
-            version: 1.14.13
+            version: 1.14.14
             owner-repo: palantir/pkg/metrics
           requires:
             - metrics-verify
@@ -287,14 +287,14 @@ workflows:
           include-tests: true
           executor:
             name: go/golang
-            version: 1.15.6
+            version: 1.15.7
             owner-repo: palantir/pkg/objmatcher
       - godel/test:
           name: objmatcher-test-go-1.14
           <<: *checkout-path
           executor:
             name: go/golang
-            version: 1.14.13
+            version: 1.14.14
             owner-repo: palantir/pkg/objmatcher
           requires:
             - objmatcher-verify
@@ -306,14 +306,14 @@ workflows:
           include-tests: true
           executor:
             name: go/golang
-            version: 1.15.6
+            version: 1.15.7
             owner-repo: palantir/pkg/pkgpath
       - godel/test:
           name: pkgpath-test-go-1.14
           <<: *checkout-path
           executor:
             name: go/golang
-            version: 1.14.13
+            version: 1.14.14
             owner-repo: palantir/pkg/pkgpath
           requires:
             - pkgpath-verify
@@ -325,14 +325,14 @@ workflows:
           include-tests: true
           executor:
             name: go/golang
-            version: 1.15.6
+            version: 1.15.7
             owner-repo: palantir/pkg/retry
       - godel/test:
           name: retry-test-go-1.14
           <<: *checkout-path
           executor:
             name: go/golang
-            version: 1.14.13
+            version: 1.14.14
             owner-repo: palantir/pkg/retry
           requires:
             - retry-verify
@@ -344,14 +344,14 @@ workflows:
           include-tests: true
           executor:
             name: go/golang
-            version: 1.15.6
+            version: 1.15.7
             owner-repo: palantir/pkg/rid
       - godel/test:
           name: rid-test-go-1.14
           <<: *checkout-path
           executor:
             name: go/golang
-            version: 1.14.13
+            version: 1.14.14
             owner-repo: palantir/pkg/rid
           requires:
             - rid-verify
@@ -363,14 +363,14 @@ workflows:
           include-tests: true
           executor:
             name: go/golang
-            version: 1.15.6
+            version: 1.15.7
             owner-repo: palantir/pkg/safehttp
       - godel/test:
           name: safehttp-test-go-1.14
           <<: *checkout-path
           executor:
             name: go/golang
-            version: 1.14.13
+            version: 1.14.14
             owner-repo: palantir/pkg/safehttp
           requires:
             - safehttp-verify
@@ -382,14 +382,14 @@ workflows:
           include-tests: true
           executor:
             name: go/golang
-            version: 1.15.6
+            version: 1.15.7
             owner-repo: palantir/pkg/safejson
       - godel/test:
           name: safejson-test-go-1.14
           <<: *checkout-path
           executor:
             name: go/golang
-            version: 1.14.13
+            version: 1.14.14
             owner-repo: palantir/pkg/safejson
           requires:
             - safejson-verify
@@ -401,14 +401,14 @@ workflows:
           include-tests: true
           executor:
             name: go/golang
-            version: 1.15.6
+            version: 1.15.7
             owner-repo: palantir/pkg/safelong
       - godel/test:
           name: safelong-test-go-1.14
           <<: *checkout-path
           executor:
             name: go/golang
-            version: 1.14.13
+            version: 1.14.14
             owner-repo: palantir/pkg/safelong
           requires:
             - safelong-verify
@@ -420,14 +420,14 @@ workflows:
           include-tests: true
           executor:
             name: go/golang
-            version: 1.15.6
+            version: 1.15.7
             owner-repo: palantir/pkg/safeyaml
       - godel/test:
           name: safeyaml-test-go-1.14
           <<: *checkout-path
           executor:
             name: go/golang
-            version: 1.14.13
+            version: 1.14.14
             owner-repo: palantir/pkg/safeyaml
           requires:
             - safeyaml-verify
@@ -439,14 +439,14 @@ workflows:
           include-tests: true
           executor:
             name: go/golang
-            version: 1.15.6
+            version: 1.15.7
             owner-repo: palantir/pkg/signals
       - godel/test:
           name: signals-test-go-1.14
           <<: *checkout-path
           executor:
             name: go/golang
-            version: 1.14.13
+            version: 1.14.14
             owner-repo: palantir/pkg/signals
           requires:
             - signals-verify
@@ -458,14 +458,14 @@ workflows:
           include-tests: true
           executor:
             name: go/golang
-            version: 1.15.6
+            version: 1.15.7
             owner-repo: palantir/pkg/specdir
       - godel/test:
           name: specdir-test-go-1.14
           <<: *checkout-path
           executor:
             name: go/golang
-            version: 1.14.13
+            version: 1.14.14
             owner-repo: palantir/pkg/specdir
           requires:
             - specdir-verify
@@ -477,14 +477,14 @@ workflows:
           include-tests: true
           executor:
             name: go/golang
-            version: 1.15.6
+            version: 1.15.7
             owner-repo: palantir/pkg/tableprinter
       - godel/test:
           name: tableprinter-test-go-1.14
           <<: *checkout-path
           executor:
             name: go/golang
-            version: 1.14.13
+            version: 1.14.14
             owner-repo: palantir/pkg/tableprinter
           requires:
             - tableprinter-verify
@@ -496,14 +496,14 @@ workflows:
           include-tests: true
           executor:
             name: go/golang
-            version: 1.15.6
+            version: 1.15.7
             owner-repo: palantir/pkg/tlsconfig
       - godel/test:
           name: tlsconfig-test-go-1.14
           <<: *checkout-path
           executor:
             name: go/golang
-            version: 1.14.13
+            version: 1.14.14
             owner-repo: palantir/pkg/tlsconfig
           requires:
             - tlsconfig-verify
@@ -515,14 +515,14 @@ workflows:
           include-tests: true
           executor:
             name: go/golang
-            version: 1.15.6
+            version: 1.15.7
             owner-repo: palantir/pkg/transform
       - godel/test:
           name: transform-test-go-1.14
           <<: *checkout-path
           executor:
             name: go/golang
-            version: 1.14.13
+            version: 1.14.14
             owner-repo: palantir/pkg/transform
           requires:
             - transform-verify
@@ -534,14 +534,14 @@ workflows:
           include-tests: true
           executor:
             name: go/golang
-            version: 1.15.6
+            version: 1.15.7
             owner-repo: palantir/pkg/typenames
       - godel/test:
           name: typenames-test-go-1.14
           <<: *checkout-path
           executor:
             name: go/golang
-            version: 1.14.13
+            version: 1.14.14
             owner-repo: palantir/pkg/typenames
           requires:
             - typenames-verify
@@ -553,14 +553,14 @@ workflows:
           include-tests: true
           executor:
             name: go/golang
-            version: 1.15.6
+            version: 1.15.7
             owner-repo: palantir/pkg/uuid
       - godel/test:
           name: uuid-test-go-1.14
           <<: *checkout-path
           executor:
             name: go/golang
-            version: 1.14.13
+            version: 1.14.14
             owner-repo: palantir/pkg/uuid
           requires:
             - uuid-verify
