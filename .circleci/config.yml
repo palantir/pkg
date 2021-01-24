@@ -309,6 +309,25 @@ workflows:
           requires:
             - pkgpath-verify
 
+      # refreshable
+      - godel/verify:
+          name: refreshable-verify
+          <<: *checkout-path
+          include-tests: true
+          executor:
+            name: go/golang
+            version: 1.13.4
+            owner-repo: palantir/pkg/refreshable
+      - godel/test:
+          name: refreshable-test-go-1.12
+          <<: *checkout-path
+          executor:
+            name: go/golang
+            version: 1.12.13
+            owner-repo: palantir/pkg/refreshable
+          requires:
+            - refreshable-verify
+
       # retry
       - godel/verify:
           name: retry-verify
