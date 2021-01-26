@@ -72,7 +72,7 @@ func NewDuration(in Refreshable) Duration {
 	}
 }
 
-func NewDurationPtr(in Refreshable) Duration {
+func NewDurationPtr(in Refreshable) DurationPtr {
 	return refreshableTyped{
 		Refreshable: in,
 	}
@@ -151,4 +151,8 @@ func (rt refreshableTyped) CurrentBoolPtr() *bool {
 
 func (rt refreshableTyped) CurrentDuration() time.Duration {
 	return rt.Current().(time.Duration)
+}
+
+func (rt refreshableTyped) CurrentDurationPtr() *time.Duration {
+	return rt.Current().(*time.Duration)
 }
