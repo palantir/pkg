@@ -11,8 +11,6 @@ import (
 	"sync/atomic"
 )
 
-var _ SettableRefreshable = (*DefaultRefreshable)(nil)
-
 type DefaultRefreshable struct {
 	typ     reflect.Type
 	current *atomic.Value
