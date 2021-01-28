@@ -4,9 +4,14 @@
 
 package refreshable
 
-type Refreshable interface {
-	// Current returns the most recent value of this Refreshable.
+type Supplier interface {
+	// Current returns the most recent value of this Supplier.
 	Current() interface{}
+}
+
+type Refreshable interface {
+	// Supplier is embedded to provide access to the most recent value of this Refreshable.
+	Supplier
 
 	// Subscribe subscribes to changes of this Refreshable. The provided function is called with the value of Current()
 	// whenever the value changes.
@@ -14,4 +19,11 @@ type Refreshable interface {
 
 	// Map returns a new Refreshable based on the current one that handles updates based on the current Refreshable.
 	Map(func(interface{}) interface{}) Refreshable
+}
+
+// A SettableRefreshable is a refreshable that can have its value updated by calling "update".
+type SettableRefreshable interface {
+	Refreshable
+
+	Update(val interface{}) error
 }
