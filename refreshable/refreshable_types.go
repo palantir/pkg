@@ -109,13 +109,13 @@ func NewIntPtr(in Refreshable) IntPtr {
 }
 
 var (
-	_ Bool = (*refreshableTyped)(nil)
-	_ BoolPtr = (*refreshableTyped)(nil)
-	_ Duration = (*refreshableTyped)(nil)
-	_ Int = (*refreshableTyped)(nil)
-	_ IntPtr = (*refreshableTyped)(nil)
-	_ String = (*refreshableTyped)(nil)
-	_ StringPtr = (*refreshableTyped)(nil)
+	_ Bool        = (*refreshableTyped)(nil)
+	_ BoolPtr     = (*refreshableTyped)(nil)
+	_ Duration    = (*refreshableTyped)(nil)
+	_ Int         = (*refreshableTyped)(nil)
+	_ IntPtr      = (*refreshableTyped)(nil)
+	_ String      = (*refreshableTyped)(nil)
+	_ StringPtr   = (*refreshableTyped)(nil)
 	_ StringSlice = (*refreshableTyped)(nil)
 )
 
