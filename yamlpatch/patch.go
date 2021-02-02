@@ -167,7 +167,16 @@ func patchTest(node *yaml.Node, path Path, testValue interface{}) error {
 	if err != nil {
 		return err
 	}
-	if !reflect.DeepEqual(valueObj, testValue) {
+	// roundtrip test value to use standard type
+	testValueNode, err := valueToYAMLNode(testValue)
+	if err != nil {
+		return err
+	}
+	testValueObj, err := yamlNodeToValue(testValueNode)
+	if err != nil {
+		return err
+	}
+	if !reflect.DeepEqual(valueObj, testValueObj) {
 		return errors.Errorf("testing path %s value failed", path)
 	}
 	return nil

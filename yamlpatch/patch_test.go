@@ -361,6 +361,72 @@ foo:
 			Patch:     []string{`{ "op": "move", "from": "/foo/1", "path": "/foo/4" }`},
 			ExpectErr: "op move /foo/4: add index key out of bounds (idx 4, len 3)",
 		},
+		{
+			Name: "jsonpatch test",
+			Body: `{"baz":"qux","foo":["a",2,"c"]}`,
+			Patch: []string{
+				`{ "op": "test", "path": "/baz", "value": "qux" }`,
+				`{ "op": "test", "path": "/foo/1", "value": 2 }`,
+			},
+			Expected: `{"baz": "qux", "foo": ["a", 2, "c"]}`,
+		},
+		{
+			Name:      "jsonpatch test err",
+			Body:      `{ "baz": "qux" }`,
+			Patch:     []string{`{ "op": "test", "path": "/baz", "value": "bar" }`},
+			ExpectErr: "op test /baz: testing path /baz value failed",
+		},
+		{
+			Name: "jsonpatch test err",
+			Body: `{"baz":"qux","foo":["a",2,"c"]}`,
+			Patch: []string{
+				`{ "op": "test", "path": "/baz", "value": "qux" }`,
+				`{ "op": "test", "path": "/foo/1", "value": "c" }`,
+			},
+			ExpectErr: "op test /foo/1: testing path /foo/1 value failed",
+		},
+		{
+			Name:      "jsonpatch test err",
+			Body:      `{ "baz": "qux" }`,
+			Patch:     []string{`{ "op": "test", "path": "/foo", "value": 42 }`},
+			ExpectErr: "op test /foo: node not found for test patch at path /foo",
+		},
+		{
+			Name:      "jsonpatch test err",
+			Body:      `{ "baz": "qux" }`,
+			Patch:     []string{`{ "op": "test", "path": "/foo", "value": null }`},
+			ExpectErr: "op test /foo: node not found for test patch at path /foo",
+		},
+		{
+			Name:     "jsonpatch test",
+			Body:     `{ "foo": null }`,
+			Patch:    []string{`{ "op": "test", "path": "/foo", "value": null }`},
+			Expected: `{"foo": null}`,
+		},
+		{
+			Name:      "jsonpatch test err",
+			Body:      `{ "foo": {} }`,
+			Patch:     []string{`{ "op": "test", "path": "/foo", "value": null }`},
+			ExpectErr: "op test /foo: testing path /foo value failed",
+		},
+		{
+			Name:      "jsonpatch test err",
+			Body:      `{ "foo": [] }`,
+			Patch:     []string{`{ "op": "test", "path": "/foo", "value": null }`},
+			ExpectErr: "op test /foo: testing path /foo value failed",
+		},
+		{
+			Name:     "jsonpatch test",
+			Body:     `{ "baz/foo": "qux" }`,
+			Patch:    []string{`{ "op": "test", "path": "/baz~1foo", "value": "qux"}`},
+			Expected: `{"baz/foo": "qux"}`,
+		},
+		{
+			Name:      "jsonpatch test",
+			Body:      `{ "foo": [] }`,
+			Patch:     []string{`{ "op": "test", "path": "/foo"}`},
+			ExpectErr: "op test /foo: testing path /foo value failed",
+		},
 	} {
 		t.Run(test.Name, func(t *testing.T) {
 			patch := make(Patch, len(test.Patch))
