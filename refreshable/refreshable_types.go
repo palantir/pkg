@@ -68,8 +68,8 @@ type Duration interface {
 type DurationPtr interface {
 	Refreshable
 	CurrentDurationPtr() *time.Duration
-	MapDurationPtr(func(time.Duration) interface{}) Refreshable
-	SubscribeToDurationPtr(func(time.Duration)) (unsubscribe func())
+	MapDurationPtr(func(*time.Duration) interface{}) Refreshable
+	SubscribeToDurationPtr(func(*time.Duration)) (unsubscribe func())
 }
 
 func NewBool(in Refreshable) Bool {
