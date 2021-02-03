@@ -68,6 +68,8 @@ type Duration interface {
 type DurationPtr interface {
 	Refreshable
 	CurrentDurationPtr() *time.Duration
+	MapDurationPtr(func(time.Duration) interface{}) Refreshable
+	SubscribeToDurationPtr(func(time.Duration)) (unsubscribe func())
 }
 
 func NewBool(in Refreshable) Bool {
@@ -255,10 +257,6 @@ func (rt refreshableTyped) CurrentDuration() time.Duration {
 	return rt.Current().(time.Duration)
 }
 
-func (rt refreshableTyped) CurrentDurationPtr() *time.Duration {
-	return rt.Current().(*time.Duration)
-}
-
 func (rt refreshableTyped) MapDuration(mapFn func(time.Duration) interface{}) Refreshable {
 	return rt.Map(func(i interface{}) interface{} {
 		return mapFn(i.(time.Duration))
@@ -268,5 +266,21 @@ func (rt refreshableTyped) MapDuration(mapFn func(time.Duration) interface{}) Re
 func (rt refreshableTyped) SubscribeToDuration(subFn func(time.Duration)) (unsubscribe func()) {
 	return rt.Subscribe(func(i interface{}) {
 		subFn(i.(time.Duration))
+	})
+}
+
+func (rt refreshableTyped) CurrentDurationPtr() *time.Duration {
+	return rt.Current().(*time.Duration)
+}
+
+func (rt refreshableTyped) MapDurationPtr(mapFn func(*time.Duration) interface{}) Refreshable {
+	return rt.Map(func(i interface{}) interface{} {
+		return mapFn(i.(*time.Duration))
+	})
+}
+
+func (rt refreshableTyped) SubscribeToDurationPtr(subFn func(*time.Duration)) (unsubscribe func()) {
+	return rt.Subscribe(func(i interface{}) {
+		subFn(i.(*time.Duration))
 	})
 }
