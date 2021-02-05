@@ -5,6 +5,7 @@
 package yamlpatch
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -29,6 +30,10 @@ type Operation struct {
 	Value interface{} `json:"value,omitempty"`
 }
 
+func (op Operation) String() string {
+	return fmt.Sprintf("op: %q, path: %q, value: %v, from: %q", op.Type, op.Path.String(), op.Value, op.From.String())
+}
+
 type Path []string
 
 func (p Path) String() string {
@@ -51,22 +56,11 @@ func (p Path) MarshalText() ([]byte, error) {
 }
 
 func (p *Path) UnmarshalText(text []byte) error {
-	str := string(text)
-	if !strings.HasPrefix(str, "/") {
-		return errors.Errorf("path must begin with leading slash")
+	path, err := ParsePath(string(text))
+	if err != nil {
+		return err
 	}
-	// Special case for root node of document
-	if str == "/" {
-		*p = Path{""}
-		return nil
-	}
-	// General case: leading slash results in empty leading element.
-	// This represents indexing into the document node.
-	split := strings.Split(str, "/")
-	for i := range split {
-		split[i] = rfc6901Decoder.Replace(split[i])
-	}
-	*p = split
+	*p = path
 	return nil
 }
 
@@ -75,6 +69,23 @@ func (p Path) Key() string {
 		return ""
 	}
 	return p[len(p)-1]
+}
+
+func ParsePath(str string) (Path, error) {
+	if !strings.HasPrefix(str, "/") {
+		return nil, errors.Errorf("path must begin with leading slash")
+	}
+	// Special case for root node of document
+	if str == "/" {
+		return Path{""}, nil
+	}
+	// General case: leading slash results in empty leading element.
+	// This represents indexing into the document node.
+	split := strings.Split(str, "/")
+	for i := range split {
+		split[i] = rfc6901Decoder.Replace(split[i])
+	}
+	return split, nil
 }
 
 var (
