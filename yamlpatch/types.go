@@ -25,8 +25,8 @@ type Patch []Operation
 // Operation represents a RFC6902 JSON Patch operation.
 type Operation struct {
 	Type  string      `json:"op"`
-	From  Path        `json:"from,omitempty"`
 	Path  Path        `json:"path"`
+	From  Path        `json:"from,omitempty"`
 	Value interface{} `json:"value,omitempty"`
 }
 
@@ -34,7 +34,26 @@ func (op Operation) String() string {
 	return fmt.Sprintf("op: %q, path: %q, value: %v, from: %q", op.Type, op.Path.String(), op.Value, op.From.String())
 }
 
+// Path represents a decoded JSON patch targeting a location within a document.
+// Use ParsePath or UnmarshalText to construct a Path.
 type Path []string
+
+func ParsePath(str string) (Path, error) {
+	if !strings.HasPrefix(str, "/") {
+		return nil, errors.Errorf("path must begin with leading slash")
+	}
+	// Special case for root node of document
+	if str == "/" {
+		return Path{""}, nil
+	}
+	// General case: leading slash results in empty leading element.
+	// This represents indexing into the document node.
+	split := strings.Split(str, "/")
+	for i := range split {
+		split[i] = rfc6901Decoder.Replace(split[i])
+	}
+	return split, nil
+}
 
 func (p Path) String() string {
 	switch len(p) {
@@ -69,23 +88,6 @@ func (p Path) Key() string {
 		return ""
 	}
 	return p[len(p)-1]
-}
-
-func ParsePath(str string) (Path, error) {
-	if !strings.HasPrefix(str, "/") {
-		return nil, errors.Errorf("path must begin with leading slash")
-	}
-	// Special case for root node of document
-	if str == "/" {
-		return Path{""}, nil
-	}
-	// General case: leading slash results in empty leading element.
-	// This represents indexing into the document node.
-	split := strings.Split(str, "/")
-	for i := range split {
-		split[i] = rfc6901Decoder.Replace(split[i])
-	}
-	return split, nil
 }
 
 var (
