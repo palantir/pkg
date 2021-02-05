@@ -38,6 +38,15 @@ func (op Operation) String() string {
 // Use ParsePath or UnmarshalText to construct a Path.
 type Path []string
 
+// MustParsePath is like ParsePath but panics in case of invalid input.
+func MustParsePath(str string) Path {
+	path, err := ParsePath(str)
+	if err != nil {
+		panic(err)
+	}
+	return path
+}
+
 func ParsePath(str string) (Path, error) {
 	if !strings.HasPrefix(str, "/") {
 		return nil, errors.Errorf("path must begin with leading slash")
