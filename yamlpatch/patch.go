@@ -230,11 +230,11 @@ func unmarshalNode(text []byte) (*yaml.Node, error) {
 }
 
 func valueToYAMLNode(value interface{}) (*yaml.Node, error) {
-	jsonBytes, err := yaml.Marshal(value)
+	yamlBytes, err := yaml.Marshal(value)
 	if err != nil {
 		return nil, err
 	}
-	node, err := unmarshalNode(jsonBytes)
+	node, err := unmarshalNode(yamlBytes)
 	if err != nil {
 		return nil, err
 	}
