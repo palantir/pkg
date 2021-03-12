@@ -31,7 +31,7 @@ workflows:
     jobs:
       - verify-circleci
       - circle-all:
-          requires: [ verify-circleci, bearertoken-verify, bearertoken-test-go-1.14, binary-verify, binary-test-go-1.14, boolean-verify, boolean-test-go-1.14, bytesbuffers-verify, bytesbuffers-test-go-1.14, cli-verify, cli-test-go-1.14, cobracli-verify, cobracli-test-go-1.14, datetime-verify, datetime-test-go-1.14, gittest-verify, gittest-test-go-1.14, httpclient-verify, httpclient-test-go-1.14, httpserver-verify, httpserver-test-go-1.14, matcher-verify, matcher-test-go-1.14, merge-verify, merge-test-go-1.14, metrics-verify, metrics-test-go-1.14, objmatcher-verify, objmatcher-test-go-1.14, pkgpath-verify, pkgpath-test-go-1.14, refreshable-verify, refreshable-test-go-1.14, retry-verify, retry-test-go-1.14, rid-verify, rid-test-go-1.14, safehttp-verify, safehttp-test-go-1.14, safejson-verify, safejson-test-go-1.14, safelong-verify, safelong-test-go-1.14, safeyaml-verify, safeyaml-test-go-1.14, signals-verify, signals-test-go-1.14, specdir-verify, specdir-test-go-1.14, tableprinter-verify, tableprinter-test-go-1.14, tlsconfig-verify, tlsconfig-test-go-1.14, transform-verify, transform-test-go-1.14, typenames-verify, typenames-test-go-1.14, uuid-verify, uuid-test-go-1.14 ]
+          requires: [ verify-circleci, bearertoken-verify, bearertoken-test-go-1.14, binary-verify, binary-test-go-1.14, boolean-verify, boolean-test-go-1.14, bytesbuffers-verify, bytesbuffers-test-go-1.14, cli-verify, cli-test-go-1.14, cobracli-verify, cobracli-test-go-1.14, datetime-verify, datetime-test-go-1.14, gittest-verify, gittest-test-go-1.14, httpclient-verify, httpclient-test-go-1.14, httpserver-verify, httpserver-test-go-1.14, matcher-verify, matcher-test-go-1.14, merge-verify, merge-test-go-1.14, metrics-verify, metrics-test-go-1.14, objmatcher-verify, objmatcher-test-go-1.14, pkgpath-verify, pkgpath-test-go-1.14, refreshable-verify, refreshable-test-go-1.14, retry-verify, retry-test-go-1.14, rid-verify, rid-test-go-1.14, safehttp-verify, safehttp-test-go-1.14, safejson-verify, safejson-test-go-1.14, safelong-verify, safelong-test-go-1.14, safeyaml-verify, safeyaml-test-go-1.14, signals-verify, signals-test-go-1.14, specdir-verify, specdir-test-go-1.14, tableprinter-verify, tableprinter-test-go-1.14, tlsconfig-verify, tlsconfig-test-go-1.14, transform-verify, transform-test-go-1.14, typenames-verify, typenames-test-go-1.14, uuid-verify, uuid-test-go-1.14, yamlpatch-verify, yamlpatch-test-go-1.14 ]
 
       # bearertoken
       - godel/verify:
@@ -583,3 +583,22 @@ workflows:
             owner-repo: palantir/pkg/uuid
           requires:
             - uuid-verify
+
+      # yamlpatch
+      - godel/verify:
+          name: yamlpatch-verify
+          <<: *checkout-path
+          include-tests: true
+          executor:
+            name: go/golang
+            version: 1.15.7
+            owner-repo: palantir/pkg/yamlpatch
+      - godel/test:
+          name: yamlpatch-test-go-1.14
+          <<: *checkout-path
+          executor:
+            name: go/golang
+            version: 1.14.14
+            owner-repo: palantir/pkg/yamlpatch
+          requires:
+            - yamlpatch-verify
