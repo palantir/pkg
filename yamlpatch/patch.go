@@ -22,13 +22,6 @@ var (
 // Apply the patch to a yaml document provided in originalBytes and return the updated content.
 // A best effort is made to minimize changes outside the patched paths but some whitespace changes are unavoidable.
 func Apply(originalBytes []byte, patch Patch) ([]byte, error) {
-	return ApplyIndent(originalBytes, patch, defaultIndentSpaces)
-}
-
-// ApplyIndent the patch to a yaml document provided in originalBytes and return the updated content.
-// indentSpaces configures the indentation used to marshal patched objects.
-// A best effort is made to minimize changes outside the patched paths but some whitespace changes are unavoidable.
-func ApplyIndent(originalBytes []byte, patch Patch, indentSpaces int) ([]byte, error) {
 	node := new(yaml.Node)
 	if err := yaml.Unmarshal(originalBytes, node); err != nil {
 		return nil, errors.Wrap(err, "unmarshal original yaml bytes")
@@ -64,7 +57,7 @@ func ApplyIndent(originalBytes []byte, patch Patch, indentSpaces int) ([]byte, e
 	defer func() {
 		_ = enc.Close()
 	}()
-	enc.SetIndent(indentSpaces)
+	enc.SetIndent(defaultIndentSpaces)
 	if err := enc.Encode(node); err != nil {
 		return nil, errors.Wrapf(err, "marshal patched node")
 	}
