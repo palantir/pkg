@@ -446,3 +446,27 @@ foo:
 		})
 	}
 }
+
+func TestApplyJSONPatch_CustomObject(t *testing.T) {
+	// Tests adding an object where the Value has custom yaml serialization
+	type MyObject struct {
+		FieldA string `yaml:"custom-tag"`
+	}
+
+	originalBytes := []byte(`existing-field: true`)
+
+	out, err := Apply(originalBytes, Patch{
+		{
+			Type:  "add",
+			Path:  MustParsePath("/custom-path"),
+			Value: MyObject{FieldA: "custom-value"},
+		},
+	})
+	require.NoError(t, err)
+
+	expected := `existing-field: true
+custom-path:
+  custom-tag: custom-value
+`
+	require.Equal(t, expected, string(out))
+}

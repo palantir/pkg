@@ -8,7 +8,6 @@ package yamlpatch
 
 import (
 	"bytes"
-	"encoding/json"
 	"reflect"
 
 	"github.com/pkg/errors"
@@ -20,7 +19,7 @@ var (
 	defaultIndentSpaces = 2
 )
 
-// ApplyIndent the patch to a yaml document provided in originalBytes and return the updated content.
+// Apply the patch to a yaml document provided in originalBytes and return the updated content.
 // A best effort is made to minimize changes outside the patched paths but some whitespace changes are unavoidable.
 func Apply(originalBytes []byte, patch Patch) ([]byte, error) {
 	return ApplyIndent(originalBytes, patch, defaultIndentSpaces)
@@ -62,6 +61,9 @@ func ApplyIndent(originalBytes []byte, patch Patch, indentSpaces int) ([]byte, e
 	}
 	buf := bytes.Buffer{}
 	enc := yaml.NewEncoder(&buf)
+	defer func() {
+		_ = enc.Close()
+	}()
 	enc.SetIndent(indentSpaces)
 	if err := enc.Encode(node); err != nil {
 		return nil, errors.Wrapf(err, "marshal patched node")
@@ -228,7 +230,7 @@ func unmarshalNode(text []byte) (*yaml.Node, error) {
 }
 
 func valueToYAMLNode(value interface{}) (*yaml.Node, error) {
-	jsonBytes, err := json.Marshal(value)
+	jsonBytes, err := yaml.Marshal(value)
 	if err != nil {
 		return nil, err
 	}
