@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	// IndentSpaces configures the yaml encoder used to marshal patched objects.
+	// defaultIndentSpaces configures the yaml encoder used to marshal patched objects.
 	defaultIndentSpaces = 2
 )
 
