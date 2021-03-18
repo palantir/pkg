@@ -72,3 +72,10 @@ func ClientRootCAs(certPoolProvider CertPoolProvider) ClientParam {
 func ClientCipherSuites(cipherSuites ...uint16) ClientParam {
 	return clientParam(cipherSuitesParam(cipherSuites...))
 }
+
+func InsecureSkipVerify() ClientParam {
+	return clientParam(func(cfg *tls.Config) error {
+		cfg.InsecureSkipVerify = true
+		return nil
+	})
+}
