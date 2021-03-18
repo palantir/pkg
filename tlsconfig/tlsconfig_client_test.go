@@ -53,6 +53,12 @@ func TestNewClientConfig(t *testing.T) {
 	}
 }
 
+func TestNewClientConfigInsecureSkipVerify(t *testing.T) {
+	cfg, err := tlsconfig.NewClientConfig(tlsconfig.ClientInsecureSkipVerify())
+	assert.NoError(t, err)
+	assert.True(t, cfg.InsecureSkipVerify)
+}
+
 func TestNewClientConfigErrors(t *testing.T) {
 	for currCaseNum, currCase := range []struct {
 		name      string

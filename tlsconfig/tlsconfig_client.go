@@ -73,3 +73,13 @@ func ClientRootCAs(certPoolProvider CertPoolProvider) ClientParam {
 func ClientCipherSuites(cipherSuites ...uint16) ClientParam {
 	return clientParam(cipherSuitesParam(cipherSuites...))
 }
+
+// ClientInsecureSkipVerify sets the InsecureSkipVerify field of tls Config to true. The default value for this field
+// is false. Usage of this option is discouraged and should only be used in limited off-roading cases where the client
+// has no reasonable way of trusting the server.
+func ClientInsecureSkipVerify() ClientParam {
+	return clientParam(func(cfg *tls.Config) error {
+		cfg.InsecureSkipVerify = true
+		return nil
+	})
+}
