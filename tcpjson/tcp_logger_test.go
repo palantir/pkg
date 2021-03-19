@@ -97,7 +97,10 @@ func TestWrite_Timeout(t *testing.T) {
 	_, err = tcpWriter.Write(logPayload)
 	require.Error(t, err)
 	require.True(t, isTimeoutError(err))
-	require.False(t, isTemporaryError(err))
+	// TODO (tabboud): prior to Go1.15 tls.Conn would return true for Temporary() even for permanently broken connections
+	// ref: https://github.com/golang/go/issues/29971
+	// ref: https://golang.org/doc/go1.15#crypto/tls
+	// require.False(t, isTemporaryError(err))
 	// conn is nil, since it should be closed
 	require.Nil(t, tcpWriter.conn)
 
