@@ -1,3 +1,59 @@
+# github.com/davecgh/go-spew v1.1.1
+github.com/davecgh/go-spew/spew
+# github.com/palantir/go-metrics v1.1.0
+github.com/palantir/go-metrics
 # github.com/palantir/pkg v1.0.1
 ## explicit
 github.com/palantir/pkg
+# github.com/palantir/pkg/datetime v1.0.1
+github.com/palantir/pkg/datetime
+# github.com/palantir/pkg/metrics v1.0.1
+## explicit
+github.com/palantir/pkg/metrics
+# github.com/palantir/pkg/safejson v1.0.1
+github.com/palantir/pkg/safejson
+# github.com/palantir/pkg/safelong v1.0.1
+github.com/palantir/pkg/safelong
+# github.com/palantir/pkg/safeyaml v1.0.1
+github.com/palantir/pkg/safeyaml
+# github.com/palantir/pkg/transform v1.0.0
+github.com/palantir/pkg/transform
+# github.com/palantir/witchcraft-go-error v1.4.3
+## explicit
+github.com/palantir/witchcraft-go-error
+github.com/palantir/witchcraft-go-error/internal/errors
+# github.com/palantir/witchcraft-go-health v1.6.0
+## explicit
+github.com/palantir/witchcraft-go-health/conjure/witchcraft/api/health
+github.com/palantir/witchcraft-go-health/sources
+github.com/palantir/witchcraft-go-health/sources/window
+github.com/palantir/witchcraft-go-health/status
+# github.com/palantir/witchcraft-go-logging v1.10.0
+## explicit
+github.com/palantir/witchcraft-go-logging/conjure/witchcraft/api/logging
+github.com/palantir/witchcraft-go-logging/internal/gopath
+github.com/palantir/witchcraft-go-logging/wlog
+github.com/palantir/witchcraft-go-logging/wlog/internal
+github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log
+# github.com/palantir/witchcraft-go-params v1.2.0
+github.com/palantir/witchcraft-go-params
+# github.com/palantir/witchcraft-go-tracing v1.4.0
+## explicit
+github.com/palantir/witchcraft-go-tracing/wtracing
+# github.com/pkg/errors v0.8.1
+github.com/pkg/errors
+# github.com/pmezard/go-difflib v1.0.0
+github.com/pmezard/go-difflib/difflib
+# github.com/rs/zerolog v1.20.0
+## explicit
+github.com/rs/zerolog
+github.com/rs/zerolog/internal/cbor
+github.com/rs/zerolog/internal/json
+# github.com/stretchr/testify v1.7.0
+## explicit
+github.com/stretchr/testify/assert
+github.com/stretchr/testify/require
+# gopkg.in/yaml.v2 v2.3.0
+gopkg.in/yaml.v2
+# gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
+gopkg.in/yaml.v3
