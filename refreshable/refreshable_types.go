@@ -43,6 +43,34 @@ type IntPtr interface {
 	SubscribeToIntPtr(func(*int)) (unsubscribe func())
 }
 
+type Int64 interface {
+	Refreshable
+	CurrentInt64() int64
+	MapInt64(func(int64) interface{}) Refreshable
+	SubscribeToInt64(func(int64)) (unsubscribe func())
+}
+
+type Int64Ptr interface {
+	Refreshable
+	CurrentInt64Ptr() *int64
+	MapInt64Ptr(func(*int64) interface{}) Refreshable
+	SubscribeToInt64Ptr(func(*int64)) (unsubscribe func())
+}
+
+type Float64 interface {
+	Refreshable
+	CurrentFloat64() float64
+	MapFloat64(func(float64) interface{}) Refreshable
+	SubscribeToFloat64(func(float64)) (unsubscribe func())
+}
+
+type Float64Ptr interface {
+	Refreshable
+	CurrentFloat64Ptr() *float64
+	MapFloat64Ptr(func(*float64) interface{}) Refreshable
+	SubscribeToFloat64Ptr(func(*float64)) (unsubscribe func())
+}
+
 type Bool interface {
 	Refreshable
 	CurrentBool() bool
@@ -126,12 +154,40 @@ func NewIntPtr(in Refreshable) IntPtr {
 	}
 }
 
+func NewInt64(in Refreshable) Int64 {
+	return refreshableTyped{
+		Refreshable: in,
+	}
+}
+
+func NewInt64Ptr(in Refreshable) Int64Ptr {
+	return refreshableTyped{
+		Refreshable: in,
+	}
+}
+
+func NewFloat64(in Refreshable) Float64 {
+	return refreshableTyped{
+		Refreshable: in,
+	}
+}
+
+func NewFloat64Ptr(in Refreshable) Float64Ptr {
+	return refreshableTyped{
+		Refreshable: in,
+	}
+}
+
 var (
 	_ Bool        = (*refreshableTyped)(nil)
 	_ BoolPtr     = (*refreshableTyped)(nil)
 	_ Duration    = (*refreshableTyped)(nil)
 	_ Int         = (*refreshableTyped)(nil)
 	_ IntPtr      = (*refreshableTyped)(nil)
+	_ Int64       = (*refreshableTyped)(nil)
+	_ Int64Ptr    = (*refreshableTyped)(nil)
+	_ Float64     = (*refreshableTyped)(nil)
+	_ Float64Ptr  = (*refreshableTyped)(nil)
 	_ String      = (*refreshableTyped)(nil)
 	_ StringPtr   = (*refreshableTyped)(nil)
 	_ StringSlice = (*refreshableTyped)(nil)
@@ -218,6 +274,70 @@ func (rt refreshableTyped) MapIntPtr(mapFn func(*int) interface{}) Refreshable {
 func (rt refreshableTyped) SubscribeToIntPtr(subFn func(*int)) (unsubscribe func()) {
 	return rt.Subscribe(func(i interface{}) {
 		subFn(i.(*int))
+	})
+}
+
+func (rt refreshableTyped) CurrentInt64() int64 {
+	return rt.Current().(int64)
+}
+
+func (rt refreshableTyped) MapInt64(mapFn func(int64) interface{}) Refreshable {
+	return rt.Map(func(i interface{}) interface{} {
+		return mapFn(i.(int64))
+	})
+}
+
+func (rt refreshableTyped) SubscribeToInt64(subFn func(int64)) (unsubscribe func()) {
+	return rt.Subscribe(func(i interface{}) {
+		subFn(i.(int64))
+	})
+}
+
+func (rt refreshableTyped) CurrentInt64Ptr() *int64 {
+	return rt.Current().(*int64)
+}
+
+func (rt refreshableTyped) MapInt64Ptr(mapFn func(*int64) interface{}) Refreshable {
+	return rt.Map(func(i interface{}) interface{} {
+		return mapFn(i.(*int64))
+	})
+}
+
+func (rt refreshableTyped) SubscribeToInt64Ptr(subFn func(*int64)) (unsubscribe func()) {
+	return rt.Subscribe(func(i interface{}) {
+		subFn(i.(*int64))
+	})
+}
+
+func (rt refreshableTyped) CurrentFloat64() float64 {
+	return rt.Current().(float64)
+}
+
+func (rt refreshableTyped) MapFloat64(mapFn func(float64) interface{}) Refreshable {
+	return rt.Map(func(i interface{}) interface{} {
+		return mapFn(i.(float64))
+	})
+}
+
+func (rt refreshableTyped) SubscribeToFloat64(subFn func(float64)) (unsubscribe func()) {
+	return rt.Subscribe(func(i interface{}) {
+		subFn(i.(float64))
+	})
+}
+
+func (rt refreshableTyped) CurrentFloat64Ptr() *float64 {
+	return rt.Current().(*float64)
+}
+
+func (rt refreshableTyped) MapFloat64Ptr(mapFn func(*float64) interface{}) Refreshable {
+	return rt.Map(func(i interface{}) interface{} {
+		return mapFn(i.(*float64))
+	})
+}
+
+func (rt refreshableTyped) SubscribeToFloat64Ptr(subFn func(*float64)) (unsubscribe func()) {
+	return rt.Subscribe(func(i interface{}) {
+		subFn(i.(*float64))
 	})
 }
 
