@@ -39,7 +39,7 @@ func TestValidatingRefreshable(t *testing.T) {
 
 func TestMapValidatingRefreshable(t *testing.T) {
 	r := refreshable.NewDefaultRefreshable("https://palantir.com:443")
-	vr, err := refreshable.MapValidatingRefreshable(r, func(i interface{}) (interface{}, error) {
+	vr, err := refreshable.NewMapValidatingRefreshable(r, func(i interface{}) (interface{}, error) {
 		return url.Parse(i.(string))
 	})
 	require.NoError(t, err)

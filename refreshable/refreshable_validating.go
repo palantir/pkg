@@ -36,13 +36,14 @@ func NewValidatingRefreshable(origRefreshable Refreshable, validatingFn func(int
 	return newValidatingRefreshable(origRefreshable, mappingFn, false)
 }
 
-// MapValidatingRefreshable is similar to NewValidatingRefreshable but allows for the function to return a mapping/mutation
-// of the input object in addition to returning an error. It must always return a value of same type.
-func MapValidatingRefreshable(origRefreshable Refreshable, mappingFn func(interface{}) (interface{}, error)) (*ValidatingRefreshable, error) {
+// NewMapValidatingRefreshable is similar to NewValidatingRefreshable but allows for the function to return a mapping/mutation
+// of the input object in addition to returning an error. The returned ValidatingRefreshable will contain the mapped value.
+// The mapped value must always be of the same type (but not necessarily that of the input type).
+func NewMapValidatingRefreshable(origRefreshable Refreshable, mappingFn func(interface{}) (interface{}, error)) (*ValidatingRefreshable, error) {
 	return newValidatingRefreshable(origRefreshable, mappingFn, true)
 }
 
-func newValidatingRefreshable(origRefreshable Refreshable, validatingFn func(interface{}) (interface{}, error), storeVal bool) (*ValidatingRefreshable, error) {
+func newValidatingRefreshable(origRefreshable Refreshable, validatingFn func(interface{}) (interface{}, error), storeMappedVal bool) (*ValidatingRefreshable, error) {
 	if validatingFn == nil {
 		return nil, errors.New("failed to create validating Refreshable because the validating function was nil")
 	}
@@ -57,7 +58,7 @@ func newValidatingRefreshable(origRefreshable Refreshable, validatingFn func(int
 	if err != nil {
 		return nil, err
 	}
-	if storeVal {
+	if storeMappedVal {
 		validatedRefreshable = NewDefaultRefreshable(mappedVal)
 	} else {
 		validatedRefreshable = NewDefaultRefreshable(currentVal)
@@ -76,7 +77,7 @@ func newValidatingRefreshable(origRefreshable Refreshable, validatingFn func(int
 			v.lastValidateErr.Store(errorWrapper{err})
 			return
 		}
-		if storeVal {
+		if storeMappedVal {
 			if err := validatedRefreshable.Update(mappedVal); err != nil {
 				v.lastValidateErr.Store(errorWrapper{err})
 				return
