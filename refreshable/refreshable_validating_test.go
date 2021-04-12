@@ -66,3 +66,33 @@ func TestMapValidatingRefreshable(t *testing.T) {
 	require.Equal(t, r.Current().(string), "https://example.com")
 	require.Equal(t, vr.Current().(*url.URL).Hostname(), "example.com")
 }
+
+// TestValidatingRefreshable_SubscriptionRaceCondition tests that the ValidatingRefreshable stays current
+// if the underlying refreshable updates during the creation process.
+func TestValidatingRefreshable_SubscriptionRaceCondition(t *testing.T) {
+	r := &updateImmediatelyRefreshable{r: refreshable.NewDefaultRefreshable(1), newValue: 2}
+	vr, err := refreshable.NewValidatingRefreshable(r, func(i interface{}) error { return nil })
+	require.NoError(t, err)
+	// If this returns 1, it is likely because the VR contains a stale value
+	assert.Equal(t, 2, vr.Current())
+}
+
+// updateImmediatelyRefreshable is a mock implementation which updates to newValue immediately when Current() is called
+type updateImmediatelyRefreshable struct {
+	r        *refreshable.DefaultRefreshable
+	newValue interface{}
+}
+
+func (r *updateImmediatelyRefreshable) Current() interface{} {
+	c := r.r.Current()
+	_ = r.r.Update(r.newValue)
+	return c
+}
+
+func (r *updateImmediatelyRefreshable) Subscribe(f func(interface{})) func() {
+	return r.r.Subscribe(f)
+}
+
+func (r *updateImmediatelyRefreshable) Map(f func(interface{}) interface{}) refreshable.Refreshable {
+	return r.r.Map(f)
+}
