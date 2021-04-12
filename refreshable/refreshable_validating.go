@@ -78,12 +78,11 @@ func newValidatingRefreshable(origRefreshable Refreshable, validatingFn func(int
 			return
 		}
 		if storeMappedVal {
-			if err := validatedRefreshable.Update(mappedVal); err != nil {
-				v.lastValidateErr.Store(errorWrapper{err})
-				return
-			}
+			err = validatedRefreshable.Update(mappedVal)
+		} else {
+			err = validatedRefreshable.Update(i)
 		}
-		v.lastValidateErr.Store(errorWrapper{})
+		v.lastValidateErr.Store(errorWrapper{err: err})
 	})
 
 	return &v, nil

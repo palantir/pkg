@@ -35,6 +35,12 @@ func TestValidatingRefreshable(t *testing.T) {
 
 	require.EqualError(t, vr.LastValidateErr(), "empty", "expected err from validating refreshable")
 	require.Equal(t, vr.Current().(container).Value, "value", "expected unchanged validating refreshable")
+
+	// attempt good update
+	require.NoError(t, r.Update(container{Value: "value2"}))
+	require.NoError(t, vr.LastValidateErr())
+	require.Equal(t, "value2", vr.Current().(container).Value)
+	require.Equal(t, "value2", r.Current().(container).Value)
 }
 
 func TestMapValidatingRefreshable(t *testing.T) {
@@ -53,4 +59,10 @@ func TestMapValidatingRefreshable(t *testing.T) {
 	assert.Equal(t, r.Current().(string), ":::error.com")
 	require.EqualError(t, vr.LastValidateErr(), "parse \":::error.com\": missing protocol scheme", "expected err from validating refreshable")
 	assert.Equal(t, vr.Current().(*url.URL).Hostname(), "palantir.com", "expected unchanged validating refreshable")
+
+	// attempt good update
+	require.NoError(t, r.Update("https://example.com"))
+	require.NoError(t, vr.LastValidateErr())
+	require.Equal(t, r.Current().(string), "https://example.com")
+	require.Equal(t, vr.Current().(*url.URL).Hostname(), "example.com")
 }
