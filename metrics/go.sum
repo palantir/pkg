@@ -4,8 +4,8 @@ github.com/palantir/go-metrics v1.1.1 h1:YL/UmptBjrC6iSCTVr7vfuIcjL0M359Da3/gBGN
 github.com/palantir/go-metrics v1.1.1/go.mod h1:fRkuipBnsI4nD8Vd9UNcrUJvD8Y0wOJMSbicygcBrGs=
 github.com/palantir/pkg v1.0.1 h1:ZbGUcc14N7xcZSY9cehQoiHHTm/BAZO5RJdlsNEtSbk=
 github.com/palantir/pkg v1.0.1/go.mod h1:Eo6Jl0UXfT+65sLXJOcU9duu0WPvKsWFXCb0dE5VWZs=
-github.com/palantir/pkg/objmatcher v1.0.0 h1:TrVWmiruKaPgYbxvAFk3TlWtb1L72jo0/6Jw4udTEmU=
-github.com/palantir/pkg/objmatcher v1.0.0/go.mod h1:r/JGd9x5OOgTCoaHt7qSSRX7jAheaJ88nAWytWsrwN0=
+github.com/palantir/pkg/objmatcher v1.0.1 h1:rzKVO2LXVR2ND7t9Hi3Q+sfFh1RZ5Liq/zmsz0vlgdw=
+github.com/palantir/pkg/objmatcher v1.0.1/go.mod h1:rTHUAN1LduHN+5fMTPkO5w+JHTidSmn5AsK885x2mvs=
 github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
