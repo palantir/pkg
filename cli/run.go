@@ -7,6 +7,7 @@ package cli
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"os/signal"
 	"sync"
@@ -115,6 +116,7 @@ func printDeprecationNotices(ctx Context) {
 }
 
 func runAction(ctx Context) error {
+	fmt.Println("Running runAction...")
 	// In case Action changes termios on stdin without resetting them.
 	// This can happen if terminal.ReadPassword is interrupted with SIGINT.
 	// If tcgetattr fails to get the initial state of stdin, just ignore.
@@ -130,6 +132,7 @@ func runAction(ctx Context) error {
 
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT)
+	fmt.Println("Signal notify set up")
 
 	// use 'once' to ensure that onExit handlers are only called once. Guards against the case where an
 	// interrupt signal is received during the onExit call in the defer -- in such a case, if the defer call
@@ -144,12 +147,16 @@ func runAction(ctx Context) error {
 
 	// runs if cli exits because of a signal
 	go func() {
-		if _, ok := <-signals; ok {
+		if s, ok := <-signals; ok {
+			fmt.Printf("Received a signal in CLI!: %s", s.String())
+			fmt.Printf("About to run on exit functions")
 			once.Do(onExit)
+			fmt.Printf("About to cancel context")
 			if ctx.cancel != nil {
 				ctx.cancel()
 			}
-			os.Exit(1)
+			fmt.Printf("Normally would exit here, NOT GOING TO EXIT")
+			// os.Exit(1)
 		}
 	}()
 	// runs if cli exits normally
