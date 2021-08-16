@@ -165,7 +165,7 @@ func init() {
 
 	validValueChars['_'] = struct{}{}
 	validValueChars['-'] = struct{}{}
-	validKeyChars[':'] = struct{}{}
+	validValueChars[':'] = struct{}{}
 	validValueChars['.'] = struct{}{}
 	validValueChars['/'] = struct{}{}
 }
