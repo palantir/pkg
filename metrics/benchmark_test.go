@@ -10,19 +10,39 @@ import (
 	"testing"
 )
 
-func BenchmarkRegisterMetric(b *testing.B) {
+func BenchmarkNewTag(b *testing.B) {
 	b.Run("1 tag", func(b *testing.B) {
-		doBench(b, 1)
+		doTagBench(b, 1)
 	})
 	b.Run("10 tag", func(b *testing.B) {
-		doBench(b, 10)
+		doTagBench(b, 10)
 	})
 	b.Run("100 tag", func(b *testing.B) {
-		doBench(b, 100)
+		doTagBench(b, 100)
 	})
 }
 
-func doBench(b *testing.B, n int) {
+func doTagBench(b *testing.B, n int) {
+	var tags Tags
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		tags = append(tags, MustNewTag(fmt.Sprintf("key%d", i), fmt.Sprintf("val%d", i)))
+	}
+}
+
+func BenchmarkRegisterMetric(b *testing.B) {
+	b.Run("1 tag", func(b *testing.B) {
+		doRegisterBench(b, 1)
+	})
+	b.Run("10 tag", func(b *testing.B) {
+		doRegisterBench(b, 10)
+	})
+	b.Run("100 tag", func(b *testing.B) {
+		doRegisterBench(b, 100)
+	})
+}
+
+func doRegisterBench(b *testing.B, n int) {
 	var tags Tags
 	for i := 0; i < n; i++ {
 		tags = append(tags, MustNewTag(fmt.Sprintf("key%d", i), fmt.Sprintf("val%d", i)))
