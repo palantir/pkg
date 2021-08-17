@@ -1,6 +1,6 @@
 module github.com/palantir/pkg/yamlpatch
 
-go 1.15
+go 1.16
 
 require (
 	github.com/palantir/pkg v1.0.1
