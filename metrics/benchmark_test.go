@@ -13,70 +13,31 @@ import (
 
 func BenchmarkNewTag(b *testing.B) {
 	for _, tc := range []struct {
-		tagCount int
-		tagLen   int
+		tagLen int
 	}{
 		{
-			tagCount: 1,
-			tagLen:   2,
+			tagLen: 2,
 		},
 		{
-			tagCount: 1,
-			tagLen:   10,
+			tagLen: 10,
 		},
 		{
-			tagCount: 1,
-			tagLen:   100,
+			tagLen: 100,
 		},
 		{
-			tagCount: 1,
-			tagLen:   199,
-		},
-		{
-			tagCount: 10,
-			tagLen:   2,
-		},
-		{
-			tagCount: 10,
-			tagLen:   10,
-		},
-		{
-			tagCount: 10,
-			tagLen:   100,
-		},
-		{
-			tagCount: 10,
-			tagLen:   199,
-		},
-		{
-			tagCount: 100,
-			tagLen:   2,
-		},
-		{
-			tagCount: 100,
-			tagLen:   10,
-		},
-		{
-			tagCount: 100,
-			tagLen:   100,
-		},
-		{
-			tagCount: 100,
-			tagLen:   199,
+			tagLen: 199,
 		},
 	} {
 		tagKeyValue := strings.Repeat("a", tc.tagLen/2)
-		b.Run(fmt.Sprintf("tagCount:%d/tagLen:%d", tc.tagCount, tc.tagLen), newTagBenchFunc(tagKeyValue, tagKeyValue, tc.tagCount))
+		b.Run(fmt.Sprintf("tagLen:%d", tc.tagLen), newTagBenchFunc(tagKeyValue, tagKeyValue))
 	}
 }
 
-func newTagBenchFunc(tagKey, tagValue string, tagCount int) func(*testing.B) {
+func newTagBenchFunc(tagKey, tagValue string) func(*testing.B) {
 	return func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			for j := 0; j < tagCount; j++ {
-				MustNewTag(tagKey, tagValue)
-			}
+			MustNewTag(tagKey, tagValue)
 		}
 	}
 }
