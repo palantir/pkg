@@ -7,26 +7,77 @@ package metrics
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 )
 
 func BenchmarkNewTag(b *testing.B) {
-	b.Run("1 tag", func(b *testing.B) {
-		doTagBench(b, 1)
-	})
-	b.Run("10 tag", func(b *testing.B) {
-		doTagBench(b, 10)
-	})
-	b.Run("100 tag", func(b *testing.B) {
-		doTagBench(b, 100)
-	})
+	for _, tc := range []struct {
+		tagCount int
+		tagLen   int
+	}{
+		{
+			tagCount: 1,
+			tagLen:   2,
+		},
+		{
+			tagCount: 1,
+			tagLen:   10,
+		},
+		{
+			tagCount: 1,
+			tagLen:   100,
+		},
+		{
+			tagCount: 1,
+			tagLen:   199,
+		},
+		{
+			tagCount: 10,
+			tagLen:   2,
+		},
+		{
+			tagCount: 10,
+			tagLen:   10,
+		},
+		{
+			tagCount: 10,
+			tagLen:   100,
+		},
+		{
+			tagCount: 10,
+			tagLen:   199,
+		},
+		{
+			tagCount: 100,
+			tagLen:   2,
+		},
+		{
+			tagCount: 100,
+			tagLen:   10,
+		},
+		{
+			tagCount: 100,
+			tagLen:   100,
+		},
+		{
+			tagCount: 100,
+			tagLen:   199,
+		},
+	} {
+		tagKeyValue := strings.Repeat("a", tc.tagLen/2)
+		b.Run(fmt.Sprintf("tagCount:%d/tagLen:%d", tc.tagCount, tc.tagLen), newTagBenchFunc(tagKeyValue, tagKeyValue, tc.tagCount))
+	}
 }
 
-func doTagBench(b *testing.B, n int) {
-	var tags Tags
-	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
-		tags = append(tags, MustNewTag(fmt.Sprintf("key%d", i), fmt.Sprintf("val%d", i)))
+func newTagBenchFunc(tagKey, tagValue string, tagCount int) func(*testing.B) {
+	return func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			for j := 0; j < tagCount; j++ {
+				MustNewTag(tagKey, tagValue)
+			}
+		}
 	}
 }
 
