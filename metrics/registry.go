@@ -331,10 +331,7 @@ func (r *rootRegistry) Timer(name string, tags ...Tag) metrics.Timer {
 }
 
 func (r *rootRegistry) Histogram(name string, tags ...Tag) metrics.Histogram {
-	// Use lazy instantiation to avoid allocating a Sample when getting an existing Histogram.
-	return r.registry.GetOrRegister(r.registerMetric(name, tags), func() metrics.Histogram {
-		return metrics.NewHistogram(DefaultSample())
-	}).(metrics.Histogram)
+	return getOrRegisterHistogram(r.registerMetric(name, tags), r.registry)
 }
 
 func (r *rootRegistry) HistogramWithSample(name string, sample metrics.Sample, tags ...Tag) metrics.Histogram {
@@ -347,6 +344,15 @@ func (r *rootRegistry) Registry() metrics.Registry {
 
 func DefaultSample() metrics.Sample {
 	return metrics.NewExpDecaySample(defaultReservoirSize, defaultAlpha)
+}
+
+// Uses lazy instantiation to avoid allocating a Sample when getting an existing Histogram.
+// Similar to metrics.GetOrRegisterHistogram
+func getOrRegisterHistogram(name string, r metrics.Registry) metrics.Histogram {
+	if nil == r {
+		r = metrics.DefaultRegistry
+	}
+	return r.GetOrRegister(name, func() metrics.Histogram { return metrics.NewHistogram(DefaultSample()) }).(metrics.Histogram)
 }
 
 func (r *rootRegistry) registerMetric(name string, tags Tags) string {
