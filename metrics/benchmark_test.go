@@ -67,3 +67,42 @@ func doRegisterBench(b *testing.B, n int) {
 		reg.Counter("metricName").Inc(1)
 	}
 }
+
+func BenchmarkHistogram(b *testing.B) {
+	reg := NewRootMetricsRegistry()
+	b.Run("HistogramWithSample with cached Tag", func(b *testing.B) {
+		s := DefaultSample()
+		t := MustNewTag("key", "value")
+		for i := 0; i < b.N; i++ {
+			reg.HistogramWithSample(b.Name(), s, t).Update(int64(i))
+		}
+		b.ReportAllocs()
+	})
+	b.Run("Histogram with cached Tag", func(b *testing.B) {
+		t := MustNewTag("key", "value")
+		for i := 0; i < b.N; i++ {
+			reg.Histogram(b.Name(), t).Update(int64(i))
+		}
+		b.ReportAllocs()
+	})
+	b.Run("HistogramWithSample with NewTag", func(b *testing.B) {
+		s := DefaultSample()
+		for i := 0; i < b.N; i++ {
+			reg.HistogramWithSample(b.Name(), s, MustNewTag("key", "value")).Update(int64(i))
+		}
+		b.ReportAllocs()
+	})
+	b.Run("Histogram with NewTag", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			reg.Histogram(b.Name(), MustNewTag("key", "value")).Update(int64(i))
+		}
+		b.ReportAllocs()
+	})
+	b.Run("cached Histogram", func(b *testing.B) {
+		h := reg.Histogram(b.Name(), MustNewTag("key", "value"))
+		for i := 0; i < b.N; i++ {
+			h.Update(int64(i))
+		}
+		b.ReportAllocs()
+	})
+}
