@@ -88,7 +88,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	configYML, err := createConfigYML(mods, "1.15.7", "1.14.14")
+	configYML, err := createConfigYML(mods, "1.17.5", "1.16.12")
 	if err != nil {
 		panic(err)
 	}
