@@ -45,7 +45,7 @@ jobs:
       - checkout
       - run: go version
       - run: go run .circleci/generate.go -repoRoot .
-      - run: diff  <(cat .circleci/config.yml) <(go run .circleci/generate.go .)
+      - run: diff  <(cat .circleci/config.yml) <(go run .circleci/generate.go -repoRoot .)
   circle-all:
     docker:
       - image: "golang:{{.CurrGoVersion}}"
