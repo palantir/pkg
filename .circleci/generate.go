@@ -44,7 +44,7 @@ jobs:
     steps:
       - checkout
       - run: go version
-      - run: go run .circleci/generate.go .
+      - run: go run .circleci/generate.go -repoRoot .
       - run: diff  <(cat .circleci/config.yml) <(go run .circleci/generate.go .)
   circle-all:
     docker:
