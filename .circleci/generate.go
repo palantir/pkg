@@ -1,19 +1,31 @@
+//go:build generate
 // +build generate
 
-// This program prints the CircleCI configuration for the "pkg" repository. Standard way to run it is to run
-// "go run generate.go {{parentDir}} > config.yml".
+// This program prints the CircleCI configuration for the "pkg" repository.
+// This program can also update the go module Go directives for all sub-modules contained in the "pkg" repository.
+// to the N-1 go version, if the "-updateGoMod" flag is provided.
+//
+// Example Usages:
+//  1. Print the CircleCI config to stdout and overwrite the existing CircleCI config.yml
+//      go run generate.go -repoRoot /path/to/github.com/palantir/pkg > config.yml".
+//  2. Print the CircleCI config and update all go.mod go directives to the defined prev version
+//      go run generate.go -updateGoMod -repoRoot /path/to/github.com/palantir/pkg
 package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"io/ioutil"
-	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"text/template"
 )
 
 const (
+	goVersionLatest       = "1.17.5"
+	goVersionPrev         = "1.16.12"
 	headerTemplateContent = `checkout-path: &checkout-path
   checkout-path: /go/src/github.com/palantir/pkg
 
@@ -80,17 +92,27 @@ type TemplateObject struct {
 }
 
 func main() {
-	if len(os.Args) < 2 {
-		panic("parent directory must be provided as argument")
+	updateGoMod := flag.Bool("updateGoMod", false, "update go mod versions for all modules")
+	repoRoot := flag.String("repoRoot", "", "Absolute path to the repo root")
+	flag.Parse()
+
+	if *repoRoot == "" {
+		panic("repo root directory must be provided")
 	}
-	modParentDir := os.Args[1]
+
+	modParentDir := *repoRoot
 	mods, err := modules(modParentDir)
 	if err != nil {
 		panic(err)
 	}
-	configYML, err := createConfigYML(mods, "1.17.5", "1.16.12")
+	configYML, err := createConfigYML(mods, goVersionLatest, goVersionPrev)
 	if err != nil {
 		panic(err)
+	}
+	if *updateGoMod {
+		if err := updateGoModVersions(modParentDir, mods, goVersionPrev); err != nil {
+			panic(err)
+		}
 	}
 	fmt.Print(configYML)
 }
@@ -110,15 +132,15 @@ func init() {
 }
 
 func createConfigYML(modDirs []string, currGoVersion, prevGoVersion string) (string, error) {
-	prevParts := strings.Split(prevGoVersion, ".")
-	if len(prevParts) < 2 {
-		return "", fmt.Errorf("prevGoVersion must have at least 2 parts separated by a period: %s", prevGoVersion)
+	prevMajor, prevMinor, err := goMajorMinorVersion(prevGoVersion)
+	if err != nil {
+		return "", err
 	}
-	prevGoMajorVersion := strings.Join(prevParts[:2], ".")
+	prevMajorMinorVersion := strings.Join([]string{prevMajor, prevMinor}, ".")
 
 	jobNames := make([]string, 0, len(modDirs)*2)
 	for _, modDir := range modDirs {
-		jobNames = append(jobNames, modDir+"-verify", modDir+"-test-go-"+prevGoMajorVersion)
+		jobNames = append(jobNames, modDir+"-verify", modDir+"-test-go-"+prevMajorMinorVersion)
 	}
 	outBuf := &bytes.Buffer{}
 	if err := headerTemplate.Execute(outBuf, map[string]interface{}{
@@ -132,12 +154,50 @@ func createConfigYML(modDirs []string, currGoVersion, prevGoVersion string) (str
 			Module:             modDir,
 			CurrGoVersion:      currGoVersion,
 			PrevGoVersion:      prevGoVersion,
-			PrevGoMajorVersion: prevGoMajorVersion,
+			PrevGoMajorVersion: prevMajorMinorVersion,
 		}); err != nil {
 			return "", fmt.Errorf("failed to execute moduleTemplate template: %v", err)
 		}
 	}
 	return outBuf.String(), nil
+}
+
+// updateGoModVersions updates the go directive defined in all modules to the provided Go version.
+func updateGoModVersions(parentDir string, modDirs []string, goVersion string) error {
+	for _, modDir := range modDirs {
+		if err := updateGoModVersion(filepath.Join(parentDir, modDir), goVersion); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// updateGoModVersion runs "go mod edit -go=<major>.<minor>" for the given module to update the module version.
+// For example, given a goVersion of "1.16.12" and a go directive of "go 1.15" defined in the go.mod file of the
+// given directory, the go directive will be updated to be "go 1.16".
+func updateGoModVersion(moduleDir, goVersion string) error {
+	major, minor, err := goMajorMinorVersion(goVersion)
+	if err != nil {
+		return err
+	}
+	cmd := exec.Command("go", "mod", "edit", fmt.Sprintf("-go=%s.%s", major, minor))
+	cmd.Dir = moduleDir
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("running command returned error: err (%v), output: (%s)", err, string(output))
+	}
+	return nil
+}
+
+// goMajorMinorVersion splits the provided go version on all "." and returns the major and minor version.
+// For example, given the input "1.16.12", the return values would be "1" and "16".
+// An error will be returned if the provided goVersion does not contain a major minor version separated by a "."
+func goMajorMinorVersion(goVersion string) (string, string, error) {
+	parts := strings.Split(goVersion, ".")
+	if len(parts) < 2 {
+		return "", "", fmt.Errorf("goVersion must have at least 2 parts separated by a period: %s", goVersion)
+	}
+	return parts[0], parts[1], nil
 }
 
 func modules(parentDir string) ([]string, error) {
