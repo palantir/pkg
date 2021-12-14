@@ -4,6 +4,7 @@
 
 // In go 1.15 the extra text values got quoted.
 // Maintain a test for old go until we no longer support 1.14.
+//go:build !go1.15
 // +build !go1.15
 
 package datetime_test
