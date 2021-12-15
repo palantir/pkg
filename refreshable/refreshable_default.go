@@ -5,37 +5,30 @@
 package refreshable
 
 import (
-	"fmt"
 	"reflect"
 	"sync"
 	"sync/atomic"
 )
 
-type DefaultRefreshable struct {
-	typ     reflect.Type
+type DefaultRefreshable[T any] struct {
 	current *atomic.Value
 
 	sync.Mutex  // protects subscribers
-	subscribers []*func(interface{})
+	subscribers []*func(T)
 }
 
-func NewDefaultRefreshable(val interface{}) *DefaultRefreshable {
+func NewDefaultRefreshable[T any](val T) *DefaultRefreshable[T] {
 	current := atomic.Value{}
 	current.Store(val)
 
-	return &DefaultRefreshable{
+	return &DefaultRefreshable[T]{
 		current: &current,
-		typ:     reflect.TypeOf(val),
 	}
 }
 
-func (d *DefaultRefreshable) Update(val interface{}) error {
+func (d *DefaultRefreshable[T]) Update(val T) error {
 	d.Lock()
 	defer d.Unlock()
-
-	if valType := reflect.TypeOf(val); valType != d.typ {
-		return fmt.Errorf("new refreshable value must be type %s: got %s", d.typ, valType)
-	}
 
 	if reflect.DeepEqual(d.current.Load(), val) {
 		return nil
@@ -48,11 +41,11 @@ func (d *DefaultRefreshable) Update(val interface{}) error {
 	return nil
 }
 
-func (d *DefaultRefreshable) Current() interface{} {
-	return d.current.Load()
+func (d *DefaultRefreshable[T]) Current() T {
+	return d.current.Load().(T)
 }
 
-func (d *DefaultRefreshable) Subscribe(consumer func(interface{})) (unsubscribe func()) {
+func (d *DefaultRefreshable[T]) Subscribe(consumer func(T)) (unsubscribe func()) {
 	d.Lock()
 	defer d.Unlock()
 
@@ -63,7 +56,7 @@ func (d *DefaultRefreshable) Subscribe(consumer func(interface{})) (unsubscribe 
 	}
 }
 
-func (d *DefaultRefreshable) unsubscribe(consumerFnPtr *func(interface{})) {
+func (d *DefaultRefreshable[T]) unsubscribe(consumerFnPtr *func(T)) {
 	d.Lock()
 	defer d.Unlock()
 
@@ -79,9 +72,9 @@ func (d *DefaultRefreshable) unsubscribe(consumerFnPtr *func(interface{})) {
 	}
 }
 
-func (d *DefaultRefreshable) Map(mapFn func(interface{}) interface{}) Refreshable {
+func (d *DefaultRefreshable[T]) Map(mapFn func(T) any) Refreshable[any] {
 	newRefreshable := NewDefaultRefreshable(mapFn(d.Current()))
-	d.Subscribe(func(updatedVal interface{}) {
+	d.Subscribe(func(updatedVal T) {
 		_ = newRefreshable.Update(mapFn(updatedVal))
 	})
 	return newRefreshable
