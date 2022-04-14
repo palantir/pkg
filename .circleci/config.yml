@@ -1,17 +1,29 @@
-checkout-path: &checkout-path
-  checkout-path: /go/src/github.com/palantir/pkg
-
 version: 2.1
 
 orbs:
-  go: palantir/go@0.0.18
-  godel: palantir/godel@0.0.18
+  go: palantir/go@0.0.29
+  godel: palantir/godel@0.0.29
+
+homepath: &homepath
+  homepath: /home/circleci
+
+gopath: &gopath
+  gopath: /home/circleci/go
+
+working_directory: &working_directory
+  working_directory: /home/circleci/go/src/github.com/palantir/pkg
+
+executors:
+  circleci-go:
+    docker:
+      - image: cimg/go:1.16-browsers
+    <<: *working_directory
 
 jobs:
   verify-circleci:
-    working_directory: /go/src/github.com/palantir/pkg
+    <<: *working_directory
     docker:
-      - image: "golang:1.17.5"
+      - image: cimg/go:1.16-browsers
     resource_class: small
     steps:
       - checkout
@@ -20,7 +32,7 @@ jobs:
       - run: diff  <(cat .circleci/config.yml) <(go run .circleci/generate.go .)
   circle-all:
     docker:
-      - image: "golang:1.17.5"
+      - image: cimg/go:1.16-browsers
     resource_class: small
     steps:
       - run: echo "All required jobs run successfully"
@@ -36,569 +48,509 @@ workflows:
       # bearertoken
       - godel/verify:
           name: bearertoken-verify
-          <<: *checkout-path
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
           include-tests: true
-          executor:
-            name: go/golang
-            version: 1.17.5
-            owner-repo: palantir/pkg/bearertoken
       - godel/test:
-          name: bearertoken-test-go-1.16
+          name: bearertoken-test-go-prev
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: 1.16.12
-            owner-repo: palantir/pkg/bearertoken
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
+          go-prev-version: 1
           requires:
             - bearertoken-verify
 
       # binary
       - godel/verify:
           name: binary-verify
-          <<: *checkout-path
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
           include-tests: true
-          executor:
-            name: go/golang
-            version: 1.17.5
-            owner-repo: palantir/pkg/binary
       - godel/test:
-          name: binary-test-go-1.16
+          name: binary-test-go-prev
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: 1.16.12
-            owner-repo: palantir/pkg/binary
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
+          go-prev-version: 1
           requires:
             - binary-verify
 
       # boolean
       - godel/verify:
           name: boolean-verify
-          <<: *checkout-path
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
           include-tests: true
-          executor:
-            name: go/golang
-            version: 1.17.5
-            owner-repo: palantir/pkg/boolean
       - godel/test:
-          name: boolean-test-go-1.16
+          name: boolean-test-go-prev
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: 1.16.12
-            owner-repo: palantir/pkg/boolean
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
+          go-prev-version: 1
           requires:
             - boolean-verify
 
       # bytesbuffers
       - godel/verify:
           name: bytesbuffers-verify
-          <<: *checkout-path
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
           include-tests: true
-          executor:
-            name: go/golang
-            version: 1.17.5
-            owner-repo: palantir/pkg/bytesbuffers
       - godel/test:
-          name: bytesbuffers-test-go-1.16
+          name: bytesbuffers-test-go-prev
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: 1.16.12
-            owner-repo: palantir/pkg/bytesbuffers
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
+          go-prev-version: 1
           requires:
             - bytesbuffers-verify
 
       # cli
       - godel/verify:
           name: cli-verify
-          <<: *checkout-path
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
           include-tests: true
-          executor:
-            name: go/golang
-            version: 1.17.5
-            owner-repo: palantir/pkg/cli
       - godel/test:
-          name: cli-test-go-1.16
+          name: cli-test-go-prev
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: 1.16.12
-            owner-repo: palantir/pkg/cli
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
+          go-prev-version: 1
           requires:
             - cli-verify
 
       # cobracli
       - godel/verify:
           name: cobracli-verify
-          <<: *checkout-path
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
           include-tests: true
-          executor:
-            name: go/golang
-            version: 1.17.5
-            owner-repo: palantir/pkg/cobracli
       - godel/test:
-          name: cobracli-test-go-1.16
+          name: cobracli-test-go-prev
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: 1.16.12
-            owner-repo: palantir/pkg/cobracli
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
+          go-prev-version: 1
           requires:
             - cobracli-verify
 
       # datetime
       - godel/verify:
           name: datetime-verify
-          <<: *checkout-path
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
           include-tests: true
-          executor:
-            name: go/golang
-            version: 1.17.5
-            owner-repo: palantir/pkg/datetime
       - godel/test:
-          name: datetime-test-go-1.16
+          name: datetime-test-go-prev
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: 1.16.12
-            owner-repo: palantir/pkg/datetime
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
+          go-prev-version: 1
           requires:
             - datetime-verify
 
       # gittest
       - godel/verify:
           name: gittest-verify
-          <<: *checkout-path
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
           include-tests: true
-          executor:
-            name: go/golang
-            version: 1.17.5
-            owner-repo: palantir/pkg/gittest
       - godel/test:
-          name: gittest-test-go-1.16
+          name: gittest-test-go-prev
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: 1.16.12
-            owner-repo: palantir/pkg/gittest
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
+          go-prev-version: 1
           requires:
             - gittest-verify
 
       # httpclient
       - godel/verify:
           name: httpclient-verify
-          <<: *checkout-path
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
           include-tests: true
-          executor:
-            name: go/golang
-            version: 1.17.5
-            owner-repo: palantir/pkg/httpclient
       - godel/test:
-          name: httpclient-test-go-1.16
+          name: httpclient-test-go-prev
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: 1.16.12
-            owner-repo: palantir/pkg/httpclient
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
+          go-prev-version: 1
           requires:
             - httpclient-verify
 
       # httpserver
       - godel/verify:
           name: httpserver-verify
-          <<: *checkout-path
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
           include-tests: true
-          executor:
-            name: go/golang
-            version: 1.17.5
-            owner-repo: palantir/pkg/httpserver
       - godel/test:
-          name: httpserver-test-go-1.16
+          name: httpserver-test-go-prev
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: 1.16.12
-            owner-repo: palantir/pkg/httpserver
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
+          go-prev-version: 1
           requires:
             - httpserver-verify
 
       # matcher
       - godel/verify:
           name: matcher-verify
-          <<: *checkout-path
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
           include-tests: true
-          executor:
-            name: go/golang
-            version: 1.17.5
-            owner-repo: palantir/pkg/matcher
       - godel/test:
-          name: matcher-test-go-1.16
+          name: matcher-test-go-prev
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: 1.16.12
-            owner-repo: palantir/pkg/matcher
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
+          go-prev-version: 1
           requires:
             - matcher-verify
 
       # merge
       - godel/verify:
           name: merge-verify
-          <<: *checkout-path
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
           include-tests: true
-          executor:
-            name: go/golang
-            version: 1.17.5
-            owner-repo: palantir/pkg/merge
       - godel/test:
-          name: merge-test-go-1.16
+          name: merge-test-go-prev
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: 1.16.12
-            owner-repo: palantir/pkg/merge
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
+          go-prev-version: 1
           requires:
             - merge-verify
 
       # metrics
       - godel/verify:
           name: metrics-verify
-          <<: *checkout-path
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
           include-tests: true
-          executor:
-            name: go/golang
-            version: 1.17.5
-            owner-repo: palantir/pkg/metrics
       - godel/test:
-          name: metrics-test-go-1.16
+          name: metrics-test-go-prev
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: 1.16.12
-            owner-repo: palantir/pkg/metrics
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
+          go-prev-version: 1
           requires:
             - metrics-verify
 
       # objmatcher
       - godel/verify:
           name: objmatcher-verify
-          <<: *checkout-path
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
           include-tests: true
-          executor:
-            name: go/golang
-            version: 1.17.5
-            owner-repo: palantir/pkg/objmatcher
       - godel/test:
-          name: objmatcher-test-go-1.16
+          name: objmatcher-test-go-prev
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: 1.16.12
-            owner-repo: palantir/pkg/objmatcher
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
+          go-prev-version: 1
           requires:
             - objmatcher-verify
 
       # pkgpath
       - godel/verify:
           name: pkgpath-verify
-          <<: *checkout-path
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
           include-tests: true
-          executor:
-            name: go/golang
-            version: 1.17.5
-            owner-repo: palantir/pkg/pkgpath
       - godel/test:
-          name: pkgpath-test-go-1.16
+          name: pkgpath-test-go-prev
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: 1.16.12
-            owner-repo: palantir/pkg/pkgpath
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
+          go-prev-version: 1
           requires:
             - pkgpath-verify
 
       # refreshable
       - godel/verify:
           name: refreshable-verify
-          <<: *checkout-path
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
           include-tests: true
-          executor:
-            name: go/golang
-            version: 1.17.5
-            owner-repo: palantir/pkg/refreshable
       - godel/test:
-          name: refreshable-test-go-1.16
+          name: refreshable-test-go-prev
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: 1.16.12
-            owner-repo: palantir/pkg/refreshable
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
+          go-prev-version: 1
           requires:
             - refreshable-verify
 
       # retry
       - godel/verify:
           name: retry-verify
-          <<: *checkout-path
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
           include-tests: true
-          executor:
-            name: go/golang
-            version: 1.17.5
-            owner-repo: palantir/pkg/retry
       - godel/test:
-          name: retry-test-go-1.16
+          name: retry-test-go-prev
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: 1.16.12
-            owner-repo: palantir/pkg/retry
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
+          go-prev-version: 1
           requires:
             - retry-verify
 
       # rid
       - godel/verify:
           name: rid-verify
-          <<: *checkout-path
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
           include-tests: true
-          executor:
-            name: go/golang
-            version: 1.17.5
-            owner-repo: palantir/pkg/rid
       - godel/test:
-          name: rid-test-go-1.16
+          name: rid-test-go-prev
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: 1.16.12
-            owner-repo: palantir/pkg/rid
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
+          go-prev-version: 1
           requires:
             - rid-verify
 
       # safehttp
       - godel/verify:
           name: safehttp-verify
-          <<: *checkout-path
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
           include-tests: true
-          executor:
-            name: go/golang
-            version: 1.17.5
-            owner-repo: palantir/pkg/safehttp
       - godel/test:
-          name: safehttp-test-go-1.16
+          name: safehttp-test-go-prev
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: 1.16.12
-            owner-repo: palantir/pkg/safehttp
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
+          go-prev-version: 1
           requires:
             - safehttp-verify
 
       # safejson
       - godel/verify:
           name: safejson-verify
-          <<: *checkout-path
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
           include-tests: true
-          executor:
-            name: go/golang
-            version: 1.17.5
-            owner-repo: palantir/pkg/safejson
       - godel/test:
-          name: safejson-test-go-1.16
+          name: safejson-test-go-prev
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: 1.16.12
-            owner-repo: palantir/pkg/safejson
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
+          go-prev-version: 1
           requires:
             - safejson-verify
 
       # safelong
       - godel/verify:
           name: safelong-verify
-          <<: *checkout-path
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
           include-tests: true
-          executor:
-            name: go/golang
-            version: 1.17.5
-            owner-repo: palantir/pkg/safelong
       - godel/test:
-          name: safelong-test-go-1.16
+          name: safelong-test-go-prev
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: 1.16.12
-            owner-repo: palantir/pkg/safelong
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
+          go-prev-version: 1
           requires:
             - safelong-verify
 
       # safeyaml
       - godel/verify:
           name: safeyaml-verify
-          <<: *checkout-path
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
           include-tests: true
-          executor:
-            name: go/golang
-            version: 1.17.5
-            owner-repo: palantir/pkg/safeyaml
       - godel/test:
-          name: safeyaml-test-go-1.16
+          name: safeyaml-test-go-prev
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: 1.16.12
-            owner-repo: palantir/pkg/safeyaml
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
+          go-prev-version: 1
           requires:
             - safeyaml-verify
 
       # signals
       - godel/verify:
           name: signals-verify
-          <<: *checkout-path
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
           include-tests: true
-          executor:
-            name: go/golang
-            version: 1.17.5
-            owner-repo: palantir/pkg/signals
       - godel/test:
-          name: signals-test-go-1.16
+          name: signals-test-go-prev
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: 1.16.12
-            owner-repo: palantir/pkg/signals
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
+          go-prev-version: 1
           requires:
             - signals-verify
 
       # specdir
       - godel/verify:
           name: specdir-verify
-          <<: *checkout-path
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
           include-tests: true
-          executor:
-            name: go/golang
-            version: 1.17.5
-            owner-repo: palantir/pkg/specdir
       - godel/test:
-          name: specdir-test-go-1.16
+          name: specdir-test-go-prev
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: 1.16.12
-            owner-repo: palantir/pkg/specdir
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
+          go-prev-version: 1
           requires:
             - specdir-verify
 
       # tableprinter
       - godel/verify:
           name: tableprinter-verify
-          <<: *checkout-path
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
           include-tests: true
-          executor:
-            name: go/golang
-            version: 1.17.5
-            owner-repo: palantir/pkg/tableprinter
       - godel/test:
-          name: tableprinter-test-go-1.16
+          name: tableprinter-test-go-prev
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: 1.16.12
-            owner-repo: palantir/pkg/tableprinter
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
+          go-prev-version: 1
           requires:
             - tableprinter-verify
 
       # tlsconfig
       - godel/verify:
           name: tlsconfig-verify
-          <<: *checkout-path
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
           include-tests: true
-          executor:
-            name: go/golang
-            version: 1.17.5
-            owner-repo: palantir/pkg/tlsconfig
       - godel/test:
-          name: tlsconfig-test-go-1.16
+          name: tlsconfig-test-go-prev
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: 1.16.12
-            owner-repo: palantir/pkg/tlsconfig
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
+          go-prev-version: 1
           requires:
             - tlsconfig-verify
 
       # transform
       - godel/verify:
           name: transform-verify
-          <<: *checkout-path
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
           include-tests: true
-          executor:
-            name: go/golang
-            version: 1.17.5
-            owner-repo: palantir/pkg/transform
       - godel/test:
-          name: transform-test-go-1.16
+          name: transform-test-go-prev
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: 1.16.12
-            owner-repo: palantir/pkg/transform
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
+          go-prev-version: 1
           requires:
             - transform-verify
 
       # typenames
       - godel/verify:
           name: typenames-verify
-          <<: *checkout-path
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
           include-tests: true
-          executor:
-            name: go/golang
-            version: 1.17.5
-            owner-repo: palantir/pkg/typenames
       - godel/test:
-          name: typenames-test-go-1.16
+          name: typenames-test-go-prev
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: 1.16.12
-            owner-repo: palantir/pkg/typenames
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
+          go-prev-version: 1
           requires:
             - typenames-verify
 
       # uuid
       - godel/verify:
           name: uuid-verify
-          <<: *checkout-path
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
           include-tests: true
-          executor:
-            name: go/golang
-            version: 1.17.5
-            owner-repo: palantir/pkg/uuid
       - godel/test:
-          name: uuid-test-go-1.16
+          name: uuid-test-go-prev
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: 1.16.12
-            owner-repo: palantir/pkg/uuid
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
+          go-prev-version: 1
           requires:
             - uuid-verify
 
       # yamlpatch
       - godel/verify:
           name: yamlpatch-verify
-          <<: *checkout-path
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
           include-tests: true
-          executor:
-            name: go/golang
-            version: 1.17.5
-            owner-repo: palantir/pkg/yamlpatch
       - godel/test:
-          name: yamlpatch-test-go-1.16
+          name: yamlpatch-test-go-prev
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: 1.16.12
-            owner-repo: palantir/pkg/yamlpatch
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
+          go-prev-version: 1
           requires:
             - yamlpatch-verify
