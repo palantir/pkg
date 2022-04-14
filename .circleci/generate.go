@@ -1,3 +1,4 @@
+//go:build generate
 // +build generate
 
 // This program prints the CircleCI configuration for the "pkg" repository. Standard way to run it is to run
@@ -14,20 +15,32 @@ import (
 )
 
 const (
-	headerTemplateContent = `checkout-path: &checkout-path
-  checkout-path: /go/src/github.com/palantir/pkg
-
-version: 2.1
+	headerTemplateContent = `version: 2.1
 
 orbs:
-  go: palantir/go@0.0.18
-  godel: palantir/godel@0.0.18
+  go: palantir/go@0.0.29
+  godel: palantir/godel@0.0.29
+
+homepath: &homepath
+  homepath: /home/circleci
+
+gopath: &gopath
+  gopath: /home/circleci/go
+
+working_directory: &working_directory
+  working_directory: /home/circleci/go/src/github.com/palantir/pkg
+
+executors:
+  circleci-go:
+    docker:
+      - image: cimg/go:1.16-browsers
+    <<: *working_directory
 
 jobs:
   verify-circleci:
-    working_directory: /go/src/github.com/palantir/pkg
+    <<: *working_directory
     docker:
-      - image: "golang:{{.CurrGoVersion}}"
+      - image: cimg/go:1.16-browsers
     resource_class: small
     steps:
       - checkout
@@ -36,7 +49,7 @@ jobs:
       - run: diff  <(cat .circleci/config.yml) <(go run .circleci/generate.go .)
   circle-all:
     docker:
-      - image: "golang:{{.CurrGoVersion}}"
+      - image: cimg/go:1.16-browsers
     resource_class: small
     steps:
       - run: echo "All required jobs run successfully"
@@ -54,19 +67,17 @@ workflows:
       # {{.Module}}
       - godel/verify:
           name: {{.Module}}-verify
-          <<: *checkout-path
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
           include-tests: true
-          executor:
-            name: go/golang
-            version: {{.CurrGoVersion}}
-            owner-repo: palantir/pkg/{{.Module}}
       - godel/test:
-          name: {{.Module}}-test-go-{{.PrevGoMajorVersion}}
+          name: {{.Module}}-test-go-prev
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: {{.PrevGoVersion}}
-            owner-repo: palantir/pkg/{{.Module}}
+          executor: circleci-go
+          <<: *homepath
+          <<: *gopath
+          go-prev-version: 1
           requires:
             - {{.Module}}-verify
 `
