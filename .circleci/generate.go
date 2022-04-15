@@ -18,7 +18,7 @@ const (
 	header = `version: 2.1
 
 checkout-path: &checkout-path
-  checkout-path: /go/src/github.com/palantir/pkg
+  checkout-path: /home/circleci/go/src/github.com/palantir/pkg
 
 orbs:
   go: palantir/go@0.0.29
