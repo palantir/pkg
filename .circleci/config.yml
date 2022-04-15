@@ -54,7 +54,6 @@ workflows:
           include-tests: true
       - godel/test:
           name: bearertoken-test-go-prev
-          <<: *checkout-path
           executor: circleci-go
           <<: *homepath
           <<: *gopath
@@ -71,7 +70,6 @@ workflows:
           include-tests: true
       - godel/test:
           name: binary-test-go-prev
-          <<: *checkout-path
           executor: circleci-go
           <<: *homepath
           <<: *gopath
@@ -88,7 +86,6 @@ workflows:
           include-tests: true
       - godel/test:
           name: boolean-test-go-prev
-          <<: *checkout-path
           executor: circleci-go
           <<: *homepath
           <<: *gopath
@@ -105,7 +102,6 @@ workflows:
           include-tests: true
       - godel/test:
           name: bytesbuffers-test-go-prev
-          <<: *checkout-path
           executor: circleci-go
           <<: *homepath
           <<: *gopath
@@ -122,7 +118,6 @@ workflows:
           include-tests: true
       - godel/test:
           name: cli-test-go-prev
-          <<: *checkout-path
           executor: circleci-go
           <<: *homepath
           <<: *gopath
@@ -139,7 +134,6 @@ workflows:
           include-tests: true
       - godel/test:
           name: cobracli-test-go-prev
-          <<: *checkout-path
           executor: circleci-go
           <<: *homepath
           <<: *gopath
@@ -156,7 +150,6 @@ workflows:
           include-tests: true
       - godel/test:
           name: datetime-test-go-prev
-          <<: *checkout-path
           executor: circleci-go
           <<: *homepath
           <<: *gopath
@@ -173,7 +166,6 @@ workflows:
           include-tests: true
       - godel/test:
           name: gittest-test-go-prev
-          <<: *checkout-path
           executor: circleci-go
           <<: *homepath
           <<: *gopath
@@ -190,7 +182,6 @@ workflows:
           include-tests: true
       - godel/test:
           name: httpclient-test-go-prev
-          <<: *checkout-path
           executor: circleci-go
           <<: *homepath
           <<: *gopath
@@ -207,7 +198,6 @@ workflows:
           include-tests: true
       - godel/test:
           name: httpserver-test-go-prev
-          <<: *checkout-path
           executor: circleci-go
           <<: *homepath
           <<: *gopath
@@ -224,7 +214,6 @@ workflows:
           include-tests: true
       - godel/test:
           name: matcher-test-go-prev
-          <<: *checkout-path
           executor: circleci-go
           <<: *homepath
           <<: *gopath
@@ -241,7 +230,6 @@ workflows:
           include-tests: true
       - godel/test:
           name: merge-test-go-prev
-          <<: *checkout-path
           executor: circleci-go
           <<: *homepath
           <<: *gopath
@@ -258,7 +246,6 @@ workflows:
           include-tests: true
       - godel/test:
           name: metrics-test-go-prev
-          <<: *checkout-path
           executor: circleci-go
           <<: *homepath
           <<: *gopath
@@ -275,7 +262,6 @@ workflows:
           include-tests: true
       - godel/test:
           name: objmatcher-test-go-prev
-          <<: *checkout-path
           executor: circleci-go
           <<: *homepath
           <<: *gopath
@@ -292,7 +278,6 @@ workflows:
           include-tests: true
       - godel/test:
           name: pkgpath-test-go-prev
-          <<: *checkout-path
           executor: circleci-go
           <<: *homepath
           <<: *gopath
@@ -309,7 +294,6 @@ workflows:
           include-tests: true
       - godel/test:
           name: refreshable-test-go-prev
-          <<: *checkout-path
           executor: circleci-go
           <<: *homepath
           <<: *gopath
@@ -326,7 +310,6 @@ workflows:
           include-tests: true
       - godel/test:
           name: retry-test-go-prev
-          <<: *checkout-path
           executor: circleci-go
           <<: *homepath
           <<: *gopath
@@ -343,7 +326,6 @@ workflows:
           include-tests: true
       - godel/test:
           name: rid-test-go-prev
-          <<: *checkout-path
           executor: circleci-go
           <<: *homepath
           <<: *gopath
@@ -360,7 +342,6 @@ workflows:
           include-tests: true
       - godel/test:
           name: safehttp-test-go-prev
-          <<: *checkout-path
           executor: circleci-go
           <<: *homepath
           <<: *gopath
@@ -377,7 +358,6 @@ workflows:
           include-tests: true
       - godel/test:
           name: safejson-test-go-prev
-          <<: *checkout-path
           executor: circleci-go
           <<: *homepath
           <<: *gopath
@@ -394,7 +374,6 @@ workflows:
           include-tests: true
       - godel/test:
           name: safelong-test-go-prev
-          <<: *checkout-path
           executor: circleci-go
           <<: *homepath
           <<: *gopath
@@ -411,7 +390,6 @@ workflows:
           include-tests: true
       - godel/test:
           name: safeyaml-test-go-prev
-          <<: *checkout-path
           executor: circleci-go
           <<: *homepath
           <<: *gopath
@@ -428,7 +406,6 @@ workflows:
           include-tests: true
       - godel/test:
           name: signals-test-go-prev
-          <<: *checkout-path
           executor: circleci-go
           <<: *homepath
           <<: *gopath
@@ -445,7 +422,6 @@ workflows:
           include-tests: true
       - godel/test:
           name: specdir-test-go-prev
-          <<: *checkout-path
           executor: circleci-go
           <<: *homepath
           <<: *gopath
@@ -462,7 +438,6 @@ workflows:
           include-tests: true
       - godel/test:
           name: tableprinter-test-go-prev
-          <<: *checkout-path
           executor: circleci-go
           <<: *homepath
           <<: *gopath
@@ -479,7 +454,6 @@ workflows:
           include-tests: true
       - godel/test:
           name: tlsconfig-test-go-prev
-          <<: *checkout-path
           executor: circleci-go
           <<: *homepath
           <<: *gopath
@@ -496,7 +470,6 @@ workflows:
           include-tests: true
       - godel/test:
           name: transform-test-go-prev
-          <<: *checkout-path
           executor: circleci-go
           <<: *homepath
           <<: *gopath
@@ -513,7 +486,6 @@ workflows:
           include-tests: true
       - godel/test:
           name: typenames-test-go-prev
-          <<: *checkout-path
           executor: circleci-go
           <<: *homepath
           <<: *gopath
@@ -530,7 +502,6 @@ workflows:
           include-tests: true
       - godel/test:
           name: uuid-test-go-prev
-          <<: *checkout-path
           executor: circleci-go
           <<: *homepath
           <<: *gopath
@@ -547,7 +518,6 @@ workflows:
           include-tests: true
       - godel/test:
           name: yamlpatch-test-go-prev
-          <<: *checkout-path
           executor: circleci-go
           <<: *homepath
           <<: *gopath

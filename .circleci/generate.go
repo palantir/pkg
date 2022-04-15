@@ -73,7 +73,6 @@ workflows:
           include-tests: true
       - godel/test:
           name: {{.Module}}-test-go-prev
-          <<: *checkout-path
           executor: circleci-go
           <<: *homepath
           <<: *gopath
