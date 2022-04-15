@@ -16,159 +16,159 @@ gopath: &gopath
 executors:
   circleci-go-bearertoken:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/bearertoken
 
   circleci-go-binary:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/binary
 
   circleci-go-boolean:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/boolean
 
   circleci-go-bytesbuffers:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/bytesbuffers
 
   circleci-go-cli:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/cli
 
   circleci-go-cobracli:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/cobracli
 
   circleci-go-datetime:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/datetime
 
   circleci-go-gittest:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/gittest
 
   circleci-go-httpclient:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/httpclient
 
   circleci-go-httpserver:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/httpserver
 
   circleci-go-matcher:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/matcher
 
   circleci-go-merge:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/merge
 
   circleci-go-metrics:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/metrics
 
   circleci-go-objmatcher:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/objmatcher
 
   circleci-go-pkgpath:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/pkgpath
 
   circleci-go-refreshable:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/refreshable
 
   circleci-go-retry:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/retry
 
   circleci-go-rid:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/rid
 
   circleci-go-safehttp:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/safehttp
 
   circleci-go-safejson:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/safejson
 
   circleci-go-safelong:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/safelong
 
   circleci-go-safeyaml:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/safeyaml
 
   circleci-go-signals:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/signals
 
   circleci-go-specdir:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/specdir
 
   circleci-go-tableprinter:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/tableprinter
 
   circleci-go-tlsconfig:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/tlsconfig
 
   circleci-go-transform:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/transform
 
   circleci-go-typenames:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/typenames
 
   circleci-go-uuid:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/uuid
 
   circleci-go-yamlpatch:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/yamlpatch
 
 jobs:
   verify-circleci:
     working_directory: /home/circleci/go/src/github.com/palantir/pkg
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     resource_class: small
     steps:
       - checkout
@@ -177,7 +177,7 @@ jobs:
       - run: diff  <(cat .circleci/config.yml) <(go run .circleci/generate.go .)
   circle-all:
     docker:
-      - image: cimg/go:1.16-browsers
+      - image: cimg/go:1.18-browsers
     resource_class: small
     steps:
       - run: echo "All required jobs run successfully"
