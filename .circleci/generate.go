@@ -1,4 +1,5 @@
-// +build generate
+////go:build generate
+//// +build generate
 
 // This program prints the CircleCI configuration for the "pkg" repository. Standard way to run it is to run
 // "go run generate.go {{parentDir}} > config.yml".
@@ -14,20 +15,36 @@ import (
 )
 
 const (
-	headerTemplateContent = `checkout-path: &checkout-path
-  checkout-path: /go/src/github.com/palantir/pkg
+	header = `version: 2.1
 
-version: 2.1
+checkout-path: &checkout-path
+  checkout-path: /home/circleci/go/src/github.com/palantir/pkg
 
 orbs:
-  go: palantir/go@0.0.18
-  godel: palantir/godel@0.0.18
+  go: palantir/go@0.0.29
+  godel: palantir/godel@0.0.29
 
+homepath: &homepath
+  homepath: /home/circleci
+
+gopath: &gopath
+  gopath: /home/circleci/go
+
+executors:`
+
+	executorTemplateContent = `
+  circleci-go-{{.Module}}:
+    docker:
+      - image: cimg/go:1.16-browsers
+    working_directory: /home/circleci/go/src/github.com/palantir/pkg/{{.Module}}
+`
+
+	jobsWorkflowsTemplateContent = `
 jobs:
   verify-circleci:
-    working_directory: /go/src/github.com/palantir/pkg
+    working_directory: /home/circleci/go/src/github.com/palantir/pkg
     docker:
-      - image: "golang:{{.CurrGoVersion}}"
+      - image: cimg/go:1.16-browsers
     resource_class: small
     steps:
       - checkout
@@ -36,7 +53,7 @@ jobs:
       - run: diff  <(cat .circleci/config.yml) <(go run .circleci/generate.go .)
   circle-all:
     docker:
-      - image: "golang:{{.CurrGoVersion}}"
+      - image: cimg/go:1.16-browsers
     resource_class: small
     steps:
       - run: echo "All required jobs run successfully"
@@ -54,29 +71,27 @@ workflows:
       # {{.Module}}
       - godel/verify:
           name: {{.Module}}-verify
+          executor: circleci-go-{{.Module}}
           <<: *checkout-path
+          <<: *homepath
+          <<: *gopath
+          go-version-file: "../.palantir/go-version"
           include-tests: true
-          executor:
-            name: go/golang
-            version: {{.CurrGoVersion}}
-            owner-repo: palantir/pkg/{{.Module}}
       - godel/test:
-          name: {{.Module}}-test-go-{{.PrevGoMajorVersion}}
+          name: {{.Module}}-test-go-prev
+          executor: circleci-go-{{.Module}}
           <<: *checkout-path
-          executor:
-            name: go/golang
-            version: {{.PrevGoVersion}}
-            owner-repo: palantir/pkg/{{.Module}}
+          <<: *homepath
+          <<: *gopath
+          go-version-file: "../.palantir/go-version"
+          go-prev-version: 1
           requires:
             - {{.Module}}-verify
 `
 )
 
 type TemplateObject struct {
-	Module             string
-	CurrGoVersion      string
-	PrevGoVersion      string
-	PrevGoMajorVersion string
+	Module string
 }
 
 func main() {
@@ -88,18 +103,26 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	configYML, err := createConfigYML(mods, "1.17.5", "1.16.12")
+	configYML, err := createConfigYML(mods)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Print(configYML)
 }
 
-var headerTemplate, moduleTemplate *template.Template
+var (
+	executorTemplate,
+	jobsWorkflowsTemplate,
+	moduleTemplate *template.Template
+)
 
 func init() {
 	var err error
-	headerTemplate, err = template.New("headerTemplate").Parse(headerTemplateContent)
+	executorTemplate, err = template.New("executorTemplate").Parse(executorTemplateContent)
+	if err != nil {
+		panic(fmt.Sprintf("failed to create executorTemplate template: %v", err))
+	}
+	jobsWorkflowsTemplate, err = template.New("jobsWorkflowsTemplate").Parse(jobsWorkflowsTemplateContent)
 	if err != nil {
 		panic(fmt.Sprintf("failed to create headerTemplate template: %v", err))
 	}
@@ -109,31 +132,35 @@ func init() {
 	}
 }
 
-func createConfigYML(modDirs []string, currGoVersion, prevGoVersion string) (string, error) {
-	prevParts := strings.Split(prevGoVersion, ".")
-	if len(prevParts) < 2 {
-		return "", fmt.Errorf("prevGoVersion must have at least 2 parts separated by a period: %s", prevGoVersion)
-	}
-	prevGoMajorVersion := strings.Join(prevParts[:2], ".")
-
+func createConfigYML(modDirs []string) (string, error) {
 	jobNames := make([]string, 0, len(modDirs)*2)
 	for _, modDir := range modDirs {
-		jobNames = append(jobNames, modDir+"-verify", modDir+"-test-go-"+prevGoMajorVersion)
+		jobNames = append(jobNames, modDir+"-verify", modDir+"-test-go-prev")
 	}
 	outBuf := &bytes.Buffer{}
-	if err := headerTemplate.Execute(outBuf, map[string]interface{}{
-		"CurrGoVersion": currGoVersion,
-		"JobNames":      jobNames,
+	outBuf.WriteString(header)
+
+	var modTemplates []TemplateObject
+	for _, modDir := range modDirs {
+		modTemplates = append(modTemplates, TemplateObject{
+			Module: modDir,
+		})
+	}
+
+	for _, modTemplate := range modTemplates {
+		if err := executorTemplate.Execute(outBuf, modTemplate); err != nil {
+			return "", fmt.Errorf("failed to execute executorTemplate template: %v", err)
+		}
+	}
+
+	if err := jobsWorkflowsTemplate.Execute(outBuf, map[string]interface{}{
+		"JobNames": jobNames,
 	}); err != nil {
 		return "", fmt.Errorf("failed to execute headerTemplate template: %v", err)
 	}
-	for _, modDir := range modDirs {
-		if err := moduleTemplate.Execute(outBuf, TemplateObject{
-			Module:             modDir,
-			CurrGoVersion:      currGoVersion,
-			PrevGoVersion:      prevGoVersion,
-			PrevGoMajorVersion: prevGoMajorVersion,
-		}); err != nil {
+
+	for _, modTemplate := range modTemplates {
+		if err := moduleTemplate.Execute(outBuf, modTemplate); err != nil {
 			return "", fmt.Errorf("failed to execute moduleTemplate template: %v", err)
 		}
 	}
