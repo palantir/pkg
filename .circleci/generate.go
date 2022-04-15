@@ -1,5 +1,5 @@
-//go:build generate
-// +build generate
+////go:build generate
+//// +build generate
 
 // This program prints the CircleCI configuration for the "pkg" repository. Standard way to run it is to run
 // "go run generate.go {{parentDir}} > config.yml".
@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	headerTemplateContent = `version: 2.1
+	header = `version: 2.1
 
 orbs:
   go: palantir/go@0.0.29
@@ -27,18 +27,19 @@ homepath: &homepath
 gopath: &gopath
   gopath: /home/circleci/go
 
-working_directory: &working_directory
-  working_directory: /home/circleci/go/src/github.com/palantir/pkg
+executors:`
 
-executors:
-  circleci-go:
+	executorTemplateContent = `
+  circleci-go-{{.Module}}:
     docker:
       - image: cimg/go:1.16-browsers
-    <<: *working_directory
+    working_directory: /home/circleci/go/src/github.com/palantir/pkg/{{.Module}}
+`
 
+	jobsWorkflowsTemplateContent = `
 jobs:
   verify-circleci:
-    <<: *working_directory
+    working_directory: /home/circleci/go/src/github.com/palantir/pkg
     docker:
       - image: cimg/go:1.16-browsers
     resource_class: small
@@ -67,15 +68,17 @@ workflows:
       # {{.Module}}
       - godel/verify:
           name: {{.Module}}-verify
-          executor: circleci-go
+          executor: circleci-go-{{.Module}}
           <<: *homepath
           <<: *gopath
+          go-version-file: "../.palantir/go-version"
           include-tests: true
       - godel/test:
           name: {{.Module}}-test-go-prev
-          executor: circleci-go
+          executor: circleci-go-{{.Module}}
           <<: *homepath
           <<: *gopath
+          go-version-file: "../.palantir/go-version"
           go-prev-version: 1
           requires:
             - {{.Module}}-verify
@@ -83,10 +86,7 @@ workflows:
 )
 
 type TemplateObject struct {
-	Module             string
-	CurrGoVersion      string
-	PrevGoVersion      string
-	PrevGoMajorVersion string
+	Module string
 }
 
 func main() {
@@ -105,11 +105,19 @@ func main() {
 	fmt.Print(configYML)
 }
 
-var headerTemplate, moduleTemplate *template.Template
+var (
+	executorTemplate,
+	jobsWorkflowsTemplate,
+	moduleTemplate *template.Template
+)
 
 func init() {
 	var err error
-	headerTemplate, err = template.New("headerTemplate").Parse(headerTemplateContent)
+	executorTemplate, err = template.New("executorTemplate").Parse(executorTemplateContent)
+	if err != nil {
+		panic(fmt.Sprintf("failed to create executorTemplate template: %v", err))
+	}
+	jobsWorkflowsTemplate, err = template.New("jobsWorkflowsTemplate").Parse(jobsWorkflowsTemplateContent)
 	if err != nil {
 		panic(fmt.Sprintf("failed to create headerTemplate template: %v", err))
 	}
@@ -125,15 +133,29 @@ func createConfigYML(modDirs []string) (string, error) {
 		jobNames = append(jobNames, modDir+"-verify", modDir+"-test-go-prev")
 	}
 	outBuf := &bytes.Buffer{}
-	if err := headerTemplate.Execute(outBuf, map[string]interface{}{
+	outBuf.WriteString(header)
+
+	var modTemplates []TemplateObject
+	for _, modDir := range modDirs {
+		modTemplates = append(modTemplates, TemplateObject{
+			Module: modDir,
+		})
+	}
+
+	for _, modTemplate := range modTemplates {
+		if err := executorTemplate.Execute(outBuf, modTemplate); err != nil {
+			return "", fmt.Errorf("failed to execute executorTemplate template: %v", err)
+		}
+	}
+
+	if err := jobsWorkflowsTemplate.Execute(outBuf, map[string]interface{}{
 		"JobNames": jobNames,
 	}); err != nil {
 		return "", fmt.Errorf("failed to execute headerTemplate template: %v", err)
 	}
-	for _, modDir := range modDirs {
-		if err := moduleTemplate.Execute(outBuf, TemplateObject{
-			Module: modDir,
-		}); err != nil {
+
+	for _, modTemplate := range modTemplates {
+		if err := moduleTemplate.Execute(outBuf, modTemplate); err != nil {
 			return "", fmt.Errorf("failed to execute moduleTemplate template: %v", err)
 		}
 	}
