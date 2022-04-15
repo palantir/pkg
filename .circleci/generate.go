@@ -17,6 +17,9 @@ import (
 const (
 	header = `version: 2.1
 
+checkout-path: &checkout-path
+  checkout-path: /go/src/github.com/palantir/pkg
+
 orbs:
   go: palantir/go@0.0.29
   godel: palantir/godel@0.0.29
@@ -69,6 +72,7 @@ workflows:
       - godel/verify:
           name: {{.Module}}-verify
           executor: circleci-go-{{.Module}}
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -76,6 +80,7 @@ workflows:
       - godel/test:
           name: {{.Module}}-test-go-prev
           executor: circleci-go-{{.Module}}
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"

@@ -1,5 +1,8 @@
 version: 2.1
 
+checkout-path: &checkout-path
+  checkout-path: /go/src/github.com/palantir/pkg
+
 orbs:
   go: palantir/go@0.0.29
   godel: palantir/godel@0.0.29
@@ -191,6 +194,7 @@ workflows:
       - godel/verify:
           name: bearertoken-verify
           executor: circleci-go-bearertoken
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -198,6 +202,7 @@ workflows:
       - godel/test:
           name: bearertoken-test-go-prev
           executor: circleci-go-bearertoken
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -209,6 +214,7 @@ workflows:
       - godel/verify:
           name: binary-verify
           executor: circleci-go-binary
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -216,6 +222,7 @@ workflows:
       - godel/test:
           name: binary-test-go-prev
           executor: circleci-go-binary
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -227,6 +234,7 @@ workflows:
       - godel/verify:
           name: boolean-verify
           executor: circleci-go-boolean
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -234,6 +242,7 @@ workflows:
       - godel/test:
           name: boolean-test-go-prev
           executor: circleci-go-boolean
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -245,6 +254,7 @@ workflows:
       - godel/verify:
           name: bytesbuffers-verify
           executor: circleci-go-bytesbuffers
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -252,6 +262,7 @@ workflows:
       - godel/test:
           name: bytesbuffers-test-go-prev
           executor: circleci-go-bytesbuffers
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -263,6 +274,7 @@ workflows:
       - godel/verify:
           name: cli-verify
           executor: circleci-go-cli
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -270,6 +282,7 @@ workflows:
       - godel/test:
           name: cli-test-go-prev
           executor: circleci-go-cli
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -281,6 +294,7 @@ workflows:
       - godel/verify:
           name: cobracli-verify
           executor: circleci-go-cobracli
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -288,6 +302,7 @@ workflows:
       - godel/test:
           name: cobracli-test-go-prev
           executor: circleci-go-cobracli
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -299,6 +314,7 @@ workflows:
       - godel/verify:
           name: datetime-verify
           executor: circleci-go-datetime
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -306,6 +322,7 @@ workflows:
       - godel/test:
           name: datetime-test-go-prev
           executor: circleci-go-datetime
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -317,6 +334,7 @@ workflows:
       - godel/verify:
           name: gittest-verify
           executor: circleci-go-gittest
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -324,6 +342,7 @@ workflows:
       - godel/test:
           name: gittest-test-go-prev
           executor: circleci-go-gittest
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -335,6 +354,7 @@ workflows:
       - godel/verify:
           name: httpclient-verify
           executor: circleci-go-httpclient
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -342,6 +362,7 @@ workflows:
       - godel/test:
           name: httpclient-test-go-prev
           executor: circleci-go-httpclient
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -353,6 +374,7 @@ workflows:
       - godel/verify:
           name: httpserver-verify
           executor: circleci-go-httpserver
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -360,6 +382,7 @@ workflows:
       - godel/test:
           name: httpserver-test-go-prev
           executor: circleci-go-httpserver
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -371,6 +394,7 @@ workflows:
       - godel/verify:
           name: matcher-verify
           executor: circleci-go-matcher
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -378,6 +402,7 @@ workflows:
       - godel/test:
           name: matcher-test-go-prev
           executor: circleci-go-matcher
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -389,6 +414,7 @@ workflows:
       - godel/verify:
           name: merge-verify
           executor: circleci-go-merge
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -396,6 +422,7 @@ workflows:
       - godel/test:
           name: merge-test-go-prev
           executor: circleci-go-merge
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -407,6 +434,7 @@ workflows:
       - godel/verify:
           name: metrics-verify
           executor: circleci-go-metrics
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -414,6 +442,7 @@ workflows:
       - godel/test:
           name: metrics-test-go-prev
           executor: circleci-go-metrics
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -425,6 +454,7 @@ workflows:
       - godel/verify:
           name: objmatcher-verify
           executor: circleci-go-objmatcher
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -432,6 +462,7 @@ workflows:
       - godel/test:
           name: objmatcher-test-go-prev
           executor: circleci-go-objmatcher
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -443,6 +474,7 @@ workflows:
       - godel/verify:
           name: pkgpath-verify
           executor: circleci-go-pkgpath
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -450,6 +482,7 @@ workflows:
       - godel/test:
           name: pkgpath-test-go-prev
           executor: circleci-go-pkgpath
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -461,6 +494,7 @@ workflows:
       - godel/verify:
           name: refreshable-verify
           executor: circleci-go-refreshable
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -468,6 +502,7 @@ workflows:
       - godel/test:
           name: refreshable-test-go-prev
           executor: circleci-go-refreshable
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -479,6 +514,7 @@ workflows:
       - godel/verify:
           name: retry-verify
           executor: circleci-go-retry
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -486,6 +522,7 @@ workflows:
       - godel/test:
           name: retry-test-go-prev
           executor: circleci-go-retry
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -497,6 +534,7 @@ workflows:
       - godel/verify:
           name: rid-verify
           executor: circleci-go-rid
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -504,6 +542,7 @@ workflows:
       - godel/test:
           name: rid-test-go-prev
           executor: circleci-go-rid
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -515,6 +554,7 @@ workflows:
       - godel/verify:
           name: safehttp-verify
           executor: circleci-go-safehttp
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -522,6 +562,7 @@ workflows:
       - godel/test:
           name: safehttp-test-go-prev
           executor: circleci-go-safehttp
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -533,6 +574,7 @@ workflows:
       - godel/verify:
           name: safejson-verify
           executor: circleci-go-safejson
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -540,6 +582,7 @@ workflows:
       - godel/test:
           name: safejson-test-go-prev
           executor: circleci-go-safejson
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -551,6 +594,7 @@ workflows:
       - godel/verify:
           name: safelong-verify
           executor: circleci-go-safelong
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -558,6 +602,7 @@ workflows:
       - godel/test:
           name: safelong-test-go-prev
           executor: circleci-go-safelong
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -569,6 +614,7 @@ workflows:
       - godel/verify:
           name: safeyaml-verify
           executor: circleci-go-safeyaml
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -576,6 +622,7 @@ workflows:
       - godel/test:
           name: safeyaml-test-go-prev
           executor: circleci-go-safeyaml
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -587,6 +634,7 @@ workflows:
       - godel/verify:
           name: signals-verify
           executor: circleci-go-signals
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -594,6 +642,7 @@ workflows:
       - godel/test:
           name: signals-test-go-prev
           executor: circleci-go-signals
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -605,6 +654,7 @@ workflows:
       - godel/verify:
           name: specdir-verify
           executor: circleci-go-specdir
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -612,6 +662,7 @@ workflows:
       - godel/test:
           name: specdir-test-go-prev
           executor: circleci-go-specdir
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -623,6 +674,7 @@ workflows:
       - godel/verify:
           name: tableprinter-verify
           executor: circleci-go-tableprinter
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -630,6 +682,7 @@ workflows:
       - godel/test:
           name: tableprinter-test-go-prev
           executor: circleci-go-tableprinter
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -641,6 +694,7 @@ workflows:
       - godel/verify:
           name: tlsconfig-verify
           executor: circleci-go-tlsconfig
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -648,6 +702,7 @@ workflows:
       - godel/test:
           name: tlsconfig-test-go-prev
           executor: circleci-go-tlsconfig
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -659,6 +714,7 @@ workflows:
       - godel/verify:
           name: transform-verify
           executor: circleci-go-transform
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -666,6 +722,7 @@ workflows:
       - godel/test:
           name: transform-test-go-prev
           executor: circleci-go-transform
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -677,6 +734,7 @@ workflows:
       - godel/verify:
           name: typenames-verify
           executor: circleci-go-typenames
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -684,6 +742,7 @@ workflows:
       - godel/test:
           name: typenames-test-go-prev
           executor: circleci-go-typenames
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -695,6 +754,7 @@ workflows:
       - godel/verify:
           name: uuid-verify
           executor: circleci-go-uuid
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -702,6 +762,7 @@ workflows:
       - godel/test:
           name: uuid-test-go-prev
           executor: circleci-go-uuid
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -713,6 +774,7 @@ workflows:
       - godel/verify:
           name: yamlpatch-verify
           executor: circleci-go-yamlpatch
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
@@ -720,6 +782,7 @@ workflows:
       - godel/test:
           name: yamlpatch-test-go-prev
           executor: circleci-go-yamlpatch
+          <<: *checkout-path
           <<: *homepath
           <<: *gopath
           go-version-file: "../.palantir/go-version"
