@@ -98,7 +98,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	configYML, err := createConfigYML(mods, "1.17.5", "1.16.12")
+	configYML, err := createConfigYML(mods)
 	if err != nil {
 		panic(err)
 	}
@@ -119,30 +119,20 @@ func init() {
 	}
 }
 
-func createConfigYML(modDirs []string, currGoVersion, prevGoVersion string) (string, error) {
-	prevParts := strings.Split(prevGoVersion, ".")
-	if len(prevParts) < 2 {
-		return "", fmt.Errorf("prevGoVersion must have at least 2 parts separated by a period: %s", prevGoVersion)
-	}
-	prevGoMajorVersion := strings.Join(prevParts[:2], ".")
-
+func createConfigYML(modDirs []string) (string, error) {
 	jobNames := make([]string, 0, len(modDirs)*2)
 	for _, modDir := range modDirs {
-		jobNames = append(jobNames, modDir+"-verify", modDir+"-test-go-"+prevGoMajorVersion)
+		jobNames = append(jobNames, modDir+"-verify", modDir+"-test-go-prev")
 	}
 	outBuf := &bytes.Buffer{}
 	if err := headerTemplate.Execute(outBuf, map[string]interface{}{
-		"CurrGoVersion": currGoVersion,
-		"JobNames":      jobNames,
+		"JobNames": jobNames,
 	}); err != nil {
 		return "", fmt.Errorf("failed to execute headerTemplate template: %v", err)
 	}
 	for _, modDir := range modDirs {
 		if err := moduleTemplate.Execute(outBuf, TemplateObject{
-			Module:             modDir,
-			CurrGoVersion:      currGoVersion,
-			PrevGoVersion:      prevGoVersion,
-			PrevGoMajorVersion: prevGoMajorVersion,
+			Module: modDir,
 		}); err != nil {
 			return "", fmt.Errorf("failed to execute moduleTemplate template: %v", err)
 		}
