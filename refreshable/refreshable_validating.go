@@ -9,8 +9,8 @@ import (
 	"sync/atomic"
 )
 
-type ValidatingRefreshable struct {
-	Refreshable
+type ValidatingRefreshable[T any] struct {
+	Refreshable[T]
 	lastValidateErr *atomic.Value
 }
 
@@ -19,70 +19,60 @@ type errorWrapper struct {
 	err error
 }
 
-func (v *ValidatingRefreshable) LastValidateErr() error {
+func (v *ValidatingRefreshable[T]) LastValidateErr() error {
 	return v.lastValidateErr.Load().(errorWrapper).err
 }
 
 // NewValidatingRefreshable returns a new Refreshable whose current value is the latest value that passes the provided
 // validatingFn successfully. This returns an error if the current value of the passed in Refreshable does not pass the
 // validatingFn or if the validatingFn or Refreshable are nil.
-func NewValidatingRefreshable(origRefreshable Refreshable, validatingFn func(interface{}) error) (*ValidatingRefreshable, error) {
-	mappingFn := func(i interface{}) (interface{}, error) {
+func NewValidatingRefreshable[T any](origRefreshable Refreshable[T], validatingFn func(T) error) (*ValidatingRefreshable[T], error) {
+	mappingFn := func(i T) (T, error) {
 		if err := validatingFn(i); err != nil {
-			return nil, err
+			var zero T
+			return zero, err
 		}
-		return nil, nil
+		return i, nil
 	}
-	return newValidatingRefreshable(origRefreshable, mappingFn, false)
+	return newValidatingRefreshable(origRefreshable, mappingFn)
 }
 
 // NewMapValidatingRefreshable is similar to NewValidatingRefreshable but allows for the function to return a mapping/mutation
 // of the input object in addition to returning an error. The returned ValidatingRefreshable will contain the mapped value.
 // The mapped value must always be of the same type (but not necessarily that of the input type).
-func NewMapValidatingRefreshable(origRefreshable Refreshable, mappingFn func(interface{}) (interface{}, error)) (*ValidatingRefreshable, error) {
-	return newValidatingRefreshable(origRefreshable, mappingFn, true)
+func NewMapValidatingRefreshable[T any, M any](origRefreshable Refreshable[T], mappingFn func(T) (M, error)) (*ValidatingRefreshable[M], error) {
+	return newValidatingRefreshable(origRefreshable, mappingFn)
 }
 
-func newValidatingRefreshable(origRefreshable Refreshable, validatingFn func(interface{}) (interface{}, error), storeMappedVal bool) (*ValidatingRefreshable, error) {
-	if validatingFn == nil {
+func newValidatingRefreshable[T any, M any](origRefreshable Refreshable[T], mappingFn func(T) (M, error)) (*ValidatingRefreshable[M], error) {
+	if mappingFn == nil {
 		return nil, errors.New("failed to create validating Refreshable because the validating function was nil")
 	}
-
 	if origRefreshable == nil {
 		return nil, errors.New("failed to create validating Refreshable because the passed in Refreshable was nil")
 	}
 
-	var validatedRefreshable *DefaultRefreshable
+	var validatedRefreshable *DefaultRefreshable[M]
 	currentVal := origRefreshable.Current()
-	mappedVal, err := validatingFn(currentVal)
+	mappedVal, err := mappingFn(currentVal)
 	if err != nil {
 		return nil, err
 	}
-	if storeMappedVal {
-		validatedRefreshable = NewDefaultRefreshable(mappedVal)
-	} else {
-		validatedRefreshable = NewDefaultRefreshable(currentVal)
-	}
+	validatedRefreshable = New(mappedVal)
 
 	var lastValidateErr atomic.Value
 	lastValidateErr.Store(errorWrapper{})
-	v := ValidatingRefreshable{
+	v := ValidatingRefreshable[M]{
 		Refreshable:     validatedRefreshable,
 		lastValidateErr: &lastValidateErr,
 	}
 
-	updateValueFn := func(i interface{}) {
-		mappedVal, err := validatingFn(i)
-		if err != nil {
-			v.lastValidateErr.Store(errorWrapper{err})
-			return
+	updateValueFn := func(i T) {
+		mappedVal, err := mappingFn(i)
+		v.lastValidateErr.Store(errorWrapper{err})
+		if err == nil {
+			validatedRefreshable.Update(mappedVal)
 		}
-		if storeMappedVal {
-			err = validatedRefreshable.Update(mappedVal)
-		} else {
-			err = validatedRefreshable.Update(i)
-		}
-		v.lastValidateErr.Store(errorWrapper{err: err})
 	}
 
 	origRefreshable.Subscribe(updateValueFn)

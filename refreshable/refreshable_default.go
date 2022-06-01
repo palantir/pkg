@@ -5,54 +5,48 @@
 package refreshable
 
 import (
-	"fmt"
 	"reflect"
 	"sync"
 	"sync/atomic"
 )
 
-type DefaultRefreshable struct {
-	typ     reflect.Type
+type DefaultRefreshable[T any] struct {
 	current *atomic.Value
 
 	sync.Mutex  // protects subscribers
-	subscribers []*func(interface{})
+	subscribers []*func(T)
 }
 
-func NewDefaultRefreshable(val interface{}) *DefaultRefreshable {
+func New[T any](val T) *DefaultRefreshable[T] {
 	current := atomic.Value{}
-	current.Store(val)
+	current.Store(&val)
 
-	return &DefaultRefreshable{
+	return &DefaultRefreshable[T]{
 		current: &current,
-		typ:     reflect.TypeOf(val),
 	}
 }
 
-func (d *DefaultRefreshable) Update(val interface{}) error {
+// Update changes the value of the Refreshable, then blocks while subscribers are executed.
+func (d *DefaultRefreshable[T]) Update(val T) {
 	d.Lock()
 	defer d.Unlock()
 
-	if valType := reflect.TypeOf(val); valType != d.typ {
-		return fmt.Errorf("new refreshable value must be type %s: got %s", d.typ, valType)
+	if reflect.DeepEqual(d.Current(), val) {
+		return
 	}
 
-	if reflect.DeepEqual(d.current.Load(), val) {
-		return nil
-	}
-	d.current.Store(val)
+	d.current.Store(&val)
 
 	for _, sub := range d.subscribers {
 		(*sub)(val)
 	}
-	return nil
 }
 
-func (d *DefaultRefreshable) Current() interface{} {
-	return d.current.Load()
+func (d *DefaultRefreshable[T]) Current() T {
+	return *(d.current.Load().(*T))
 }
 
-func (d *DefaultRefreshable) Subscribe(consumer func(interface{})) (unsubscribe func()) {
+func (d *DefaultRefreshable[T]) Subscribe(consumer func(T)) (unsubscribe func()) {
 	d.Lock()
 	defer d.Unlock()
 
@@ -63,7 +57,7 @@ func (d *DefaultRefreshable) Subscribe(consumer func(interface{})) (unsubscribe 
 	}
 }
 
-func (d *DefaultRefreshable) unsubscribe(consumerFnPtr *func(interface{})) {
+func (d *DefaultRefreshable[T]) unsubscribe(consumerFnPtr *func(T)) {
 	d.Lock()
 	defer d.Unlock()
 
@@ -77,12 +71,4 @@ func (d *DefaultRefreshable) unsubscribe(consumerFnPtr *func(interface{})) {
 	if matchIdx != -1 {
 		d.subscribers = append(d.subscribers[:matchIdx], d.subscribers[matchIdx+1:]...)
 	}
-}
-
-func (d *DefaultRefreshable) Map(mapFn func(interface{}) interface{}) Refreshable {
-	newRefreshable := NewDefaultRefreshable(mapFn(d.Current()))
-	d.Subscribe(func(updatedVal interface{}) {
-		_ = newRefreshable.Update(mapFn(updatedVal))
-	})
-	return newRefreshable
 }
