@@ -5,7 +5,7 @@
 package refreshable
 
 type Refreshable[T any] interface {
-	// Current returns the most recent value of this Supplier.
+	// Current returns the most recent value of this Refreshable.
 	// If the value has not been initialized, returns T's zero value.
 	Current() T
 
