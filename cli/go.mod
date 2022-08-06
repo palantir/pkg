@@ -6,8 +6,8 @@ require (
 	github.com/mitchellh/go-wordwrap v1.0.0
 	github.com/palantir/pkg v1.0.1
 	github.com/spf13/viper v1.12.0
-	github.com/stretchr/testify v1.7.5
-	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
+	github.com/stretchr/testify v1.8.0
+	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
 )
 
 require (
