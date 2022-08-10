@@ -11,32 +11,19 @@ import (
 )
 
 type DefaultRefreshable[T any] struct {
-	current *atomic.Value
-
-	sync.Mutex  // protects subscribers
+	mux         sync.Mutex
+	current     atomic.Value
 	subscribers []*func(T)
-}
-
-func New[T any](val T) *DefaultRefreshable[T] {
-	current := atomic.Value{}
-	current.Store(&val)
-
-	return &DefaultRefreshable[T]{
-		current: &current,
-	}
 }
 
 // Update changes the value of the Refreshable, then blocks while subscribers are executed.
 func (d *DefaultRefreshable[T]) Update(val T) {
-	d.Lock()
-	defer d.Unlock()
-
-	if reflect.DeepEqual(d.Current(), val) {
+	d.mux.Lock()
+	defer d.mux.Unlock()
+	old := d.current.Swap(&val)
+	if reflect.DeepEqual(*(old.(*T)), val) {
 		return
 	}
-
-	d.current.Store(&val)
-
 	for _, sub := range d.subscribers {
 		(*sub)(val)
 	}
@@ -46,29 +33,30 @@ func (d *DefaultRefreshable[T]) Current() T {
 	return *(d.current.Load().(*T))
 }
 
-func (d *DefaultRefreshable[T]) Subscribe(consumer func(T)) (unsubscribe func()) {
-	d.Lock()
-	defer d.Unlock()
+func (d *DefaultRefreshable[T]) Subscribe(consumer func(T)) UnsubscribeFunc {
+	d.mux.Lock()
+	defer d.mux.Unlock()
 
 	consumerFnPtr := &consumer
 	d.subscribers = append(d.subscribers, consumerFnPtr)
-	return func() {
-		d.unsubscribe(consumerFnPtr)
-	}
+	return d.unsubscribe(consumerFnPtr)
 }
 
-func (d *DefaultRefreshable[T]) unsubscribe(consumerFnPtr *func(T)) {
-	d.Lock()
-	defer d.Unlock()
+func (d *DefaultRefreshable[T]) unsubscribe(consumerFnPtr *func(T)) UnsubscribeFunc {
+	return func() {
+		d.mux.Lock()
+		defer d.mux.Unlock()
 
-	matchIdx := -1
-	for idx, currSub := range d.subscribers {
-		if currSub == consumerFnPtr {
-			matchIdx = idx
-			break
+		matchIdx := -1
+		for idx, currSub := range d.subscribers {
+			if currSub == consumerFnPtr {
+				matchIdx = idx
+				break
+			}
+		}
+		if matchIdx != -1 {
+			d.subscribers = append(d.subscribers[:matchIdx], d.subscribers[matchIdx+1:]...)
 		}
 	}
-	if matchIdx != -1 {
-		d.subscribers = append(d.subscribers[:matchIdx], d.subscribers[matchIdx+1:]...)
-	}
+
 }

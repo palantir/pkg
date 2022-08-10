@@ -85,6 +85,6 @@ func (r *updateImmediatelyRefreshable) Current() int {
 	return c
 }
 
-func (r *updateImmediatelyRefreshable) Subscribe(f func(int)) func() {
+func (r *updateImmediatelyRefreshable) Subscribe(f func(int)) refreshable.UnsubscribeFunc {
 	return r.r.Subscribe(f)
 }
