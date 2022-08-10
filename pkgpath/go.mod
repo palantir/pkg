@@ -7,7 +7,7 @@ require (
 	github.com/nmiyake/pkg/gofiles v1.0.0
 	github.com/palantir/pkg v1.0.1
 	github.com/palantir/pkg/matcher v1.0.1
-	github.com/stretchr/testify v1.7.5
+	github.com/stretchr/testify v1.8.0
 )
 
 require (
