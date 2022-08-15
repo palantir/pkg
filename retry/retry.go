@@ -167,6 +167,11 @@ func WithRandomizationFactor(randomizationFactor float64) Option {
 // If the provided context is canceled (see Context.Done), then Next() will eagerly return false and
 // the retry loop will do no iterations.
 func Start(ctx context.Context, opts ...Option) Retrier {
+	ctxDone := ctx.Done()
+	if ctxDone == nil {
+		ctxDone = make(chan struct{})
+	}
+
 	r := &retrier{
 		options: options{
 			maxAttempts:         defaultMaxAttempts,
@@ -175,7 +180,7 @@ func Start(ctx context.Context, opts ...Option) Retrier {
 			multiplier:          defaultMultiplier,
 			randomizationFactor: defaultRandomizationFactor,
 		},
-		ctxDoneChan:    ctx.Done(),
+		ctxDoneChan:    ctxDone,
 		currentAttempt: 0,
 		isReset:        false,
 	}
