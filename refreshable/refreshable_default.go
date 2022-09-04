@@ -10,14 +10,27 @@ import (
 	"sync/atomic"
 )
 
-type DefaultRefreshable[T any] struct {
+type defaultRefreshable[T any] struct {
 	mux         sync.Mutex
 	current     atomic.Value
 	subscribers []*func(T)
 }
 
+func newDefault[T any](val T) Updatable[T] {
+	d := new(defaultRefreshable[T])
+	d.current.Store(&val)
+	return d
+}
+
+func newZero[T any]() Updatable[T] {
+	d := new(defaultRefreshable[T])
+	var zero T
+	d.current.Store(&zero)
+	return d
+}
+
 // Update changes the value of the Refreshable, then blocks while subscribers are executed.
-func (d *DefaultRefreshable[T]) Update(val T) {
+func (d *defaultRefreshable[T]) Update(val T) {
 	d.mux.Lock()
 	defer d.mux.Unlock()
 	old := d.current.Swap(&val)
@@ -29,11 +42,11 @@ func (d *DefaultRefreshable[T]) Update(val T) {
 	}
 }
 
-func (d *DefaultRefreshable[T]) Current() T {
+func (d *defaultRefreshable[T]) Current() T {
 	return *(d.current.Load().(*T))
 }
 
-func (d *DefaultRefreshable[T]) Subscribe(consumer func(T)) UnsubscribeFunc {
+func (d *defaultRefreshable[T]) Subscribe(consumer func(T)) UnsubscribeFunc {
 	d.mux.Lock()
 	defer d.mux.Unlock()
 
@@ -42,7 +55,7 @@ func (d *DefaultRefreshable[T]) Subscribe(consumer func(T)) UnsubscribeFunc {
 	return d.unsubscribe(consumerFnPtr)
 }
 
-func (d *DefaultRefreshable[T]) unsubscribe(consumerFnPtr *func(T)) UnsubscribeFunc {
+func (d *defaultRefreshable[T]) unsubscribe(consumerFnPtr *func(T)) UnsubscribeFunc {
 	return func() {
 		d.mux.Lock()
 		defer d.mux.Unlock()

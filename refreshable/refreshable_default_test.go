@@ -12,7 +12,9 @@ import (
 )
 
 func TestDefaultRefreshable(t *testing.T) {
-	type container struct{ Value string }
+	type container struct {
+		Value string
+	}
 
 	v := &container{Value: "original"}
 	r := refreshable.New(v)
@@ -46,13 +48,22 @@ func TestDefaultRefreshable(t *testing.T) {
 
 	t.Run("Map", func(t *testing.T) {
 		r.Update(&container{Value: "value"})
-		m, _ := refreshable.Map[*container, int](r, func(i *container) int {
+		rLen, _ := refreshable.Map[*container, int](r, func(i *container) int {
 			return len(i.Value)
 		})
-		assert.Equal(t, m.Current(), 5)
+		assert.Equal(t, 5, rLen.Current())
+
+		rLenUpdated := false
+		rLen.Subscribe(func(int) { rLenUpdated = true })
+		// update to new value with same length and ensure the
+		// equality check prevented unnecessary subscriber updates.
+		r.Update(&container{Value: "VALUE"})
+		assert.Equal(t, "VALUE", r.Current().Value)
+		assert.False(t, rLenUpdated)
 
 		r.Update(&container{Value: "updated"})
-		assert.Equal(t, m.Current(), 7)
+		assert.Equal(t, "updated", r.Current().Value)
+		assert.Equal(t, 7, rLen.Current())
 	})
 
 }

@@ -17,48 +17,56 @@ import (
 func TestValidatingRefreshable(t *testing.T) {
 	type container struct{ Value string }
 	r := refreshable.New(container{Value: "value"})
-	vr, err := refreshable.NewValidatingRefreshable[container](r, func(i container) error {
+	vr, _, err := refreshable.Validate[container](r, func(i container) error {
 		if len(i.Value) == 0 {
 			return errors.New("empty")
 		}
 		return nil
 	})
 	require.NoError(t, err)
-	require.NoError(t, vr.LastValidateErr())
-	require.Equal(t, r.Current().Value, "value")
-	require.Equal(t, vr.Current().Value, "value")
+	v, err := vr.Validation()
+	require.NoError(t, err)
+	require.Equal(t, "value", v.Value)
+	require.Equal(t, "value", r.Current().Value)
+	require.Equal(t, "value", vr.Current().Value)
 
 	// attempt bad update
 	r.Update(container{})
 	require.Equal(t, r.Current().Value, "")
-
-	require.EqualError(t, vr.LastValidateErr(), "empty", "expected err from validating refreshable")
+	v, err = vr.Validation()
+	require.EqualError(t, err, "empty", "expected validation error")
+	require.Equal(t, "", v.Value, "expected invalid value from Validation")
 	require.Equal(t, vr.Current().Value, "value", "expected unchanged validating refreshable")
 
 	// attempt good update
 	r.Update(container{Value: "value2"})
-	require.NoError(t, vr.LastValidateErr())
+	v, err = vr.Validation()
+	require.NoError(t, err)
+	require.Equal(t, "value2", v.Value)
 	require.Equal(t, "value2", vr.Current().Value)
 	require.Equal(t, "value2", r.Current().Value)
 }
 
 func TestMapValidatingRefreshable(t *testing.T) {
 	r := refreshable.New("https://palantir.com:443")
-	vr, err := refreshable.NewMapValidatingRefreshable[string, *url.URL](r, url.Parse)
+	vr, _, err := refreshable.MapWithError[string, *url.URL](r, url.Parse)
 	require.NoError(t, err)
-	require.NoError(t, vr.LastValidateErr())
+	_, err = vr.Validation()
+	require.NoError(t, err)
 	require.Equal(t, r.Current(), "https://palantir.com:443")
 	require.Equal(t, vr.Current().Hostname(), "palantir.com")
 
 	// attempt bad update
 	r.Update(":::error.com")
 	assert.Equal(t, r.Current(), ":::error.com")
-	require.EqualError(t, vr.LastValidateErr(), "parse \":::error.com\": missing protocol scheme", "expected err from validating refreshable")
+	_, err = vr.Validation()
+	require.EqualError(t, err, "parse \":::error.com\": missing protocol scheme", "expected err from validating refreshable")
 	assert.Equal(t, vr.Current().Hostname(), "palantir.com", "expected unchanged validating refreshable")
 
 	// attempt good update
 	r.Update("https://example.com")
-	require.NoError(t, vr.LastValidateErr())
+	_, err = vr.Validation()
+	require.NoError(t, err)
 	require.Equal(t, r.Current(), "https://example.com")
 	require.Equal(t, vr.Current().Hostname(), "example.com")
 }
@@ -67,15 +75,26 @@ func TestMapValidatingRefreshable(t *testing.T) {
 // if the underlying refreshable updates during the creation process.
 func TestValidatingRefreshable_SubscriptionRaceCondition(t *testing.T) {
 	r := &updateImmediatelyRefreshable{r: refreshable.New(1), newValue: 2}
-	vr, err := refreshable.NewValidatingRefreshable[int](r, func(i int) error { return nil })
+	var seen1, seen2 bool
+	vr, _, err := refreshable.Validate[int](r, func(i int) error {
+		switch i {
+		case 1:
+			seen1 = true
+		case 2:
+			seen2 = true
+		}
+		return nil
+	})
 	require.NoError(t, err)
+	assert.True(t, seen1, "expected to process 1 value")
+	assert.True(t, seen2, "expected to process 2 value")
 	// If this returns 1, it is likely because the VR contains a stale value
 	assert.Equal(t, 2, vr.Current())
 }
 
 // updateImmediatelyRefreshable is a mock implementation which updates to newValue immediately when Current() is called
 type updateImmediatelyRefreshable struct {
-	r        *refreshable.DefaultRefreshable[int]
+	r        refreshable.Updatable[int]
 	newValue int
 }
 

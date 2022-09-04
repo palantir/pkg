@@ -4,11 +4,6 @@
 
 package refreshable
 
-import (
-	"context"
-	"time"
-)
-
 // A Refreshable is a generic container type for a volatile underlying value.
 // It supports atomic access and user-provided callback "subscriptions" on updates.
 type Refreshable[T any] interface {
@@ -17,7 +12,8 @@ type Refreshable[T any] interface {
 	Current() T
 
 	// Subscribe calls the consumer function when Value updates until stop is closed.
-	// The consumer should be relatively fast: Updatable.Set blocks until all subscribers have returned.
+	// The consumer must be relatively fast: Updatable.Set blocks until all subscribers have returned.
+	// Expensive or error-prone responses to refreshed values should be asynchronous.
 	// Updates considered no-ops by reflect.DeepEqual may be skipped.
 	Subscribe(consumer func(T)) UnsubscribeFunc
 }
@@ -37,7 +33,7 @@ type Validated[T any] interface {
 	Refreshable[T]
 	// Validation returns the result of the most recent validation.
 	// If the last value was valid, Validation returns the same value as Current and a nil error.
-	// If the last value was invalid, it and the validation error are returned. Current returns the newest valid value.
+	// If the last value was invalid, it and the error are returned. Current returns the most recent valid value.
 	Validation() (T, error)
 }
 
@@ -49,110 +45,36 @@ type Ready[T any] interface {
 	ReadyC() <-chan struct{}
 }
 
+// UnsubscribeFunc removes a subscription from a refreshable's internal tracking and/or stops its update routine.
+// It is safe to call multiple times.
 type UnsubscribeFunc func()
 
-func New[T any](val T) *DefaultRefreshable[T] {
-	d := new(DefaultRefreshable[T])
-	d.current.Store(&val)
-	return d
+func New[T any](val T) Updatable[T] {
+	return newDefault(val)
 }
 
 // Map returns a new Refreshable based on the current one that handles updates based on the current Refreshable.
-func Map[T any, M any](t Refreshable[T], mapFn func(T) M) (Refreshable[M], UnsubscribeFunc) {
-	out := New(mapFn(t.Current()))
-	unsubscribe := t.Subscribe(func(v T) {
+func Map[T any, M any](original Refreshable[T], mapFn func(T) M) (Refreshable[M], UnsubscribeFunc) {
+	out := New(mapFn(original.Current()))
+	stop := original.Subscribe(func(v T) {
 		out.Update(mapFn(v))
 	})
-	return out, unsubscribe
+	out.Update(mapFn(original.Current()))
+	return out, stop
 }
 
-func SubscribeWithCurrent[T any](r Refreshable[T], consumer func(T)) UnsubscribeFunc {
-	unsubscribe := r.Subscribe(consumer)
-	consumer(r.Current())
-	return unsubscribe
+// MapWithError is similar to Validate but allows for the function to return a mapping/mutation
+// of the input object in addition to returning an error. The returned validRefreshable will contain the mapped value.
+// An error is returned if the current original value fails to map.
+func MapWithError[T any, M any](original Refreshable[T], mapFn func(T) (M, error)) (Validated[M], UnsubscribeFunc, error) {
+	v, stop := newValidRefreshable(original, mapFn)
+	_, err := v.Validation()
+	return v, stop, err
 }
 
-// UpdateFromChannel populates an Updatable with the values channel.
-// If an element is already available, the returned Value is guaranteed to be populated.
-// The channel should be closed when no longer used to avoid leaking resources.
-func UpdateFromChannel[T any](in Updatable[T], values <-chan T) Ready[T] {
-	out := newReady(in)
-	select {
-	case initial, ok := <-values:
-		if !ok {
-			return out // channel already closed
-		}
-		out.Update(initial)
-	default:
-	}
-
-	go func() {
-		for value := range values {
-			out.Update(value)
-		}
-	}()
-
-	return out
-}
-
-// UpdateFromTickerFunc returns a Refreshable populated by the result of the provider called each interval.
-// If the providers bool return is false, the value is ignored.
-func UpdateFromTickerFunc[T any](in Updatable[T], interval time.Duration, provider func() (T, bool)) (Ready[T], UnsubscribeFunc) {
-	out := newReady(in)
-	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		ticker := time.NewTicker(interval)
-		defer ticker.Stop()
-		for {
-			if value, ok := provider(); ok {
-				out.Update(value)
-			}
-			select {
-			case <-ticker.C:
-				continue
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
-	return out, UnsubscribeFunc(cancel)
-}
-
-// Wait waits until the Ready has a current value or the context expires.
-func Wait[T any](ctx context.Context, ready Ready[T]) (T, bool) {
-	select {
-	case <-ready.ReadyC():
-		return ready.Current(), true
-	case <-ctx.Done():
-		var zero T
-		return zero, false
-	}
-}
-
-type ready[T any] struct {
-	in     Updatable[T]
-	readyC <-chan struct{}
-	cancel context.CancelFunc
-}
-
-func newReady[T any](in Updatable[T]) *ready[T] {
-	ctx, cancel := context.WithCancel(context.Background())
-	return &ready[T]{in: in, readyC: ctx.Done(), cancel: cancel}
-}
-
-func (r *ready[T]) Current() T {
-	return r.in.Current()
-}
-
-func (r *ready[T]) Subscribe(consumer func(T)) UnsubscribeFunc {
-	return r.in.Subscribe(consumer)
-}
-
-func (r *ready[T]) ReadyC() <-chan struct{} {
-	return r.readyC
-}
-
-func (r *ready[T]) Update(val T) {
-	r.cancel()
-	r.in.Update(val)
+// Validate returns a new Refreshable that returns the latest original value accepted by the validatingFn.
+// If the upstream value results in an error, it is reported by Validation().
+// An error is returned if the current original value is invalid.
+func Validate[T any](original Refreshable[T], validatingFn func(T) error) (Validated[T], UnsubscribeFunc, error) {
+	return MapWithError(original, identity(validatingFn))
 }
