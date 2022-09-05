@@ -4,6 +4,10 @@
 
 package refreshable
 
+import (
+	"context"
+)
+
 // A Refreshable is a generic container type for a volatile underlying value.
 // It supports atomic access and user-provided callback "subscriptions" on updates.
 type Refreshable[T any] interface {
@@ -61,6 +65,16 @@ func Map[T any, M any](original Refreshable[T], mapFn func(T) M) (Refreshable[M]
 	})
 	out.Update(mapFn(original.Current()))
 	return out, stop
+}
+
+// MapContext is like Map but unsubscribes when the context is cancelled.
+func MapContext[T any, M any](ctx context.Context, original Refreshable[T], mapFn func(T) M) Refreshable[M] {
+	out, stop := Map(original, mapFn)
+	go func() {
+		<-ctx.Done()
+		stop()
+	}()
+	return out
 }
 
 // MapWithError is similar to Validate but allows for the function to return a mapping/mutation
