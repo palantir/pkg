@@ -101,10 +101,10 @@ var runtimeMemStats sync.Once
 //
 // Deprecated: use CaptureRuntimeMemStatsWithCancel instead. CaptureRuntimeMemStatsWithCancel has the following
 // advantages over this function:
-//   * Does not make assumptions about the concrete struct implementing of RootRegistry
-//   * Does not restrict the function to being called only once globally
-//   * Supports cancellation using a provided context
-//   * Can tell if provided RootRegistry does not support Go runtime metric collection based on return value
+//   - Does not make assumptions about the concrete struct implementing of RootRegistry
+//   - Does not restrict the function to being called only once globally
+//   - Supports cancellation using a provided context
+//   - Can tell if provided RootRegistry does not support Go runtime metric collection based on return value
 func CaptureRuntimeMemStats(registry RootRegistry, collectionFreq time.Duration) {
 	runtimeMemStats.Do(func() {
 		if reg, ok := registry.(*rootRegistry); ok {

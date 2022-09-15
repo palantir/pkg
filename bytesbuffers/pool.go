@@ -7,14 +7,13 @@
 //
 // Example Usage: Marshal a JSON request body to a buffer, then put it back in the pool after the request.
 //
-//    pool := bytesbuffers.NewSyncPool(4)
-//    var obj MyInput{}
+//	pool := bytesbuffers.NewSyncPool(4)
+//	var obj MyInput{}
 //
-//    buffer := pool.Get()
-//    defer pool.Put(buffer)
-//    _ = json.NewEncoder(buffer).Encode(obj)
-//    _, _ = http.Post("http://localhost:1234", "application/json", buffer)
-//
+//	buffer := pool.Get()
+//	defer pool.Put(buffer)
+//	_ = json.NewEncoder(buffer).Encode(obj)
+//	_, _ = http.Post("http://localhost:1234", "application/json", buffer)
 package bytesbuffers
 
 import (
