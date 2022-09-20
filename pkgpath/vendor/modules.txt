@@ -1,11 +1,11 @@
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
 github.com/davecgh/go-spew/spew
-# github.com/nmiyake/pkg/dirs v1.0.0
-## explicit; go 1.13
+# github.com/nmiyake/pkg/dirs v1.1.0
+## explicit; go 1.16
 github.com/nmiyake/pkg/dirs
-# github.com/nmiyake/pkg/gofiles v1.0.0
-## explicit; go 1.13
+# github.com/nmiyake/pkg/gofiles v1.2.0
+## explicit; go 1.16
 github.com/nmiyake/pkg/gofiles
 # github.com/palantir/pkg v1.0.1
 ## explicit; go 1.13
@@ -20,6 +20,29 @@ github.com/pmezard/go-difflib/difflib
 ## explicit; go 1.13
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
+# golang.org/x/mod v0.4.2
+## explicit; go 1.12
+golang.org/x/mod/semver
+# golang.org/x/sys v0.0.0-20210510120138-977fb7262007
+## explicit; go 1.17
+golang.org/x/sys/execabs
+# golang.org/x/tools v0.1.1
+## explicit; go 1.17
+golang.org/x/tools/go/gcexportdata
+golang.org/x/tools/go/internal/gcimporter
+golang.org/x/tools/go/internal/packagesdriver
+golang.org/x/tools/go/packages
+golang.org/x/tools/internal/event
+golang.org/x/tools/internal/event/core
+golang.org/x/tools/internal/event/keys
+golang.org/x/tools/internal/event/label
+golang.org/x/tools/internal/gocommand
+golang.org/x/tools/internal/packagesinternal
+golang.org/x/tools/internal/typesinternal
+# golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
+## explicit; go 1.11
+golang.org/x/xerrors
+golang.org/x/xerrors/internal
 # gopkg.in/yaml.v3 v3.0.1
 ## explicit
 gopkg.in/yaml.v3
