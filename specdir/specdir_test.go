@@ -5,23 +5,17 @@
 package specdir_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"regexp"
 	"testing"
 
-	"github.com/nmiyake/pkg/dirs"
 	"github.com/palantir/pkg/specdir"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestSpecDirConstruction(t *testing.T) {
-	tmpDir, cleanup, err := dirs.TempDir("", "")
-	defer cleanup()
-	require.NoError(t, err)
-
 	for i, currCase := range []struct {
 		rootDir       string
 		spec          specdir.LayoutSpec
@@ -41,11 +35,9 @@ func TestSpecDirConstruction(t *testing.T) {
 			expectedError: `^.+/missing is not a path to root$`,
 		},
 	} {
-		currCaseTmpDir, err := ioutil.TempDir(tmpDir, "")
-		require.NoError(t, err)
-
+		currCaseTmpDir := t.TempDir()
 		rootForCreation := path.Join(currCaseTmpDir, currCase.rootDir)
-		err = os.Mkdir(rootForCreation, 0755)
+		err := os.Mkdir(rootForCreation, 0755)
 		require.NoError(t, err)
 
 		createDirectoryStructure(t, currCaseTmpDir, currCase.pathsToCreate)
@@ -60,16 +52,14 @@ func TestSpecDirConstruction(t *testing.T) {
 }
 
 func TestSpecDirCreateMode(t *testing.T) {
-	tmpDir, cleanup, err := dirs.TempDir("", "")
-	defer cleanup()
-	require.NoError(t, err)
+	tmpDir := t.TempDir()
 
 	spec := specdir.NewLayoutSpec(
 		specdir.Dir(specdir.LiteralName("root"), "",
 			specdir.Dir(specdir.LiteralName("child"), ""),
 		), true)
 	rootForCreation := path.Join(tmpDir, "root")
-	_, err = specdir.New(rootForCreation, spec, nil, specdir.Create)
+	_, err := specdir.New(rootForCreation, spec, nil, specdir.Create)
 	require.NoError(t, err)
 
 	// use SpecDir to do validation of creation
@@ -78,10 +68,6 @@ func TestSpecDirCreateMode(t *testing.T) {
 }
 
 func TestSpecDirGetPath(t *testing.T) {
-	tmpDir, cleanup, err := dirs.TempDir("", "")
-	defer cleanup()
-	require.NoError(t, err)
-
 	for i, currCase := range []struct {
 		rootDir       string
 		spec          specdir.LayoutSpec
@@ -114,11 +100,10 @@ func TestSpecDirGetPath(t *testing.T) {
 			expectedPath: "root/child/grandchild",
 		},
 	} {
-		currCaseTmpDir, err := ioutil.TempDir(tmpDir, "")
-		require.NoError(t, err)
+		currCaseTmpDir := t.TempDir()
 
 		rootForCreation := path.Join(currCaseTmpDir, currCase.rootDir)
-		err = os.Mkdir(rootForCreation, 0755)
+		err := os.Mkdir(rootForCreation, 0755)
 		require.NoError(t, err)
 
 		createDirectoryStructure(t, currCaseTmpDir, currCase.pathsToCreate)
