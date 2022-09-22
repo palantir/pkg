@@ -3,7 +3,6 @@ module github.com/palantir/pkg/matcher
 go 1.18
 
 require (
-	github.com/nmiyake/pkg/dirs v1.0.0
 	github.com/palantir/pkg v1.0.1
 	github.com/stretchr/testify v1.8.0
 	gopkg.in/yaml.v2 v2.4.0
