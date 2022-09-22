@@ -3,8 +3,6 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/nmiyake/pkg/dirs v1.0.0 h1:pYeIw1wH7jh5/ew8naGE4Q56byJG7Uyi8PwwhVe/MTg=
 github.com/nmiyake/pkg/dirs v1.0.0/go.mod h1:r6/PkZ3CA1szGfQkxcHheEjBWi6Zu6jLb+lQmRXEyvM=
-github.com/nmiyake/pkg/gofiles v1.0.0 h1:I/0ZHRThFID/qpt3xySNV7AkEGyg1QABQrMT00vwXmw=
-github.com/nmiyake/pkg/gofiles v1.0.0/go.mod h1:F+0i7sA0xTtovYCTcEutbEbFbW2vAQMm2cyHcXFpAok=
 github.com/palantir/pkg v1.0.1 h1:ZbGUcc14N7xcZSY9cehQoiHHTm/BAZO5RJdlsNEtSbk=
 github.com/palantir/pkg v1.0.1/go.mod h1:Eo6Jl0UXfT+65sLXJOcU9duu0WPvKsWFXCb0dE5VWZs=
 github.com/palantir/pkg/matcher v1.0.1 h1:+Q9oIaR7+jCni9Z+ZTAWXl71BBTpE6r+4t4D/FXwp4g=
