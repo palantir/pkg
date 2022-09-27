@@ -7,7 +7,7 @@ require (
 	github.com/palantir/pkg v1.0.1
 	github.com/spf13/viper v1.13.0
 	github.com/stretchr/testify v1.8.0
-	golang.org/x/crypto v0.0.0-20220919173607-35f4265a4bc0
+	golang.org/x/crypto v0.0.0-20220926161630-eccd6366d1be
 )
 
 require (

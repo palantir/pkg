@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/palantir/pkg v1.0.1
-	github.com/palantir/pkg/matcher v1.0.1
+	github.com/palantir/pkg/matcher v1.1.0
 	github.com/stretchr/testify v1.8.0
 )
 

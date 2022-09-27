@@ -4,8 +4,8 @@ github.com/davecgh/go-spew/spew
 # github.com/palantir/pkg v1.0.1
 ## explicit; go 1.13
 github.com/palantir/pkg
-# github.com/palantir/pkg/matcher v1.0.1
-## explicit; go 1.13
+# github.com/palantir/pkg/matcher v1.1.0
+## explicit; go 1.18
 github.com/palantir/pkg/matcher
 # github.com/pmezard/go-difflib v1.0.0
 ## explicit
