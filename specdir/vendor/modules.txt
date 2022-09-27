@@ -1,9 +1,6 @@
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
 github.com/davecgh/go-spew/spew
-# github.com/nmiyake/pkg/dirs v1.0.0
-## explicit; go 1.13
-github.com/nmiyake/pkg/dirs
 # github.com/palantir/pkg v1.0.1
 ## explicit; go 1.13
 github.com/palantir/pkg

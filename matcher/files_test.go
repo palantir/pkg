@@ -5,22 +5,16 @@
 package matcher_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"testing"
 
-	"github.com/nmiyake/pkg/dirs"
 	"github.com/palantir/pkg/matcher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestListFiles(t *testing.T) {
-	tmpDir, cleanup, err := dirs.TempDir("", "")
-	defer cleanup()
-	require.NoError(t, err)
-
 	cases := []struct {
 		include       matcher.Matcher
 		exclude       matcher.Matcher
@@ -61,26 +55,22 @@ func TestListFiles(t *testing.T) {
 	}
 
 	for i, currCase := range cases {
-		currCaseTmpDir := createFiles(t, tmpDir, currCase.filesToCreate)
+		tmpDir := t.TempDir()
+		createFiles(t, tmpDir, currCase.filesToCreate)
 
-		got, err := matcher.ListFiles(currCaseTmpDir, currCase.include, currCase.exclude)
+		got, err := matcher.ListFiles(tmpDir, currCase.include, currCase.exclude)
 		require.NoError(t, err, "Case %d", i)
 
 		assert.Equal(t, currCase.want, got, "Case %d", i)
 	}
 }
 
-func createFiles(t *testing.T, tmpDir string, files map[string]string) string {
-	currCaseTmpDir, err := ioutil.TempDir(tmpDir, "")
-	require.NoError(t, err)
-
+func createFiles(t *testing.T, tmpDir string, files map[string]string) {
 	for currFile, currContent := range files {
-		err := os.MkdirAll(path.Join(currCaseTmpDir, path.Dir(currFile)), 0755)
+		err := os.MkdirAll(path.Join(tmpDir, path.Dir(currFile)), 0755)
 		require.NoError(t, err)
 
-		err = ioutil.WriteFile(path.Join(currCaseTmpDir, currFile), []byte(currContent), 0644)
+		err = os.WriteFile(path.Join(tmpDir, currFile), []byte(currContent), 0644)
 		require.NoError(t, err)
 	}
-
-	return currCaseTmpDir
 }

@@ -1,6 +1,6 @@
 module github.com/palantir/pkg/cobracli
 
-go 1.18
+go 1.19
 
 require (
 	github.com/nmiyake/pkg/errorstringer v1.0.0

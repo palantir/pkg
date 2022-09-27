@@ -4,7 +4,7 @@
 
 // Package retry provides functionality for controlling retries.
 //
-// Exponential Backoff
+// # Exponential Backoff
 //
 // Backoff duration after $retryAttempt (first attempt is 0) is defined as:
 //
@@ -12,7 +12,7 @@
 //	  min(initialBackoff * pow(multiplier, $retryAttempt), maxBackoff == 0 ? +Inf : maxBackoff) *
 //	    (1.0 - randomizationFactor + 2 * rand(0, randomizationFactor))
 //
-// Retrying Failures
+// # Retrying Failures
 //
 // Example 1: Opening connection.
 //
@@ -20,7 +20,7 @@
 //		return openConnection(&handle)
 //	})
 //
-// Retry Loops
+// # Retry Loops
 //
 // Example 1: Event pulling and dispatching.
 //
@@ -56,7 +56,6 @@
 //		}
 //	}
 //	return false
-//
 package retry
 
 import (
@@ -205,7 +204,6 @@ const (
 //	backoff =
 //	  min(initialBackoff * pow(multiplier, $attempt), maxBackoff == 0 ? +Inf : maxBackoff) *
 //	    (1.0 - randomizationFactor + 2 * rand(0, randomizationFactor))
-//
 type retrier struct {
 	options        options
 	ctxDoneChan    <-chan struct{}

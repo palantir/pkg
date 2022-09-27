@@ -5,23 +5,17 @@
 package specdir_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"regexp"
 	"testing"
 
-	"github.com/nmiyake/pkg/dirs"
 	"github.com/palantir/pkg/specdir"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestValidateSpec(t *testing.T) {
-	tmpDir, cleanup, err := dirs.TempDir("", "")
-	defer cleanup()
-	require.NoError(t, err)
-
 	for i, currCase := range []struct {
 		dirToValidate string
 		spec          specdir.LayoutSpec
@@ -119,11 +113,10 @@ func TestValidateSpec(t *testing.T) {
 			},
 		},
 	} {
-		currCaseTmpDir, err := ioutil.TempDir(tmpDir, "")
-		require.NoError(t, err)
+		currCaseTmpDir := t.TempDir()
 
 		createDirectoryStructure(t, currCaseTmpDir, currCase.pathsToCreate)
-		err = currCase.spec.Validate(path.Join(currCaseTmpDir, currCase.dirToValidate), currCase.values)
+		err := currCase.spec.Validate(path.Join(currCaseTmpDir, currCase.dirToValidate), currCase.values)
 		if currCase.expectedError == "" {
 			assert.NoError(t, err, "Case %d", i)
 		} else {
@@ -133,10 +126,6 @@ func TestValidateSpec(t *testing.T) {
 }
 
 func TestCreateDirectoryStructure(t *testing.T) {
-	tmpDir, cleanup, err := dirs.TempDir("", "")
-	defer cleanup()
-	require.NoError(t, err)
-
 	for i, currCase := range []struct {
 		rootDirForCreation string
 		spec               specdir.LayoutSpec
@@ -226,11 +215,10 @@ func TestCreateDirectoryStructure(t *testing.T) {
 			), true),
 		},
 	} {
-		currCaseTmpDir, err := ioutil.TempDir(tmpDir, "")
-		require.NoError(t, err)
+		currCaseTmpDir := t.TempDir()
 
 		rootForCreation := path.Join(currCaseTmpDir, currCase.rootDirForCreation)
-		err = os.Mkdir(rootForCreation, 0755)
+		err := os.Mkdir(rootForCreation, 0755)
 		require.NoError(t, err)
 
 		createDirectoryStructure(t, currCaseTmpDir, currCase.pathsToCreate)
@@ -267,7 +255,7 @@ func createDirectoryStructure(t *testing.T, tmpDir string, paths map[string]spec
 		require.NoError(t, err)
 
 		if pathType == specdir.FilePath {
-			err := ioutil.WriteFile(currPath, []byte("test file"), 0644)
+			err := os.WriteFile(currPath, []byte("test file"), 0644)
 			require.NoError(t, err)
 		}
 	}

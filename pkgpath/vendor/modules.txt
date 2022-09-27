@@ -1,17 +1,11 @@
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
 github.com/davecgh/go-spew/spew
-# github.com/nmiyake/pkg/dirs v1.0.0
-## explicit; go 1.13
-github.com/nmiyake/pkg/dirs
-# github.com/nmiyake/pkg/gofiles v1.0.0
-## explicit; go 1.13
-github.com/nmiyake/pkg/gofiles
 # github.com/palantir/pkg v1.0.1
 ## explicit; go 1.13
 github.com/palantir/pkg
-# github.com/palantir/pkg/matcher v1.0.1
-## explicit; go 1.13
+# github.com/palantir/pkg/matcher v1.1.0
+## explicit; go 1.18
 github.com/palantir/pkg/matcher
 # github.com/pmezard/go-difflib v1.0.0
 ## explicit
