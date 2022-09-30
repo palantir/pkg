@@ -25,8 +25,8 @@ github.com/mitchellh/go-wordwrap
 # github.com/mitchellh/mapstructure v1.5.0
 ## explicit; go 1.14
 github.com/mitchellh/mapstructure
-# github.com/palantir/pkg v1.0.1
-## explicit; go 1.13
+# github.com/palantir/pkg v1.1.0
+## explicit; go 1.19
 github.com/palantir/pkg
 # github.com/pelletier/go-toml v1.9.5
 ## explicit; go 1.12
