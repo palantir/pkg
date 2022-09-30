@@ -35,7 +35,7 @@ executors:`
 	executorTemplateContent = `
   circleci-go-{{.Module}}:
     docker:
-      - image: cimg/go:1.18-browsers
+      - image: cimg/go:1.19-browsers
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/{{.Module}}
 `
 
@@ -44,7 +44,7 @@ jobs:
   verify-circleci:
     working_directory: /home/circleci/go/src/github.com/palantir/pkg
     docker:
-      - image: cimg/go:1.18-browsers
+      - image: cimg/go:1.19-browsers
     resource_class: small
     steps:
       - checkout
@@ -53,7 +53,7 @@ jobs:
       - run: diff  <(cat .circleci/config.yml) <(go run .circleci/generate.go .)
   circle-all:
     docker:
-      - image: cimg/go:1.18-browsers
+      - image: cimg/go:1.19-browsers
     resource_class: small
     steps:
       - run: echo "All required jobs run successfully"
