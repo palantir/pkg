@@ -3,7 +3,6 @@ module github.com/palantir/pkg/safejson
 go 1.19
 
 require (
-	github.com/palantir/pkg v1.1.0
 	github.com/stretchr/testify v1.8.0
 	gopkg.in/yaml.v2 v2.4.0
 )

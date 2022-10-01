@@ -4,7 +4,6 @@ go 1.19
 
 require (
 	github.com/mitchellh/go-wordwrap v1.0.0
-	github.com/palantir/pkg v1.1.0
 	github.com/spf13/viper v1.13.0
 	github.com/stretchr/testify v1.8.0
 	golang.org/x/crypto v0.0.0-20220926161630-eccd6366d1be
