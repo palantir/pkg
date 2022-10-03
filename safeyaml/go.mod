@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/palantir/pkg v1.1.0
-	github.com/palantir/pkg/transform v1.0.1
+	github.com/palantir/pkg/transform v1.1.0
 	github.com/stretchr/testify v1.8.0
 	gopkg.in/yaml.v2 v2.2.2
 )

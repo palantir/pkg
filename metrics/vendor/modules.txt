@@ -7,8 +7,8 @@ github.com/palantir/go-metrics
 # github.com/palantir/pkg v1.1.0
 ## explicit; go 1.19
 github.com/palantir/pkg
-# github.com/palantir/pkg/objmatcher v1.0.1
-## explicit; go 1.13
+# github.com/palantir/pkg/objmatcher v1.1.0
+## explicit; go 1.19
 github.com/palantir/pkg/objmatcher
 # github.com/pkg/errors v0.8.1
 ## explicit
