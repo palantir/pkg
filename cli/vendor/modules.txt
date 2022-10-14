@@ -72,7 +72,7 @@ github.com/stretchr/testify/require
 # github.com/subosito/gotenv v1.4.1
 ## explicit; go 1.18
 github.com/subosito/gotenv
-# golang.org/x/crypto v0.0.0-20221005025214-4161e89ecf1b
+# golang.org/x/crypto v0.0.0-20221012134737-56aed061732a
 ## explicit; go 1.17
 golang.org/x/crypto/ssh/terminal
 # golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a
