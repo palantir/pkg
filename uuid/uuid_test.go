@@ -26,6 +26,12 @@ func TestUUID_MarshalJSON(t *testing.T) {
 	assert.Equal(t, `"00010203-0405-0607-0809-0a0b0c0d0e0f"`, string(marshalledUUID))
 }
 
+func TestUUID_MarshalBinary(t *testing.T) {
+	marshalledUUID, err := testUUID.MarshalBinary()
+	require.NoError(t, err)
+	require.Equal(t, []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}, marshalledUUID)
+}
+
 func TestUUID_UnmarshalJSON(t *testing.T) {
 	t.Run("correct lower case", func(t *testing.T) {
 		var actual uuid.UUID
@@ -45,6 +51,24 @@ func TestUUID_UnmarshalJSON(t *testing.T) {
 		var actual uuid.UUID
 		err := json.Unmarshal([]byte(`"00010203-04Z5-0607-0809-0A0B0C0D0E0F"`), &actual)
 		assert.EqualError(t, err, "invalid UUID format")
+	})
+}
+
+func TestUUID_FromBytes(t *testing.T) {
+	actual, err := uuid.FromBytes([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15})
+	require.NoError(t, err)
+	require.Equal(t, testUUID, actual)
+
+	t.Run("short []byte", func(t *testing.T) {
+		actual, err := uuid.FromBytes([]byte{0, 1, 2, 3, 4, 5, 6, 7})
+		require.EqualError(t, err, "invalid UUID (got 8 bytes)")
+		require.Zero(t, actual)
+	})
+
+	t.Run("long []byte", func(t *testing.T) {
+		actual, err := uuid.FromBytes([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16})
+		require.EqualError(t, err, "invalid UUID (got 17 bytes)")
+		require.Zero(t, actual)
 	})
 }
 
