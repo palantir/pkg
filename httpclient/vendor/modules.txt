@@ -1,8 +1,8 @@
 # github.com/palantir/pkg v1.1.0
 ## explicit; go 1.19
 github.com/palantir/pkg
-# golang.org/x/net v0.0.0-20191116160921-f9c825593386
-## explicit; go 1.11
+# golang.org/x/net v0.1.0
+## explicit; go 1.17
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2
 golang.org/x/net/http2/hpack
