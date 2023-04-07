@@ -163,6 +163,21 @@ package different`},
 				"foo": "main",
 			},
 		},
+		// when listing packages in a directory, ignore other modules
+		{
+			filesToCreate: []GoFileSpec{
+				{RelPath: "go.mod", Src: "module mainmodule"},
+				{RelPath: "main.go", Src: "package main"},
+				{RelPath: "foo/main.go", Src: "package main"},
+				{RelPath: "bar/main.go", Src: "package main"},
+				{RelPath: "bar/go.mod", Src: "module pkgpathtest"},
+			},
+			exclude: matcher.Hidden(),
+			want: map[string]string{
+				".":   "main",
+				"foo": "main",
+			},
+		},
 		{
 			filesToCreate: []GoFileSpec{
 				{RelPath: "foo/main.go", Src: "package main"},

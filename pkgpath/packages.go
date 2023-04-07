@@ -254,6 +254,13 @@ func PackagesInDir(rootDir string, exclude matcher.Matcher) (Packages, error) {
 			return currRelPathErr
 		}
 
+		// if non-root directory is a module, do not consider it as a package
+		if currRelPath != "." {
+			if _, err := os.Stat(filepath.Join(currPath, "go.mod")); err == nil {
+				return filepath.SkipDir
+			}
+		}
+
 		// create a filter for processing package files that only passes if it does not match an exclude
 		filter := func(info os.FileInfo) bool {
 			// if exclude exists and matches the file, skip it
