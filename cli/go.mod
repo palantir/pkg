@@ -1,6 +1,6 @@
 module github.com/palantir/pkg/cli
 
-go 1.19
+go 1.20
 
 require (
 	github.com/mitchellh/go-wordwrap v1.0.0
