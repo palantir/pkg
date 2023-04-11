@@ -7,14 +7,13 @@
 //
 // Example Usage: Marshal a JSON request body to a buffer, then put it back in the pool after the request.
 //
-//    pool := bytesbuffers.NewSyncPool(4)
-//    var obj MyInput{}
+//	pool := bytesbuffers.NewSyncPool(4)
+//	var obj MyInput{}
 //
-//    buffer := pool.Get()
-//    defer pool.Put(buffer)
-//    _ = json.NewEncoder(buffer).Encode(obj)
-//    _, _ = http.Post("http://localhost:1234", "application/json", buffer)
-//
+//	buffer := pool.Get()
+//	defer pool.Put(buffer)
+//	_ = json.NewEncoder(buffer).Encode(obj)
+//	_, _ = http.Post("http://localhost:1234", "application/json", buffer)
 package bytesbuffers
 
 import (
@@ -37,7 +36,7 @@ type Pool interface {
 //
 // Use this for spiky workloads.
 func NewSyncPool(defaultBufferCapacity int64) Pool {
-	return &syncPool{Pool: &sync.Pool{
+	return &syncPool{allocSize: int(defaultBufferCapacity), Pool: &sync.Pool{
 		New: func() interface{} {
 			return bytes.NewBuffer(make([]byte, 0, defaultBufferCapacity))
 		},
@@ -45,7 +44,8 @@ func NewSyncPool(defaultBufferCapacity int64) Pool {
 }
 
 type syncPool struct {
-	Pool *sync.Pool
+	allocSize int
+	Pool      *sync.Pool
 }
 
 func (p *syncPool) Get() *bytes.Buffer {
@@ -54,6 +54,10 @@ func (p *syncPool) Get() *bytes.Buffer {
 
 func (p *syncPool) Put(buf *bytes.Buffer) {
 	buf.Reset()
+	// Only keep buffer if it has not grown. See https://golang.org/issue/23199
+	if buf.Cap() > p.allocSize {
+		return
+	}
 	p.Pool.Put(buf)
 }
 
@@ -87,10 +91,14 @@ func (p *sizedPool) Get() *bytes.Buffer {
 	}
 }
 
-func (p *sizedPool) Put(b *bytes.Buffer) {
-	b.Reset()
+func (p *sizedPool) Put(buf *bytes.Buffer) {
+	buf.Reset()
+	// Only keep buffer if it has not grown. See https://golang.org/issue/23199
+	if buf.Cap() > p.allocSize {
+		return
+	}
 	select {
-	case p.buffers <- b:
+	case p.buffers <- buf:
 		// return to pool
 	default:
 		// discard, pool is already full

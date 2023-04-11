@@ -6,36 +6,33 @@ package pkgpath_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 	"regexp"
 	"testing"
 
-	"github.com/nmiyake/pkg/dirs"
-	"github.com/nmiyake/pkg/gofiles"
 	"github.com/palantir/pkg/matcher"
 	"github.com/palantir/pkg/pkgpath"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+type GoFileSpec struct {
+	// The relative path to which the file should be written. For example, "foo/foo.go".
+	RelPath string
+	// Content of the file.
+	Src string
+}
+
 func TestNewPackages(t *testing.T) {
-	wd, err := os.Getwd()
-	require.NoError(t, err)
-
-	tmpDir, cleanup, err := dirs.TempDir(wd, "")
-	defer cleanup()
-	require.NoError(t, err)
-
 	for i, currCase := range []struct {
-		filesToCreate []gofiles.GoFileSpec
+		filesToCreate []GoFileSpec
 		args          []string
 		want          map[string]string
 	}{
 		{
-			filesToCreate: []gofiles.GoFileSpec{
+			filesToCreate: []GoFileSpec{
 				{RelPath: "foo/main.go", Src: "package main"},
 				{RelPath: "foo/bar/bar.go", Src: "package bar"},
 				{RelPath: "baz.go", Src: "package baz"},
@@ -50,7 +47,7 @@ func TestNewPackages(t *testing.T) {
 			},
 		},
 		{
-			filesToCreate: []gofiles.GoFileSpec{
+			filesToCreate: []GoFileSpec{
 				{RelPath: "foo/main.go", Src: "package main"},
 				{RelPath: "foo/bar/bar.go", Src: "package bar"},
 				{RelPath: "baz.go", Src: "package baz"},
@@ -64,10 +61,9 @@ func TestNewPackages(t *testing.T) {
 			},
 		},
 	} {
-		currCaseDir, err := ioutil.TempDir(tmpDir, "")
-		require.NoError(t, err)
+		currCaseDir := t.TempDir()
 
-		_, err = gofiles.Write(currCaseDir, currCase.filesToCreate)
+		err := writeGoFiles(currCaseDir, currCase.filesToCreate)
 		require.NoError(t, err)
 
 		pkgs, err := pkgpath.PackagesFromPaths(currCaseDir, currCase.args)
@@ -87,17 +83,19 @@ func TestListPackages(t *testing.T) {
 	testPkgPath, err := filepath.Rel(path.Join(os.Getenv("GOPATH"), "src"), wd)
 	require.NoError(t, err)
 
-	tmpDir, cleanup, err := dirs.TempDir(wd, "")
-	defer cleanup()
+	tmpDir, err := os.MkdirTemp(wd, "")
 	require.NoError(t, err)
+	defer func() {
+		_ = os.RemoveAll(tmpDir)
+	}()
 
 	for i, currCase := range []struct {
-		filesToCreate []gofiles.GoFileSpec
+		filesToCreate []GoFileSpec
 		exclude       matcher.Matcher
 		want          map[string]string
 	}{
 		{
-			filesToCreate: []gofiles.GoFileSpec{
+			filesToCreate: []GoFileSpec{
 				{RelPath: "matchers.go", Src: "package matchers"},
 			},
 			want: map[string]string{
@@ -105,7 +103,7 @@ func TestListPackages(t *testing.T) {
 			},
 		},
 		{
-			filesToCreate: []gofiles.GoFileSpec{
+			filesToCreate: []GoFileSpec{
 				{RelPath: "main.go", Src: "package main"},
 			},
 			want: map[string]string{
@@ -114,7 +112,7 @@ func TestListPackages(t *testing.T) {
 		},
 		// build tags are taken into consideration
 		{
-			filesToCreate: []gofiles.GoFileSpec{
+			filesToCreate: []GoFileSpec{
 				{RelPath: "main.go", Src: "package main"},
 				{RelPath: "no_build.go", Src: `// +build ignore
 
@@ -125,7 +123,7 @@ package different`},
 			},
 		},
 		{
-			filesToCreate: []gofiles.GoFileSpec{
+			filesToCreate: []GoFileSpec{
 				{RelPath: "foo/main.go", Src: "package main"},
 				{RelPath: "nosource/notgo.txt", Src: "package notgo"},
 				{RelPath: "pkg/barpkg.go", Src: "package bar"},
@@ -140,7 +138,7 @@ package different`},
 			},
 		},
 		{
-			filesToCreate: []gofiles.GoFileSpec{
+			filesToCreate: []GoFileSpec{
 				{RelPath: "foo/main.go", Src: "package main"},
 				{RelPath: "nosource/notgo.txt", Src: "package notgo"},
 				{RelPath: "pkg/barpkg.go", Src: "package bar"},
@@ -155,7 +153,7 @@ package different`},
 			},
 		},
 		{
-			filesToCreate: []gofiles.GoFileSpec{
+			filesToCreate: []GoFileSpec{
 				{RelPath: "foo/main.go", Src: "package main"},
 				{RelPath: "pkg/.barpkg.go", Src: "package bar"},
 				{RelPath: ".hidden/hidden.go", Src: "package hidden"},
@@ -166,7 +164,7 @@ package different`},
 			},
 		},
 		{
-			filesToCreate: []gofiles.GoFileSpec{
+			filesToCreate: []GoFileSpec{
 				{RelPath: "foo/main.go", Src: "package main"},
 				{RelPath: "foo/main_test.go", Src: "package main_test"},
 			},
@@ -175,7 +173,7 @@ package different`},
 			},
 		},
 		{
-			filesToCreate: []gofiles.GoFileSpec{
+			filesToCreate: []GoFileSpec{
 				{RelPath: "foo/main.go", Src: "package main"},
 				{RelPath: "bar/bar.go", Src: "package bar"},
 				{RelPath: "foo/integration_tests/main_test.go", Src: "package main_test"},
@@ -186,7 +184,7 @@ package different`},
 			},
 		},
 		{
-			filesToCreate: []gofiles.GoFileSpec{
+			filesToCreate: []GoFileSpec{
 				{RelPath: "foo/main.go", Src: "package main"},
 				{RelPath: "_bar/bar.go", Src: "package bar"},
 				{RelPath: "baz/_baz.go", Src: "package baz"},
@@ -202,13 +200,13 @@ package different`},
 			},
 		},
 	} {
-		currCaseDir, err := ioutil.TempDir(tmpDir, "")
+		currCaseDir, err := os.MkdirTemp(tmpDir, "")
 		require.NoError(t, err, "Case %d", i)
 
 		currCaseDirRelPath, err := filepath.Rel(wd, currCaseDir)
 		require.NoError(t, err, "Case %d", i)
 
-		_, err = gofiles.Write(currCaseDir, currCase.filesToCreate)
+		err = writeGoFiles(currCaseDir, currCase.filesToCreate)
 		require.NoError(t, err, "Case %d", i)
 
 		pkgs, err := pkgpath.PackagesInDir(currCaseDir, currCase.exclude)
@@ -242,36 +240,28 @@ package different`},
 }
 
 func TestListPackagesFailsWithMultiplePackages(t *testing.T) {
-	wd, err := os.Getwd()
-	require.NoError(t, err)
-
-	tmpDir, cleanup, err := dirs.TempDir(wd, "")
-	defer cleanup()
-	require.NoError(t, err)
-
 	for i, currCase := range []struct {
-		filesToCreate []gofiles.GoFileSpec
+		filesToCreate []GoFileSpec
 		errorMessage  string
 	}{
 		{
-			filesToCreate: []gofiles.GoFileSpec{
+			filesToCreate: []GoFileSpec{
 				{RelPath: "foo/main.go", Src: "package main"},
 				{RelPath: "foo/foo.go", Src: "package foo"},
 			},
 			errorMessage: `.+contains more than 1 package: \[foo main\]`,
 		},
 		{
-			filesToCreate: []gofiles.GoFileSpec{
+			filesToCreate: []GoFileSpec{
 				{RelPath: "foo/main.go", Src: "package main"},
 				{RelPath: "foo/foo_test.go", Src: "package foo_test"},
 			},
 			errorMessage: `.+contains more than 1 package: \[foo main\]`,
 		},
 	} {
-		currCaseDir, err := ioutil.TempDir(tmpDir, "")
-		require.NoError(t, err, "Case %d", i)
+		currCaseDir := t.TempDir()
 
-		_, err = gofiles.Write(currCaseDir, currCase.filesToCreate)
+		err := writeGoFiles(currCaseDir, currCase.filesToCreate)
 		require.NoError(t, err, "Case %d", i)
 
 		_, err = pkgpath.PackagesInDir(currCaseDir, nil)
@@ -283,9 +273,7 @@ func TestListPackagesFailsWithMultiplePackages(t *testing.T) {
 
 // Verify that ListPackages uses the current value of the GOPATH environment variable to determine the package paths.
 func TestListPackagesSetGoPath(t *testing.T) {
-	tmpDir, cleanup, err := dirs.TempDir("", "")
-	defer cleanup()
-	require.NoError(t, err)
+	tmpDir := t.TempDir()
 
 	// get original value of GOPATH and restore after test
 	origGoPath := os.Getenv("GOPATH")
@@ -295,18 +283,18 @@ func TestListPackagesSetGoPath(t *testing.T) {
 		}
 	}()
 
-	err = os.Setenv("GOPATH", tmpDir)
+	err := os.Setenv("GOPATH", tmpDir)
 	require.NoError(t, err)
 
 	projectDir := path.Join(tmpDir, "src", "github.com", "test")
 	err = os.MkdirAll(projectDir, 0755)
 	require.NoError(t, err)
 
-	goFiles := []gofiles.GoFileSpec{
+	goFiles := []GoFileSpec{
 		{RelPath: "foo/main.go", Src: "package main"},
 		{RelPath: "foo/main_test.go", Src: "package main_test"},
 	}
-	_, err = gofiles.Write(projectDir, goFiles)
+	err = writeGoFiles(projectDir, goFiles)
 	require.NoError(t, err)
 
 	pkgs, err := pkgpath.PackagesInDir(projectDir, nil)
@@ -327,4 +315,23 @@ func TestPkgPathOutsideGoPathFails(t *testing.T) {
 
 	_, err := pkgpath.NewAbsPkgPath("/foo").GoPathSrcRel()
 	require.Regexp(t, msg, err.Error())
+}
+
+// writeGoFiles to the provided directory as the root directory.
+func writeGoFiles(dir string, files []GoFileSpec) error {
+	dir, err := filepath.Abs(dir)
+	if err != nil {
+		return err
+	}
+
+	for _, currFile := range files {
+		filePath := filepath.Join(dir, currFile.RelPath)
+		if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+			return err
+		}
+		if err := os.WriteFile(filePath, []byte(currFile.Src), 0644); err != nil {
+			return err
+		}
+	}
+	return nil
 }

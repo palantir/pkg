@@ -101,10 +101,10 @@ var runtimeMemStats sync.Once
 //
 // Deprecated: use CaptureRuntimeMemStatsWithCancel instead. CaptureRuntimeMemStatsWithCancel has the following
 // advantages over this function:
-//   * Does not make assumptions about the concrete struct implementing of RootRegistry
-//   * Does not restrict the function to being called only once globally
-//   * Supports cancellation using a provided context
-//   * Can tell if provided RootRegistry does not support Go runtime metric collection based on return value
+//   - Does not make assumptions about the concrete struct implementing of RootRegistry
+//   - Does not restrict the function to being called only once globally
+//   - Supports cancellation using a provided context
+//   - Can tell if provided RootRegistry does not support Go runtime metric collection based on return value
 func CaptureRuntimeMemStats(registry RootRegistry, collectionFreq time.Duration) {
 	runtimeMemStats.Do(func() {
 		if reg, ok := registry.(*rootRegistry); ok {
@@ -331,7 +331,7 @@ func (r *rootRegistry) Timer(name string, tags ...Tag) metrics.Timer {
 }
 
 func (r *rootRegistry) Histogram(name string, tags ...Tag) metrics.Histogram {
-	return r.HistogramWithSample(name, DefaultSample(), tags...)
+	return getOrRegisterHistogram(r.registerMetric(name, tags), r.registry)
 }
 
 func (r *rootRegistry) HistogramWithSample(name string, sample metrics.Sample, tags ...Tag) metrics.Histogram {
@@ -344,6 +344,15 @@ func (r *rootRegistry) Registry() metrics.Registry {
 
 func DefaultSample() metrics.Sample {
 	return metrics.NewExpDecaySample(defaultReservoirSize, defaultAlpha)
+}
+
+// Uses lazy instantiation to avoid allocating a Sample when getting an existing Histogram.
+// Similar to metrics.GetOrRegisterHistogram
+func getOrRegisterHistogram(name string, r metrics.Registry) metrics.Histogram {
+	if nil == r {
+		r = metrics.DefaultRegistry
+	}
+	return r.GetOrRegister(name, func() metrics.Histogram { return metrics.NewHistogram(DefaultSample()) }).(metrics.Histogram)
 }
 
 func (r *rootRegistry) registerMetric(name string, tags Tags) string {
