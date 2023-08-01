@@ -3,8 +3,8 @@ module github.com/palantir/pkg/rid
 go 1.19
 
 require (
-	github.com/palantir/pkg v1.0.1
-	github.com/stretchr/testify v1.8.0
+	github.com/palantir/pkg v1.1.0
+	github.com/stretchr/testify v1.8.2
 )
 
 require (

@@ -5,7 +5,7 @@
 package bytesbuffers_test
 
 import (
-	"bytes"
+	"strings"
 	"testing"
 
 	"github.com/palantir/pkg/bytesbuffers"
@@ -25,9 +25,7 @@ func TestPool_ProvidesResetBuffer(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			pool := poolProvider()
 
-			var buf *bytes.Buffer
-
-			buf = pool.Get()
+			buf := pool.Get()
 			assert.Equal(t, 0, buf.Len())
 			require.NoError(t, buf.WriteByte('a'))
 			require.Equal(t, 1, buf.Len())
@@ -36,6 +34,31 @@ func TestPool_ProvidesResetBuffer(t *testing.T) {
 
 			buf = pool.Get()
 			assert.Equal(t, 0, buf.Len())
+		})
+	}
+}
+
+func TestPool_DiscardsLargeBuffer(t *testing.T) {
+	const allocSize = 64
+	for name, poolProvider := range map[string]func() bytesbuffers.Pool{
+		"SyncPool": func() bytesbuffers.Pool {
+			return bytesbuffers.NewSyncPool(allocSize)
+		},
+		"SizedPool": func() bytesbuffers.Pool {
+			return bytesbuffers.NewSizedPool(1, allocSize)
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			pool := poolProvider()
+			buf := pool.Get()
+			require.Equal(t, allocSize, buf.Cap())
+			_, _ = buf.WriteString(strings.Repeat("0", 2*allocSize))
+			require.GreaterOrEqual(t, buf.Cap(), 2*allocSize)
+			pool.Put(buf)
+
+			newBuf := pool.Get()
+			require.False(t, buf == newBuf, "grown buffer should not have been reused")
+			require.Equal(t, allocSize, newBuf.Cap())
 		})
 	}
 }
