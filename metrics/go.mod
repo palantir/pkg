@@ -1,13 +1,13 @@
 module github.com/palantir/pkg/metrics
 
-go 1.19
+go 1.20
 
 require (
 	github.com/palantir/go-metrics v1.1.1
 	github.com/palantir/pkg v1.1.0
 	github.com/palantir/pkg/objmatcher v1.1.0
 	github.com/pkg/errors v0.8.1
-	github.com/stretchr/testify v1.8.2
+	github.com/stretchr/testify v1.8.4
 )
 
 require (
