@@ -45,7 +45,7 @@ func (r *ready[T]) Update(val T) {
 // If an element is already available, the returned Value is guaranteed to be populated.
 // The channel should be closed when no longer used to avoid leaking resources.
 func NewFromChannel[T any](values <-chan T) Ready[T] {
-	out := newReady(newZero[T]())
+	out := newReady[T](newZero[T]())
 	select {
 	case initial, ok := <-values:
 		if !ok {
@@ -66,7 +66,7 @@ func NewFromChannel[T any](values <-chan T) Ready[T] {
 // If the providers bool return is false, the value is ignored.
 // The result's ReadyC channel is closed when a new value is populated.
 func NewFromTickerFunc[T any](interval time.Duration, provider func() (T, bool)) (Ready[T], UnsubscribeFunc) {
-	out := newReady(newZero[T]())
+	out := newReady[T](newZero[T]())
 	ctx, cancel := context.WithCancel(context.Background())
 	values := make(chan T)
 	go func() {

@@ -59,12 +59,12 @@ func New[T any](val T) Updatable[T] {
 
 // Map returns a new Refreshable based on the current one that handles updates based on the current Refreshable.
 func Map[T any, M any](original Refreshable[T], mapFn func(T) M) (Refreshable[M], UnsubscribeFunc) {
-	out := New(mapFn(original.Current()))
+	out := newDefault(mapFn(original.Current()))
 	stop := original.Subscribe(func(v T) {
 		out.Update(mapFn(v))
 	})
 	out.Update(mapFn(original.Current()))
-	return out, stop
+	return (*readOnlyRefreshable[M])(out), stop
 }
 
 // MapContext is like Map but unsubscribes when the context is cancelled.
