@@ -19,6 +19,7 @@ type Refreshable[T any] interface {
 	// The consumer must be relatively fast: Updatable.Set blocks until all subscribers have returned.
 	// Expensive or error-prone responses to refreshed values should be asynchronous.
 	// Updates considered no-ops by reflect.DeepEqual may be skipped.
+	// When called, consumer is executed with the Current value.
 	Subscribe(consumer func(T)) UnsubscribeFunc
 }
 
@@ -63,7 +64,6 @@ func Map[T any, M any](original Refreshable[T], mapFn func(T) M) (Refreshable[M]
 	stop := original.Subscribe(func(v T) {
 		out.Update(mapFn(v))
 	})
-	out.Update(mapFn(original.Current()))
 	return (*readOnlyRefreshable[M])(out), stop
 }
 

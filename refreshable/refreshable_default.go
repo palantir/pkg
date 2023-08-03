@@ -52,6 +52,7 @@ func (d *defaultRefreshable[T]) Subscribe(consumer func(T)) UnsubscribeFunc {
 
 	consumerFnPtr := &consumer
 	d.subscribers = append(d.subscribers, consumerFnPtr)
+	consumer(d.Current())
 	return d.unsubscribe(consumerFnPtr)
 }
 
@@ -78,10 +79,10 @@ func (d *defaultRefreshable[T]) unsubscribe(consumerFnPtr *func(T)) UnsubscribeF
 // does not implement Updatable.
 type readOnlyRefreshable[T any] defaultRefreshable[T]
 
-func (r *readOnlyRefreshable[T]) Current() T {
-	return (*defaultRefreshable[T])(r).Current()
+func (d *readOnlyRefreshable[T]) Current() T {
+	return (*defaultRefreshable[T])(d).Current()
 }
 
-func (r *readOnlyRefreshable[T]) Subscribe(consumer func(T)) UnsubscribeFunc {
-	return (*defaultRefreshable[T])(r).Subscribe(consumer)
+func (d *readOnlyRefreshable[T]) Subscribe(consumer func(T)) UnsubscribeFunc {
+	return (*defaultRefreshable[T])(d).Subscribe(consumer)
 }

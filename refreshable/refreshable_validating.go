@@ -30,11 +30,10 @@ func (v *validRefreshable[T]) Validation() (T, error) {
 }
 
 func newValidRefreshable[T any, M any](original Refreshable[T], mappingFn func(T) (M, error)) (*validRefreshable[M], UnsubscribeFunc) {
-	valid := &validRefreshable[M]{r: New(validRefreshableContainer[M]{})}
+	valid := &validRefreshable[M]{r: newDefault(validRefreshableContainer[M]{})}
 	stop := original.Subscribe(func(valueT T) {
 		updateValidRefreshable(valid, valueT, mappingFn)
 	})
-	updateValidRefreshable(valid, original.Current(), mappingFn)
 	return valid, stop
 }
 

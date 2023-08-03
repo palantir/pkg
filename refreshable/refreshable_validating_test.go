@@ -8,6 +8,7 @@ import (
 	"errors"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/palantir/pkg/refreshable/v2"
 	"github.com/stretchr/testify/assert"
@@ -74,9 +75,11 @@ func TestMapValidatingRefreshable(t *testing.T) {
 // TestValidatingRefreshable_SubscriptionRaceCondition tests that the ValidatingRefreshable stays current
 // if the underlying refreshable updates during the creation process.
 func TestValidatingRefreshable_SubscriptionRaceCondition(t *testing.T) {
-	r := &updateImmediatelyRefreshable{r: refreshable.New(1), newValue: 2}
+	//r := &updateImmediatelyRefreshable{r: refreshable.New(1), newValue: 2}
+	r := refreshable.New(1)
 	var seen1, seen2 bool
 	vr, _, err := refreshable.Validate[int](r, func(i int) error {
+		go r.Update(2)
 		switch i {
 		case 1:
 			seen1 = true
@@ -86,10 +89,13 @@ func TestValidatingRefreshable_SubscriptionRaceCondition(t *testing.T) {
 		return nil
 	})
 	require.NoError(t, err)
+	// If this returns 1, it is likely because the VR contains a stale value
+	assert.Eventually(t, func() bool {
+		return vr.Current() == 2
+	}, time.Second, time.Millisecond)
+
 	assert.True(t, seen1, "expected to process 1 value")
 	assert.True(t, seen2, "expected to process 2 value")
-	// If this returns 1, it is likely because the VR contains a stale value
-	assert.Equal(t, 2, vr.Current())
 }
 
 // updateImmediatelyRefreshable is a mock implementation which updates to newValue immediately when Current() is called

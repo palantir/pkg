@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/palantir/pkg/refreshable/v2"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDefaultRefreshable(t *testing.T) {
@@ -18,12 +18,12 @@ func TestDefaultRefreshable(t *testing.T) {
 
 	v := &container{Value: "original"}
 	r := refreshable.New(v)
-	assert.Equal(t, r.Current(), v)
+	require.Equal(t, r.Current(), v)
 
 	t.Run("Update", func(t *testing.T) {
 		v2 := &container{Value: "updated"}
 		r.Update(v2)
-		assert.Equal(t, r.Current(), v2)
+		require.Equal(t, r.Current(), v2)
 	})
 
 	t.Run("Subscribe", func(t *testing.T) {
@@ -34,36 +34,39 @@ func TestDefaultRefreshable(t *testing.T) {
 		_ = r.Subscribe(func(i *container) {
 			v2 = *i
 		})
-		assert.Equal(t, v1.Value, "")
-		assert.Equal(t, v2.Value, "")
+		require.Equal(t, v1.Value, "updated")
+		require.Equal(t, v2.Value, "updated")
 		r.Update(&container{Value: "value"})
-		assert.Equal(t, v1.Value, "value")
-		assert.Equal(t, v2.Value, "value")
+		require.Equal(t, v1.Value, "value")
+		require.Equal(t, v2.Value, "value")
 
 		unsub1()
 		r.Update(&container{Value: "value2"})
-		assert.Equal(t, v1.Value, "value", "should be unchanged after unsubscribing")
-		assert.Equal(t, v2.Value, "value2", "should be updated after unsubscribing other")
+		require.Equal(t, v1.Value, "value", "should be unchanged after unsubscribing")
+		require.Equal(t, v2.Value, "value2", "should be updated after unsubscribing other")
 	})
 
 	t.Run("Map", func(t *testing.T) {
 		r.Update(&container{Value: "value"})
-		rLen, _ := refreshable.Map[*container, int](r, func(i *container) int {
+		rLen, stop := refreshable.Map[*container, int](r, func(i *container) int {
 			return len(i.Value)
 		})
-		assert.Equal(t, 5, rLen.Current())
+		defer stop()
+		require.Equal(t, 5, rLen.Current())
 
-		rLenUpdated := false
-		rLen.Subscribe(func(int) { rLenUpdated = true })
+		rLenUpdates := 0
+		rLen.Subscribe(func(int) { rLenUpdates++ })
+		require.Equal(t, 1, rLenUpdates)
 		// update to new value with same length and ensure the
 		// equality check prevented unnecessary subscriber updates.
 		r.Update(&container{Value: "VALUE"})
-		assert.Equal(t, "VALUE", r.Current().Value)
-		assert.False(t, rLenUpdated)
+		require.Equal(t, "VALUE", r.Current().Value)
+		require.Equal(t, 1, rLenUpdates)
 
 		r.Update(&container{Value: "updated"})
-		assert.Equal(t, "updated", r.Current().Value)
-		assert.Equal(t, 7, rLen.Current())
+		require.Equal(t, "updated", r.Current().Value)
+		require.Equal(t, 7, rLen.Current())
+		require.Equal(t, 2, rLenUpdates)
 	})
 
 }
