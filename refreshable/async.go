@@ -37,8 +37,8 @@ func (r *ready[T]) ReadyC() <-chan struct{} {
 }
 
 func (r *ready[T]) Update(val T) {
-	r.cancel()
 	r.in.Update(val)
+	r.cancel()
 }
 
 // NewFromChannel populates an Updatable with the values channel.
@@ -65,16 +65,17 @@ func NewFromChannel[T any](values <-chan T) Ready[T] {
 // NewFromTickerFunc returns a Ready Refreshable populated by the result of the provider called each interval.
 // If the providers bool return is false, the value is ignored.
 // The result's ReadyC channel is closed when a new value is populated.
-func NewFromTickerFunc[T any](interval time.Duration, provider func() (T, bool)) (Ready[T], UnsubscribeFunc) {
+// The refreshable will stop updating when the provided context is cancelled or the returned UnsubscribeFunc func is called.
+func NewFromTickerFunc[T any](ctx context.Context, interval time.Duration, provider func(ctx context.Context) (T, bool)) (Ready[T], UnsubscribeFunc) {
 	out := newReady[T](newZero[T]())
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctx)
 	values := make(chan T)
 	go func() {
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 		defer close(values)
 		for {
-			if value, ok := provider(); ok {
+			if value, ok := provider(ctx); ok {
 				out.Update(value)
 			}
 			select {
