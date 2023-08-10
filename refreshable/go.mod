@@ -1,4 +1,4 @@
-module github.com/palantir/pkg/refreshable
+module github.com/palantir/pkg/refreshable/v2
 
 go 1.20
 

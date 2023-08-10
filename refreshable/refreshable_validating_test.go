@@ -8,91 +8,108 @@ import (
 	"errors"
 	"net/url"
 	"testing"
+	"time"
 
-	"github.com/palantir/pkg/refreshable"
+	"github.com/palantir/pkg/refreshable/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestValidatingRefreshable(t *testing.T) {
 	type container struct{ Value string }
-	r := refreshable.NewDefaultRefreshable(container{Value: "value"})
-	vr, err := refreshable.NewValidatingRefreshable(r, func(i interface{}) error {
-		if len(i.(container).Value) == 0 {
+	r := refreshable.New(container{Value: "value"})
+	vr, _, err := refreshable.Validate[container](r, func(i container) error {
+		if len(i.Value) == 0 {
 			return errors.New("empty")
 		}
 		return nil
 	})
 	require.NoError(t, err)
-	require.NoError(t, vr.LastValidateErr())
-	require.Equal(t, r.Current().(container).Value, "value")
-	require.Equal(t, vr.Current().(container).Value, "value")
+	v, err := vr.Validation()
+	require.NoError(t, err)
+	require.Equal(t, "value", v.Value)
+	require.Equal(t, "value", r.Current().Value)
+	require.Equal(t, "value", vr.Current().Value)
 
 	// attempt bad update
-	err = r.Update(container{})
-	require.NoError(t, err, "no err expected from default refreshable")
-	require.Equal(t, r.Current().(container).Value, "")
-
-	require.EqualError(t, vr.LastValidateErr(), "empty", "expected err from validating refreshable")
-	require.Equal(t, vr.Current().(container).Value, "value", "expected unchanged validating refreshable")
+	r.Update(container{})
+	require.Equal(t, r.Current().Value, "")
+	v, err = vr.Validation()
+	require.EqualError(t, err, "empty", "expected validation error")
+	require.Equal(t, "", v.Value, "expected invalid value from Validation")
+	require.Equal(t, vr.Current().Value, "value", "expected unchanged validating refreshable")
 
 	// attempt good update
-	require.NoError(t, r.Update(container{Value: "value2"}))
-	require.NoError(t, vr.LastValidateErr())
-	require.Equal(t, "value2", vr.Current().(container).Value)
-	require.Equal(t, "value2", r.Current().(container).Value)
+	r.Update(container{Value: "value2"})
+	v, err = vr.Validation()
+	require.NoError(t, err)
+	require.Equal(t, "value2", v.Value)
+	require.Equal(t, "value2", vr.Current().Value)
+	require.Equal(t, "value2", r.Current().Value)
 }
 
 func TestMapValidatingRefreshable(t *testing.T) {
-	r := refreshable.NewDefaultRefreshable("https://palantir.com:443")
-	vr, err := refreshable.NewMapValidatingRefreshable(r, func(i interface{}) (interface{}, error) {
-		return url.Parse(i.(string))
-	})
+	r := refreshable.New("https://palantir.com:443")
+	vr, _, err := refreshable.MapWithError[string, *url.URL](r, url.Parse)
 	require.NoError(t, err)
-	require.NoError(t, vr.LastValidateErr())
-	require.Equal(t, r.Current().(string), "https://palantir.com:443")
-	require.Equal(t, vr.Current().(*url.URL).Hostname(), "palantir.com")
+	_, err = vr.Validation()
+	require.NoError(t, err)
+	require.Equal(t, r.Current(), "https://palantir.com:443")
+	require.Equal(t, vr.Current().Hostname(), "palantir.com")
 
 	// attempt bad update
-	err = r.Update(":::error.com")
-	require.NoError(t, err, "no err expected from default refreshable")
-	assert.Equal(t, r.Current().(string), ":::error.com")
-	require.EqualError(t, vr.LastValidateErr(), "parse \":::error.com\": missing protocol scheme", "expected err from validating refreshable")
-	assert.Equal(t, vr.Current().(*url.URL).Hostname(), "palantir.com", "expected unchanged validating refreshable")
+	r.Update(":::error.com")
+	assert.Equal(t, r.Current(), ":::error.com")
+	_, err = vr.Validation()
+	require.EqualError(t, err, "parse \":::error.com\": missing protocol scheme", "expected err from validating refreshable")
+	assert.Equal(t, vr.Current().Hostname(), "palantir.com", "expected unchanged validating refreshable")
 
 	// attempt good update
-	require.NoError(t, r.Update("https://example.com"))
-	require.NoError(t, vr.LastValidateErr())
-	require.Equal(t, r.Current().(string), "https://example.com")
-	require.Equal(t, vr.Current().(*url.URL).Hostname(), "example.com")
+	r.Update("https://example.com")
+	_, err = vr.Validation()
+	require.NoError(t, err)
+	require.Equal(t, r.Current(), "https://example.com")
+	require.Equal(t, vr.Current().Hostname(), "example.com")
 }
 
 // TestValidatingRefreshable_SubscriptionRaceCondition tests that the ValidatingRefreshable stays current
 // if the underlying refreshable updates during the creation process.
 func TestValidatingRefreshable_SubscriptionRaceCondition(t *testing.T) {
-	r := &updateImmediatelyRefreshable{r: refreshable.NewDefaultRefreshable(1), newValue: 2}
-	vr, err := refreshable.NewValidatingRefreshable(r, func(i interface{}) error { return nil })
+	//r := &updateImmediatelyRefreshable{r: refreshable.New(1), newValue: 2}
+	r := refreshable.New(1)
+	var seen1, seen2 bool
+	vr, _, err := refreshable.Validate[int](r, func(i int) error {
+		go r.Update(2)
+		switch i {
+		case 1:
+			seen1 = true
+		case 2:
+			seen2 = true
+		}
+		return nil
+	})
 	require.NoError(t, err)
 	// If this returns 1, it is likely because the VR contains a stale value
-	assert.Equal(t, 2, vr.Current())
+	assert.Eventually(t, func() bool {
+		return vr.Current() == 2
+	}, time.Second, time.Millisecond)
+
+	assert.True(t, seen1, "expected to process 1 value")
+	assert.True(t, seen2, "expected to process 2 value")
 }
 
 // updateImmediatelyRefreshable is a mock implementation which updates to newValue immediately when Current() is called
 type updateImmediatelyRefreshable struct {
-	r        *refreshable.DefaultRefreshable
-	newValue interface{}
+	r        refreshable.Updatable[int]
+	newValue int
 }
 
-func (r *updateImmediatelyRefreshable) Current() interface{} {
+func (r *updateImmediatelyRefreshable) Current() int {
 	c := r.r.Current()
-	_ = r.r.Update(r.newValue)
+	r.r.Update(r.newValue)
 	return c
 }
 
-func (r *updateImmediatelyRefreshable) Subscribe(f func(interface{})) func() {
+func (r *updateImmediatelyRefreshable) Subscribe(f func(int)) refreshable.UnsubscribeFunc {
 	return r.r.Subscribe(f)
-}
-
-func (r *updateImmediatelyRefreshable) Map(f func(interface{}) interface{}) refreshable.Refreshable {
-	return r.r.Map(f)
 }
