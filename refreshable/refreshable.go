@@ -54,6 +54,7 @@ type Ready[T any] interface {
 // It is safe to call multiple times.
 type UnsubscribeFunc func()
 
+// New returns a new Updatable that begins with the given value.
 func New[T any](val T) Updatable[T] {
 	return newDefault(val)
 }
