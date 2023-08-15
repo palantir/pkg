@@ -212,7 +212,12 @@ func (r *childRegistry) Counter(name string, tags ...Tag) metrics.Counter {
 }
 
 func (r *childRegistry) Gauge(name string, tags ...Tag) metrics.Gauge {
-	return r.root.Gauge(r.prefix+name, append(r.tags, tags...)...)
+	var newTags Tags
+	if len(r.tags) > 0 {
+		newTags = make(Tags, len(r.tags))
+		copy(newTags, r.tags)
+	}
+	return r.root.Gauge(r.prefix+name, append(newTags, tags...)...)
 }
 
 func (r *childRegistry) GaugeFloat64(name string, tags ...Tag) metrics.GaugeFloat64 {
