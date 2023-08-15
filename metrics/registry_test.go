@@ -5,9 +5,11 @@
 package metrics_test
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"reflect"
+	"strings"
 	"sync"
 	"testing"
 	"time"
