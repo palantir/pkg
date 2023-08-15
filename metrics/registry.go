@@ -203,36 +203,36 @@ func (r NoopRegistry) Each(MetricVisitor) {
 	// no-op
 }
 
-func (r NoopRegistry) Unregister(name string, tags ...Tag) {
+func (r NoopRegistry) Unregister(_ string, _ ...Tag) {
 	// no-op
 }
 
 func (r *childRegistry) Counter(name string, tags ...Tag) metrics.Counter {
-	return r.root.Counter(r.prefix+name, append(r.tags, tags...)...)
+	return r.root.Counter(r.prefix+name, append(tags, r.tags...)...)
 }
 
 func (r *childRegistry) Gauge(name string, tags ...Tag) metrics.Gauge {
-	return r.root.Gauge(r.prefix+name, append(r.tags, tags...)...)
+	return r.root.Gauge(r.prefix+name, append(tags, r.tags...)...)
 }
 
 func (r *childRegistry) GaugeFloat64(name string, tags ...Tag) metrics.GaugeFloat64 {
-	return r.root.GaugeFloat64(r.prefix+name, append(r.tags, tags...)...)
+	return r.root.GaugeFloat64(r.prefix+name, append(tags, r.tags...)...)
 }
 
 func (r *childRegistry) Meter(name string, tags ...Tag) metrics.Meter {
-	return r.root.Meter(r.prefix+name, append(r.tags, tags...)...)
+	return r.root.Meter(r.prefix+name, append(tags, r.tags...)...)
 }
 
 func (r *childRegistry) Timer(name string, tags ...Tag) metrics.Timer {
-	return r.root.Timer(r.prefix+name, append(r.tags, tags...)...)
+	return r.root.Timer(r.prefix+name, append(tags, r.tags...)...)
 }
 
 func (r *childRegistry) Histogram(name string, tags ...Tag) metrics.Histogram {
-	return r.root.Histogram(r.prefix+name, append(r.tags, tags...)...)
+	return r.root.Histogram(r.prefix+name, append(tags, r.tags...)...)
 }
 
 func (r *childRegistry) HistogramWithSample(name string, sample metrics.Sample, tags ...Tag) metrics.Histogram {
-	return r.root.HistogramWithSample(r.prefix+name, sample, append(r.tags, tags...)...)
+	return r.root.HistogramWithSample(r.prefix+name, sample, append(tags, r.tags...)...)
 }
 
 func (r *childRegistry) Each(f MetricVisitor) {
@@ -243,7 +243,7 @@ func (r *childRegistry) Each(f MetricVisitor) {
 }
 
 func (r *childRegistry) Unregister(name string, tags ...Tag) {
-	r.root.Unregister(r.prefix+name, append(r.tags, tags...)...)
+	r.root.Unregister(r.prefix+name, append(tags, r.tags...)...)
 }
 
 func (r *rootRegistry) Subregistry(prefix string, tags ...Tag) Registry {
@@ -252,7 +252,7 @@ func (r *rootRegistry) Subregistry(prefix string, tags ...Tag) Registry {
 	}
 	return &childRegistry{
 		prefix: prefix,
-		tags:   Tags(tags),
+		tags:   tags,
 		root:   r,
 	}
 }
