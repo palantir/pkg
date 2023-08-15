@@ -34,14 +34,9 @@ func FromContext(ctx context.Context) Registry {
 	if !ok {
 		return registry
 	}
-	var tags Tags
-	if len(tagsContainer.Tags) > 0 {
-		tags = make(Tags, len(tagsContainer.Tags))
-		copy(tags, tagsContainer.Tags)
-	}
 	return &childRegistry{
 		root: rootRegistry,
-		tags: tags,
+		tags: tagsContainer.Tags,
 	}
 }
 
@@ -57,8 +52,11 @@ func AddTags(ctx context.Context, tags ...Tag) context.Context {
 	if !ok || container == nil {
 		container = &tagsContainer{}
 	}
+	newTags := make(Tags, len(container.Tags), len(container.Tags)+len(tags))
+	copy(tags, container.Tags)
+	newTags = append(newTags, tags...)
 	return context.WithValue(ctx, tagsKey, &tagsContainer{
-		Tags: append(container.Tags, tags...),
+		Tags: newTags,
 	})
 }
 
