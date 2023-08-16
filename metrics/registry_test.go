@@ -35,10 +35,10 @@ func TestRegistryRegistration(t *testing.T) {
 	}
 
 	var gotNames []string
-	root.Each(metrics.MetricVisitor(func(name string, tags metrics.Tags, metric metrics.MetricVal) {
+	root.Each(func(name string, tags metrics.Tags, metric metrics.MetricVal) {
 		gotNames = append(gotNames, name)
 		assert.NotNil(t, metric)
-	}))
+	})
 	assert.Equal(t, wantNames, gotNames)
 }
 
@@ -53,11 +53,11 @@ func TestMetricsWithTags(t *testing.T) {
 	var gotNames []string
 	var gotTags [][]metrics.Tag
 
-	root.Each(metrics.MetricVisitor(func(name string, tags metrics.Tags, metric metrics.MetricVal) {
+	root.Each(func(name string, tags metrics.Tags, metric metrics.MetricVal) {
 		gotNames = append(gotNames, name)
 		gotTags = append(gotTags, tags)
 		assert.NotNil(t, metric)
-	}))
+	})
 
 	// output is sorted by metric name and then by tag names (which themselves are sorted alphabetically)
 	wantNames := []string{
@@ -96,11 +96,11 @@ func TestMetricsCasing(t *testing.T) {
 	var gotNames []string
 	var gotTags [][]metrics.Tag
 
-	root.Each(metrics.MetricVisitor(func(name string, tags metrics.Tags, metric metrics.MetricVal) {
+	root.Each(func(name string, tags metrics.Tags, metric metrics.MetricVal) {
 		gotNames = append(gotNames, name)
 		gotTags = append(gotTags, tags)
 		assert.NotNil(t, metric)
-	}))
+	})
 
 	// output is sorted by metric name and then by tag names (which themselves are sorted alphabetically)
 	wantNames := []string{
@@ -147,10 +147,10 @@ func TestRegistryRegistrationWithMemStats(t *testing.T) {
 	}
 
 	var gotNames []string
-	root.Each(metrics.MetricVisitor(func(name string, tags metrics.Tags, metric metrics.MetricVal) {
+	root.Each(func(name string, tags metrics.Tags, metric metrics.MetricVal) {
 		gotNames = append(gotNames, name)
 		assert.NotNil(t, metric)
-	}))
+	})
 	assert.Equal(t, wantNames, gotNames)
 }
 
@@ -198,7 +198,7 @@ func TestSubregistry_Each(t *testing.T) {
 	subRegistry.Gauge("gauge2").Update(1)
 	gauge1Count := 0
 	gauge2Count := 0
-	subRegistry.Each(metrics.MetricVisitor(func(name string, tags metrics.Tags, metric metrics.MetricVal) {
+	subRegistry.Each(func(name string, tags metrics.Tags, metric metrics.MetricVal) {
 		assert.NotNil(t, metric)
 		assert.Empty(t, tags)
 		switch name {
@@ -209,7 +209,7 @@ func TestSubregistry_Each(t *testing.T) {
 		default:
 			assert.Fail(t, "unexpected metric %s", name)
 		}
-	}))
+	})
 	assert.Equal(t, 1, gauge1Count)
 	assert.Equal(t, 1, gauge2Count)
 }
@@ -265,12 +265,12 @@ func TestRootRegistry_ConcurrentUnregisterAndEachDoesNotPanic(t *testing.T) {
 	goRoutineFinished.Add(1)
 
 	go func() {
-		registry.Each(metrics.MetricVisitor(func(name string, tags metrics.Tags, metric metrics.MetricVal) {
+		registry.Each(func(name string, tags metrics.Tags, metric metrics.MetricVal) {
 			if name == "gauge1" {
 				firstMetricVisited.Done()
 				metricUnregistered.Wait()
 			}
-		}))
+		})
 		goRoutineFinished.Done()
 	}()
 
@@ -321,16 +321,16 @@ func TestRootRegistry_SubregistryWithTags(t *testing.T) {
 	subregistry.Unregister("histogram", runtimeTag)
 	subregistry.Unregister("histogramWithSample", runtimeTag)
 
-	subregistry.Each(metrics.MetricVisitor(func(name string, tags metrics.Tags, metric metrics.MetricVal) {
+	subregistry.Each(func(name string, tags metrics.Tags, metric metrics.MetricVal) {
 		assert.Fail(t, "there should be no metrics registered")
-	}))
+	})
 }
 
 func registrySize(registry metrics.Registry) int {
 	count := 0
-	registry.Each(metrics.MetricVisitor(func(name string, tags metrics.Tags, metric metrics.MetricVal) {
+	registry.Each(func(name string, tags metrics.Tags, metric metrics.MetricVal) {
 		count++
-	}))
+	})
 	return count
 }
 
@@ -340,7 +340,7 @@ func registryContains(registry metrics.Registry, name string, tags metrics.Tags)
 	for _, tag := range tags {
 		tagStrings = append(tagStrings, tag.String())
 	}
-	registry.Each(metrics.MetricVisitor(func(eachName string, eachTags metrics.Tags, metric metrics.MetricVal) {
+	registry.Each(func(eachName string, eachTags metrics.Tags, metric metrics.MetricVal) {
 		var eachTagStrings []string
 		for _, eachTag := range eachTags {
 			eachTagStrings = append(eachTagStrings, eachTag.String())
@@ -348,7 +348,7 @@ func registryContains(registry metrics.Registry, name string, tags metrics.Tags)
 		if eachName == name && reflect.DeepEqual(eachTagStrings, tagStrings) {
 			contains = true
 		}
-	}))
+	})
 	return contains
 }
 

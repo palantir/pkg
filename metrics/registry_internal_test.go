@@ -5,6 +5,7 @@
 package metrics
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,4 +24,22 @@ func TestRootRegistry_UnregisterReleasesResources(t *testing.T) {
 	// unregister metric
 	root.Unregister("my-counter")
 	assert.NotContains(t, root.idToMetricWithTags, id)
+}
+
+func TestChildRegistryDoesNotReuseSlice(t *testing.T) {
+	root := NewRootMetricsRegistry()
+	ctx := WithRegistry(context.Background(), root)
+	ctx = AddTags(ctx, MustNewTag("foo", "bar"))
+
+	myTags := make(Tags, 0, 4)
+	myTags = append(myTags, MustNewTag("baz", "qux"))
+
+	child := FromContext(ctx).(*childRegistry)
+	child.Counter("my-counter", myTags...).Inc(1)
+	root.Each(func(name string, tags Tags, value MetricVal) {
+		assert.Equal(t, "my-counter", name)
+		assert.Equal(t, Tags{MustNewTag("baz", "qux"), MustNewTag("foo", "bar")}, tags)
+		assert.EqualValues(t, 1, value.(*counterVal).Counter.Count())
+	})
+	assert.Len(t, myTags, 1)
 }
