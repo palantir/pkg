@@ -5,9 +5,11 @@
 package metrics_test
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"reflect"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -348,4 +350,46 @@ func registryContains(registry metrics.Registry, name string, tags metrics.Tags)
 		}
 	}))
 	return contains
+}
+
+func TestChildRegistry_ConcurrentUpdatesToTagsAreNotCorrupted(t *testing.T) {
+	ctx := metrics.WithRegistry(context.Background(), metrics.NewRootMetricsRegistry())
+	ctx = metrics.AddTags(ctx, metrics.MustNewTag("foo", "bar"))
+	ctx = metrics.AddTags(ctx, metrics.MustNewTag("faz", "baz"))
+	ctx = metrics.AddTags(ctx, metrics.MustNewTag("whoop", "shoop"))
+
+	prefix1 := "foo_bar"
+	prefix2 := "whoop_shoop"
+
+	var goRoutineFinished sync.WaitGroup
+	goRoutineFinished.Add(2)
+	go func() {
+		for i := 0; i < 5000; i++ {
+			metrics.FromContext(ctx).Gauge(prefix1, metrics.MustNewTag("name", prefix1)).Update(1)
+		}
+		goRoutineFinished.Done()
+	}()
+	go func() {
+		for i := 0; i < 5000; i++ {
+			metrics.FromContext(ctx).Gauge(prefix2, metrics.MustNewTag("name", prefix2)).Update(1)
+		}
+		goRoutineFinished.Done()
+	}()
+	goRoutineFinished.Wait()
+	metrics.FromContext(ctx).Each(func(name string, tags metrics.Tags, _ metrics.MetricVal) {
+		if strings.HasPrefix(name, prefix1) {
+			for _, tag := range tags {
+				if tag.Key() == "name" && tag.Value() == prefix2 {
+					assert.Fail(t, prefix1+"should not have the tag name="+prefix2, tag)
+				}
+			}
+		}
+		if strings.HasPrefix(name, prefix2) {
+			for _, tag := range tags {
+				if tag.Key() == "name" && tag.Value() == prefix1 {
+					assert.Fail(t, prefix2+"should not have the tag name="+prefix1, tag)
+				}
+			}
+		}
+	})
 }

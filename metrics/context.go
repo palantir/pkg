@@ -52,8 +52,11 @@ func AddTags(ctx context.Context, tags ...Tag) context.Context {
 	if !ok || container == nil {
 		container = &tagsContainer{}
 	}
+	newTags := make(Tags, len(container.Tags)+len(tags))
+	copy(newTags, container.Tags)
+	copy(newTags[len(container.Tags):], tags)
 	return context.WithValue(ctx, tagsKey, &tagsContainer{
-		Tags: append(container.Tags, tags...),
+		Tags: newTags,
 	})
 }
 
