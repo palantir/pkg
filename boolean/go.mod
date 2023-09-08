@@ -1,6 +1,6 @@
 module github.com/palantir/pkg/boolean
 
-go 1.20
+go 1.21
 
 require (
 	github.com/palantir/pkg v1.1.0
