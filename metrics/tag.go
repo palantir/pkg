@@ -180,6 +180,17 @@ func init() {
 //
 // Note that this function does not impose the length restriction described above.
 func normalizeTag(in string, validChars [utf8.RuneSelf]bool) string {
+	foundSpecial := false
+	for _, r := range in {
+		if r >= utf8.RuneSelf || !validChars[r] {
+			foundSpecial = true
+			break
+		}
+	}
+	if !foundSpecial {
+		return in
+	}
+
 	var builder strings.Builder
 	builder.Grow(len(in))
 	for _, r := range in {
