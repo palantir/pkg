@@ -33,6 +33,19 @@ func BenchmarkNewTag(b *testing.B) {
 	}
 }
 
+func BenchmarkNormalizeTag(b *testing.B) {
+	for _, val := range []string{
+		"a❌Long❌Tag❌With❌Emoji❌Chars",
+		"a Long Tag With Space Chars",
+		"aLongTagValueWithUpperChars",
+		"alongtagvaluewithnospecials",
+		"UPPER",
+		"lower",
+	} {
+		b.Run(val, newTagBenchFunc("key", val))
+	}
+}
+
 func newTagBenchFunc(tagKey, tagValue string) func(*testing.B) {
 	return func(b *testing.B) {
 		b.ReportAllocs()
