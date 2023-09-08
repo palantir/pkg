@@ -257,17 +257,19 @@ func (r *rootRegistry) Subregistry(prefix string, tags ...Tag) Registry {
 }
 
 func (r *rootRegistry) Each(f MetricVisitor) {
-	// sort names so that iteration order is consistent
-	var sortedMetricIDs []string
 	allMetrics := make(map[string]interface{})
 	r.registry.Each(func(name string, metric interface{}) {
 		// filter out the runtime metrics that are defined in the exclude list
 		if _, ok := goRuntimeMetricsToExclude[name]; ok {
 			return
 		}
-		sortedMetricIDs = append(sortedMetricIDs, name)
 		allMetrics[name] = metric
 	})
+	// sort names so that iteration order is consistent
+	sortedMetricIDs := make([]string, 0, len(allMetrics))
+	for id := range allMetrics {
+		sortedMetricIDs = append(sortedMetricIDs, id)
+	}
 	sortStrings(sortedMetricIDs)
 
 	for _, id := range sortedMetricIDs {
