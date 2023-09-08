@@ -20,11 +20,15 @@ func sortTags(tags Tags) {
 
 func compareTags(a, b Tag) int {
 	switch {
-	case a.keyValue > b.keyValue:
-		return 1
-	case a.keyValue == b.keyValue:
-		return 0
-	default:
+	case a.key < b.key:
 		return -1
+	case a.key > b.key:
+		return 1
+	case a.value < b.value:
+		return -1
+	case a.value > b.value:
+		return 1
+	default:
+		return 0
 	}
 }

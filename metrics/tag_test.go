@@ -16,9 +16,8 @@ func TestMustTag(t *testing.T) {
 		actual, err := NewTag("keyWithUpper", "valueWithUpper")
 		assert.NoError(t, err)
 		assert.Equal(t, Tag{
-			key:      "keywithupper",
-			value:    "valuewithupper",
-			keyValue: "keywithupper:valuewithupper",
+			key:   "keywithupper",
+			value: "valuewithupper",
 		},
 			actual)
 	})
@@ -27,9 +26,8 @@ func TestMustTag(t *testing.T) {
 		actual, err := NewTag("a_-./0", "a_-:./0")
 		assert.NoError(t, err)
 		assert.Equal(t, Tag{
-			key:      "a_-./0",
-			value:    "a_-:./0",
-			keyValue: "a_-./0:a_-:./0",
+			key:   "a_-./0",
+			value: "a_-:./0",
 		},
 			actual)
 	})
@@ -38,9 +36,8 @@ func TestMustTag(t *testing.T) {
 		actual, err := NewTag("a(❌)", "a(❌)")
 		assert.NoError(t, err)
 		assert.Equal(t, Tag{
-			key:      "a___",
-			value:    "a___",
-			keyValue: "a___:a___",
+			key:   "a___",
+			value: "a___",
 		},
 			actual)
 	})

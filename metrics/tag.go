@@ -18,8 +18,6 @@ import (
 type Tag struct {
 	key   string
 	value string
-	// Store the concatenated key and value so we don't need to reconstruct it in String() (used in toMetricTagID)
-	keyValue string
 }
 
 func (t Tag) Key() string {
@@ -32,7 +30,7 @@ func (t Tag) Value() string {
 
 // The full representation of the tag, which is "key:value".
 func (t Tag) String() string {
-	return t.keyValue
+	return t.key + ":" + t.value
 }
 
 type Tags []Tag
@@ -61,7 +59,10 @@ func (t Tags) Len() int {
 }
 
 func (t Tags) Less(i, j int) bool {
-	return t[i].keyValue < t[j].keyValue
+	if t[i].key == t[j].key {
+		return t[i].value < t[j].value
+	}
+	return t[i].key < t[j].key
 }
 
 func (t Tags) Swap(i, j int) {
@@ -118,9 +119,8 @@ func newTag(k, v string) Tag {
 	normalizedKey := normalizeTag(k, validKeyChars)
 	normalizedValue := normalizeTag(v, validValueChars)
 	return Tag{
-		key:      normalizedKey,
-		value:    normalizedValue,
-		keyValue: normalizedKey + ":" + normalizedValue,
+		key:   normalizedKey,
+		value: normalizedValue,
 	}
 }
 
