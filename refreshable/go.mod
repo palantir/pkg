@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/palantir/pkg v1.1.0
+	github.com/palantir/pkg/refreshable/v2 v2.0.0
 	github.com/stretchr/testify v1.8.4
 )
 
