@@ -8,7 +8,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
+	"os"
 )
 
 var defaultCipherSuites = []uint16{
@@ -16,9 +16,7 @@ var defaultCipherSuites = []uint16{
 	// https://blog.bracelab.com/achieving-perfect-ssl-labs-score-with-go
 	tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 	tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-	tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
 	tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-	tls.TLS_RSA_WITH_AES_256_CBC_SHA,
 }
 
 // TLSCertFromFiles returns a provider that returns a tls.Certificate by loading an X509 key pair from the files in the
@@ -35,7 +33,7 @@ func CertPoolFromCAFiles(caFiles ...string) CertPoolProvider {
 	return func() (*x509.CertPool, error) {
 		certPool := x509.NewCertPool()
 		for _, caFile := range caFiles {
-			cert, err := ioutil.ReadFile(caFile)
+			cert, err := os.ReadFile(caFile)
 			if err != nil {
 				return nil, fmt.Errorf("failed to load certificates from file %s: %v", caFile, err)
 			}
