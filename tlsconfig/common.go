@@ -97,7 +97,7 @@ func configureTLSConfig(cfgs ...configurer) (*tls.Config, error) {
 	tlsCfg := &tls.Config{
 		MinVersion:               tls.VersionTLS12,
 		PreferServerCipherSuites: true,
-		CipherSuites:             append(defaultCipherSuites, defaultChachaCiphers...),
+		CipherSuites:             defaultCipherSuites,
 		Renegotiation:            tls.RenegotiateNever,
 	}
 	for _, currCfg := range cfgs {
