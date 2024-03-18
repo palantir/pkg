@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/palantir/pkg v1.1.0
 	github.com/palantir/pkg/transform v1.1.0
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 	gopkg.in/yaml.v2 v2.2.2
 )
 
