@@ -24,10 +24,10 @@ type Patch []Operation
 
 // Operation represents a RFC6902 JSON Patch operation.
 type Operation struct {
-	Type  string      `json:"op"`
-	Path  Path        `json:"path"`
-	From  Path        `json:"from,omitempty"`
-	Value interface{} `json:"value,omitempty"`
+	Type  string      `json:"op" yaml:"op"`
+	Path  Path        `json:"path" yaml:"path"`
+	From  Path        `json:"from,omitempty" yaml:"from,omitempty"`
+	Value interface{} `json:"value,omitempty" yaml:"value,omitempty"`
 }
 
 func (op Operation) String() string {
