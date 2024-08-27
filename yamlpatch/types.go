@@ -28,6 +28,9 @@ type Operation struct {
 	Path  Path        `json:"path" yaml:"path"`
 	From  Path        `json:"from,omitempty" yaml:"from,omitempty"`
 	Value interface{} `json:"value,omitempty" yaml:"value,omitempty"`
+
+	// If not empty, will be inserted as a head comment above this node
+	Comment string `json:"comment,omitempty" yaml:"comment,omitempty"`
 }
 
 func (op Operation) String() string {

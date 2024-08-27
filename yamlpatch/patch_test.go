@@ -84,6 +84,26 @@ foo:
   bar: 1 # my bar`,
 		},
 		{
+			Name:  "add to array with comment",
+			Patch: []string{`{"op":"add","path":"/foo/arr/-","value":4,"comment":"the number 4"}`},
+			Body: `# my foo
+foo:
+  arr:
+    # numbers 1 through 3
+    - 1
+    - 2
+    - 3`,
+			Expected: `# my foo
+foo:
+  arr:
+    # numbers 1 through 3
+    - 1
+    - 2
+    - 3
+    # the number 4
+    - 4`,
+		},
+		{
 			Name:  "add into array",
 			Patch: []string{`{"op":"add","path":"/foo/arr/0","value":0}`},
 			Body: `# my foo
