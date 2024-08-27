@@ -44,7 +44,7 @@ func Apply(originalBytes []byte, patch Patch) ([]byte, error) {
 		case OperationCopy:
 			err = patchCopy(node, op.Path, op.From)
 		case OperationTest:
-			err = patchTest(node, op.Path, op.Value, op.Comment)
+			err = patchTest(node, op.Path, op.Value)
 		default:
 			err = errors.Errorf("unexpected op")
 		}
@@ -157,7 +157,7 @@ func patchCopy(node *yaml.Node, path Path, from Path) error {
 	return toParent.Add(path.Key(), fromNodeClone)
 }
 
-func patchTest(node *yaml.Node, path Path, testValue interface{}, comment string) error {
+func patchTest(node *yaml.Node, path Path, testValue interface{}) error {
 	_, valueNode, err := getParentAndLeaf(node, path)
 	if err != nil {
 		return err
@@ -169,8 +169,9 @@ func patchTest(node *yaml.Node, path Path, testValue interface{}, comment string
 	if err != nil {
 		return err
 	}
-	// roundtrip test value to use standard type
-	testValueNode, err := valueToYAMLNode(testValue, comment)
+	// roundtrip test value to use standard type, comment is unset since this operation only
+	// looks at the existing value and compares it against the test value
+	testValueNode, err := valueToYAMLNode(testValue, "")
 	if err != nil {
 		return err
 	}

@@ -84,6 +84,18 @@ foo:
   bar: 1 # my bar`,
 		},
 		{
+			Name:  "add into array",
+			Patch: []string{`{"op":"add","path":"/foo/arr/0","value":0}`},
+			Body: `# my foo
+foo:
+  arr: [1, 2, 3]
+  bar: 1 # my bar`,
+			Expected: `# my foo
+foo:
+  arr: [0, 1, 2, 3]
+  bar: 1 # my bar`,
+		},
+		{
 			Name:  "add to array with comment",
 			Patch: []string{`{"op":"add","path":"/foo/arr/-","value":4,"comment":"the number 4"}`},
 			Body: `# my foo
@@ -104,16 +116,28 @@ foo:
     - 4`,
 		},
 		{
-			Name:  "add into array",
-			Patch: []string{`{"op":"add","path":"/foo/arr/0","value":0}`},
+			Name:  "replace object with comment",
+			Patch: []string{`{"op":"replace","path":"/foo/bar","value":{"key":"value"},"comment":"key value pair"}`},
 			Body: `# my foo
 foo:
-  arr: [1, 2, 3]
-  bar: 1 # my bar`,
+  bar: hello-world # previous comment`,
 			Expected: `# my foo
 foo:
-  arr: [0, 1, 2, 3]
-  bar: 1 # my bar`,
+  bar:
+    # key value pair
+    key: value`,
+		},
+		{
+			Name:  "test object with comment",
+			Patch: []string{`{"op":"replace","path":"/foo/bar","value":{"key":"value"},"comment":"key value pair"}`},
+			Body: `# my foo
+foo:
+  bar: hello-world # previous comment`,
+			Expected: `# my foo
+foo:
+  bar:
+    # key value pair
+    key: value`,
 		},
 		// Test cases from json-patch: https://github.com/evanphx/json-patch/blob/master/patch_test.go to verify JSON Patch correctness.
 		{
