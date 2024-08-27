@@ -127,18 +127,6 @@ foo:
     # key value pair
     key: value`,
 		},
-		{
-			Name:  "test object with comment",
-			Patch: []string{`{"op":"replace","path":"/foo/bar","value":{"key":"value"},"comment":"key value pair"}`},
-			Body: `# my foo
-foo:
-  bar: hello-world # previous comment`,
-			Expected: `# my foo
-foo:
-  bar:
-    # key value pair
-    key: value`,
-		},
 		// Test cases from json-patch: https://github.com/evanphx/json-patch/blob/master/patch_test.go to verify JSON Patch correctness.
 		{
 			Name:     "jsonpatch add",
