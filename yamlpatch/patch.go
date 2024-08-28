@@ -34,11 +34,11 @@ func Apply(originalBytes []byte, patch Patch) ([]byte, error) {
 		var err error
 		switch op.Type {
 		case OperationAdd:
-			err = patchAdd(node, op.Path, op.Value)
+			err = patchAdd(node, op.Path, op.Value, op.Comment)
 		case OperationRemove:
 			err = patchRemove(node, op.Path)
 		case OperationReplace:
-			err = patchReplace(node, op.Path, op.Value)
+			err = patchReplace(node, op.Path, op.Value, op.Comment)
 		case OperationMove:
 			err = patchMove(node, op.Path, op.From)
 		case OperationCopy:
@@ -64,8 +64,8 @@ func Apply(originalBytes []byte, patch Patch) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func patchAdd(node *yaml.Node, path Path, value interface{}) error {
-	valueNode, err := valueToYAMLNode(value)
+func patchAdd(node *yaml.Node, path Path, value interface{}, comment string) error {
+	valueNode, err := valueToYAMLNode(value, comment)
 	if err != nil {
 		return err
 	}
@@ -100,12 +100,12 @@ func patchRemove(node *yaml.Node, path Path) error {
 	return parent.Remove(path.Key())
 }
 
-func patchReplace(node *yaml.Node, path Path, value interface{}) error {
+func patchReplace(node *yaml.Node, path Path, value interface{}, comment string) error {
 	parent, _, err := getParentAndLeaf(node, path)
 	if err != nil {
 		return err
 	}
-	valueNode, err := valueToYAMLNode(value)
+	valueNode, err := valueToYAMLNode(value, comment)
 	if err != nil {
 		return err
 	}
@@ -169,8 +169,9 @@ func patchTest(node *yaml.Node, path Path, testValue interface{}) error {
 	if err != nil {
 		return err
 	}
-	// roundtrip test value to use standard type
-	testValueNode, err := valueToYAMLNode(testValue)
+	// roundtrip test value to use standard type, comment is unset since this operation only
+	// looks at the existing value and compares it against the test value
+	testValueNode, err := valueToYAMLNode(testValue, "")
 	if err != nil {
 		return err
 	}
@@ -222,7 +223,7 @@ func unmarshalNode(text []byte) (*yaml.Node, error) {
 	return node.Content[0], nil
 }
 
-func valueToYAMLNode(value interface{}) (*yaml.Node, error) {
+func valueToYAMLNode(value interface{}, comment string) (*yaml.Node, error) {
 	yamlBytes, err := yaml.Marshal(value)
 	if err != nil {
 		return nil, err
@@ -232,6 +233,7 @@ func valueToYAMLNode(value interface{}) (*yaml.Node, error) {
 		return nil, err
 	}
 	clearYAMLStyle(node)
+	node.HeadComment = comment
 	return node, nil
 }
 

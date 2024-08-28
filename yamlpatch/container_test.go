@@ -84,7 +84,7 @@ func TestContainers(t *testing.T) {
 			Patch: func(t *testing.T, node *yaml.Node) {
 				c, err := newContainer(node)
 				require.NoError(t, err)
-				valNode, err := valueToYAMLNode("newvalue")
+				valNode, err := valueToYAMLNode("newvalue", "")
 				require.NoError(t, err)
 				err = c.Add("newkey", valNode)
 				require.NoError(t, err)
@@ -100,7 +100,7 @@ newkey: newvalue
 			Patch: func(t *testing.T, node *yaml.Node) {
 				c, err := newContainer(node)
 				require.NoError(t, err)
-				valNode, err := valueToYAMLNode(map[string]interface{}{"bar": "val"})
+				valNode, err := valueToYAMLNode(map[string]interface{}{"bar": "val"}, "")
 				require.NoError(t, err)
 				err = c.Add("foo", valNode)
 				require.NoError(t, err)
@@ -116,7 +116,7 @@ foo:
 			Patch: func(t *testing.T, node *yaml.Node) {
 				c, err := newContainer(node)
 				require.NoError(t, err)
-				valNode, err := valueToYAMLNode("newvalue")
+				valNode, err := valueToYAMLNode("newvalue", "")
 				require.NoError(t, err)
 				err = c.Add("foo", valNode)
 				require.EqualError(t, err, "key foo already exists and can not be added")
@@ -131,7 +131,7 @@ foo:
 			Patch: func(t *testing.T, node *yaml.Node) {
 				c, err := newContainer(node)
 				require.NoError(t, err)
-				valNode, err := valueToYAMLNode("newvalue")
+				valNode, err := valueToYAMLNode("newvalue", "")
 				require.NoError(t, err)
 				err = c.Set("foo", valNode)
 				require.NoError(t, err)
@@ -144,7 +144,7 @@ foo:
 			Patch: func(t *testing.T, node *yaml.Node) {
 				c, err := newContainer(node)
 				require.NoError(t, err)
-				valNode, err := valueToYAMLNode(map[string]interface{}{"bar": "update", "baz": 2})
+				valNode, err := valueToYAMLNode(map[string]interface{}{"bar": "update", "baz": 2}, "")
 				require.NoError(t, err)
 				err = c.Set("foo", valNode)
 				require.NoError(t, err)
@@ -160,7 +160,7 @@ foo:
 			Patch: func(t *testing.T, node *yaml.Node) {
 				c, err := newContainer(node)
 				require.NoError(t, err)
-				valNode, err := valueToYAMLNode("newvalue")
+				valNode, err := valueToYAMLNode("newvalue", "")
 				require.NoError(t, err)
 				err = c.Set("notfound", valNode)
 				require.EqualError(t, err, "key notfound does not exist and can not be replaced")
@@ -291,7 +291,7 @@ foo:
 			Patch: func(t *testing.T, node *yaml.Node) {
 				c, err := newContainer(node)
 				require.NoError(t, err)
-				valNode, err := valueToYAMLNode("newvalue")
+				valNode, err := valueToYAMLNode("newvalue", "")
 				require.NoError(t, err)
 				err = c.Add("-", valNode)
 				require.NoError(t, err)
@@ -311,7 +311,7 @@ foo:
 			Patch: func(t *testing.T, node *yaml.Node) {
 				c, err := newContainer(node)
 				require.NoError(t, err)
-				valNode, err := valueToYAMLNode("newvalue")
+				valNode, err := valueToYAMLNode("newvalue", "")
 				require.NoError(t, err)
 				err = c.Add("3", valNode)
 				require.NoError(t, err)
@@ -331,7 +331,7 @@ foo:
 			Patch: func(t *testing.T, node *yaml.Node) {
 				c, err := newContainer(node)
 				require.NoError(t, err)
-				valNode, err := valueToYAMLNode("newvalue")
+				valNode, err := valueToYAMLNode("newvalue", "")
 				require.NoError(t, err)
 				err = c.Add("0", valNode)
 				require.NoError(t, err)
@@ -351,7 +351,7 @@ foo:
 			Patch: func(t *testing.T, node *yaml.Node) {
 				c, err := newContainer(node)
 				require.NoError(t, err)
-				valNode, err := valueToYAMLNode("newvalue")
+				valNode, err := valueToYAMLNode("newvalue", "")
 				require.NoError(t, err)
 				err = c.Add("1", valNode)
 				require.NoError(t, err)
@@ -368,7 +368,7 @@ foo:
 			Patch: func(t *testing.T, node *yaml.Node) {
 				c, err := newContainer(node)
 				require.NoError(t, err)
-				valNode, err := valueToYAMLNode("newvalue")
+				valNode, err := valueToYAMLNode("newvalue", "")
 				require.NoError(t, err)
 				err = c.Add("-", valNode)
 				require.NoError(t, err)
@@ -385,7 +385,7 @@ foo:
 			Patch: func(t *testing.T, node *yaml.Node) {
 				c, err := newContainer(node)
 				require.NoError(t, err)
-				valNode, err := valueToYAMLNode("newvalue")
+				valNode, err := valueToYAMLNode("newvalue", "")
 				require.NoError(t, err)
 				err = c.Add("4", valNode)
 				require.EqualError(t, err, "add index key out of bounds (idx 4, len 3)")
@@ -404,7 +404,7 @@ foo:
 			Patch: func(t *testing.T, node *yaml.Node) {
 				c, err := newContainer(node)
 				require.NoError(t, err)
-				valNode, err := valueToYAMLNode("newvalue")
+				valNode, err := valueToYAMLNode("newvalue", "")
 				require.NoError(t, err)
 				err = c.Set("1", valNode)
 				require.NoError(t, err)
@@ -423,7 +423,7 @@ foo:
 			Patch: func(t *testing.T, node *yaml.Node) {
 				c, err := newContainer(node)
 				require.NoError(t, err)
-				valNode, err := valueToYAMLNode(map[string]interface{}{"bar": "update", "baz": 2})
+				valNode, err := valueToYAMLNode(map[string]interface{}{"bar": "update", "baz": 2}, "")
 				require.NoError(t, err)
 				err = c.Set("1", valNode)
 				require.NoError(t, err)
@@ -442,7 +442,7 @@ foo:
 			Patch: func(t *testing.T, node *yaml.Node) {
 				c, err := newContainer(node)
 				require.NoError(t, err)
-				valNode, err := valueToYAMLNode("newvalue")
+				valNode, err := valueToYAMLNode("newvalue", "")
 				require.NoError(t, err)
 				err = c.Set("2", valNode)
 				require.EqualError(t, err, "set index key out of bounds (idx 2, len 2)")
