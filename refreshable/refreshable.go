@@ -115,7 +115,7 @@ func Validate[T any](original Refreshable[T], validatingFn func(T) error) (Valid
 // Reduce returns a new Refreshable that combines the latest values of two Refreshables using the reduceFn.
 // The returned Refreshable is updated whenever either of the original Refreshables updates.
 // The unsubscribe function removes subscriptions from both initial Refreshables.
-func Reduce[T1 any, T2, R any](reduceFn func(T1, T2) R, initial1 Refreshable[T1], initial2 Refreshable[T2]) (Refreshable[R], UnsubscribeFunc) {
+func Reduce[T1 any, T2 any, R any](reduceFn func(T1, T2) R, initial1 Refreshable[T1], initial2 Refreshable[T2]) (Refreshable[R], UnsubscribeFunc) {
 	out := newZero[R]()
 	stop1 := initial1.Subscribe(func(v T1) {
 		out.Update(reduceFn(v, initial2.Current()))
@@ -135,16 +135,15 @@ func Reduce[T1 any, T2, R any](reduceFn func(T1, T2) R, initial1 Refreshable[T1]
 // The unsubscribe function removes subscriptions from all initial Refreshables.
 func ReduceN[T any, R any](reduceFn func([]T) R, initial ...Refreshable[T]) (Refreshable[R], UnsubscribeFunc) {
 	out := newZero[R]()
-	doUpdate := func(T) {
-		current := make([]T, len(initial))
-		for i := range initial {
-			current[i] = initial[i].Current()
-		}
-		out.Update(reduceFn(current))
-	}
 	stops := make([]UnsubscribeFunc, len(initial))
 	for i := range initial {
-		stops[i] = initial[i].Subscribe(doUpdate)
+		stops[i] = initial[i].Subscribe(func(T) {
+			current := make([]T, len(initial))
+			for i := range initial {
+				current[i] = initial[i].Current()
+			}
+			out.Update(reduceFn(current))
+		})
 	}
 	return out.readOnly(), func() {
 		for _, stop := range stops {
