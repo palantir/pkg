@@ -156,47 +156,58 @@ func ExampleValidate() {
 	// 100 <nil>
 }
 
-func ExampleReduce() {
+func ExampleMerge() {
 	r1 := refreshable.New(42)
 	r2 := refreshable.New(100)
-	reduced, stop := refreshable.Reduce(func(v1, v2 int) string {
+	merged, stop := refreshable.Merge(r1, r2, func(v1, v2 int) string {
 		return fmt.Sprintf("Sum: %d", v1+v2)
-	}, r1, r2)
-	fmt.Println(reduced.Current())
+	})
+	fmt.Println(merged.Current())
 	r1.Update(50)
-	fmt.Println(reduced.Current())
+	fmt.Println(merged.Current())
 	r2.Update(150)
-	fmt.Println(reduced.Current())
+	fmt.Println(merged.Current())
 	stop()
 	r1.Update(60)
-	fmt.Println(reduced.Current())
+	fmt.Println(merged.Current())
 	// Output: Sum: 142
 	// Sum: 150
 	// Sum: 200
 	// Sum: 200
 }
 
-func ExampleReduceN() {
+func ExampleCollect() {
 	r1 := refreshable.New(10)
 	r2 := refreshable.New(20)
 	r3 := refreshable.New(30)
-	reduced, stop := refreshable.ReduceN(func(vals []int) int {
-		sum := 0
-		for _, v := range vals {
-			sum += v
-		}
-		return sum
-	}, r1, r2, r3)
-	fmt.Println(reduced.Current())
+
+	collected, stop := refreshable.Collect(r1, r2, r3)
+
+	printCollected := func() {
+		values := collected.Current()
+		fmt.Printf("Collected values: %v\n", values)
+	}
+
+	printCollected() // Initial values
+
 	r1.Update(15)
-	fmt.Println(reduced.Current())
+	printCollected() // After updating r1
+
 	r2.Update(25)
-	fmt.Println(reduced.Current())
-	stop()
+	printCollected() // After updating r2
+
 	r3.Update(35)
-	fmt.Println(reduced.Current())
-	// Output: 60
-	// 65
-	// 70
-	// 70
+	printCollected() // After updating r3
+
+	stop() // Stop collecting updates
+
+	r1.Update(40)
+	printCollected() // No change after stopping
+
+	// Output:
+	// Collected values: [10 20 30]
+	// Collected values: [15 20 30]
+	// Collected values: [15 25 30]
+	// Collected values: [15 25 35]
+	// Collected values: [15 25 35]
 }

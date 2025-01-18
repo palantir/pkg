@@ -112,38 +112,38 @@ func Validate[T any](original Refreshable[T], validatingFn func(T) error) (Valid
 	return MapWithError(original, identity(validatingFn))
 }
 
-// Reduce returns a new Refreshable that combines the latest values of two Refreshables using the reduceFn.
+// Merge returns a new Refreshable that combines the latest values of two Refreshables of different types using the reduceFn.
 // The returned Refreshable is updated whenever either of the original Refreshables updates.
-// The unsubscribe function removes subscriptions from both initial Refreshables.
-func Reduce[T1 any, T2 any, R any](reduceFn func(T1, T2) R, initial1 Refreshable[T1], initial2 Refreshable[T2]) (Refreshable[R], UnsubscribeFunc) {
+// The unsubscribe function removes subscriptions from both original Refreshables.
+func Merge[T1 any, T2 any, R any](original1 Refreshable[T1], original2 Refreshable[T2], reduceFn func(T1, T2) R) (Refreshable[R], UnsubscribeFunc) {
 	out := newZero[R]()
-	stop1 := initial1.Subscribe(func(v T1) {
-		out.Update(reduceFn(v, initial2.Current()))
-	})
-	stop2 := initial2.Subscribe(func(v T2) {
-		out.Update(reduceFn(initial1.Current(), v))
-	})
+	doUpdate := func() {
+		out.Update(reduceFn(original1.Current(), original2.Current()))
+	}
+	stop1 := original1.Subscribe(func(T1) { doUpdate() })
+	stop2 := original2.Subscribe(func(T2) { doUpdate() })
 	return out.readOnly(), func() {
 		stop1()
 		stop2()
 	}
 }
 
-// ReduceN returns a new Refreshable that combines the latest values of multiple Refreshables using the reduceFn.
+// Collect returns a new Refreshable that combines the latest values of multiple Refreshables using the reduceFn.
 // The reduceFn is called with a slice of the current values of the original Refreshables.
 // The returned Refreshable is updated whenever any of the original Refreshables updates.
-// The unsubscribe function removes subscriptions from all initial Refreshables.
-func ReduceN[T any, R any](reduceFn func([]T) R, initial ...Refreshable[T]) (Refreshable[R], UnsubscribeFunc) {
-	out := newZero[R]()
-	stops := make([]UnsubscribeFunc, len(initial))
-	for i := range initial {
-		stops[i] = initial[i].Subscribe(func(T) {
-			current := make([]T, len(initial))
-			for i := range initial {
-				current[i] = initial[i].Current()
-			}
-			out.Update(reduceFn(current))
-		})
+// The unsubscribe function removes subscriptions from all original Refreshables.
+func Collect[T any](list ...Refreshable[T]) (Refreshable[[]T], UnsubscribeFunc) {
+	out := newZero[[]T]()
+	doUpdate := func() {
+		current := make([]T, len(list))
+		for i := range list {
+			current[i] = list[i].Current()
+		}
+		out.Update(current)
+	}
+	stops := make([]UnsubscribeFunc, len(list))
+	for i := range list {
+		stops[i] = list[i].Subscribe(func(T) { doUpdate() })
 	}
 	return out.readOnly(), func() {
 		for _, stop := range stops {
