@@ -112,13 +112,13 @@ func Validate[T any](original Refreshable[T], validatingFn func(T) error) (Valid
 	return MapWithError(original, identity(validatingFn))
 }
 
-// Merge returns a new Refreshable that combines the latest values of two Refreshables of different types using the reduceFn.
+// Merge returns a new Refreshable that combines the latest values of two Refreshables of different types using the mergeFn.
 // The returned Refreshable is updated whenever either of the original Refreshables updates.
 // The unsubscribe function removes subscriptions from both original Refreshables.
-func Merge[T1 any, T2 any, R any](original1 Refreshable[T1], original2 Refreshable[T2], reduceFn func(T1, T2) R) (Refreshable[R], UnsubscribeFunc) {
+func Merge[T1 any, T2 any, R any](original1 Refreshable[T1], original2 Refreshable[T2], mergeFn func(T1, T2) R) (Refreshable[R], UnsubscribeFunc) {
 	out := newZero[R]()
 	doUpdate := func() {
-		out.Update(reduceFn(original1.Current(), original2.Current()))
+		out.Update(mergeFn(original1.Current(), original2.Current()))
 	}
 	stop1 := original1.Subscribe(func(T1) { doUpdate() })
 	stop2 := original2.Subscribe(func(T2) { doUpdate() })
@@ -128,8 +128,7 @@ func Merge[T1 any, T2 any, R any](original1 Refreshable[T1], original2 Refreshab
 	}
 }
 
-// Collect returns a new Refreshable that combines the latest values of multiple Refreshables using the reduceFn.
-// The reduceFn is called with a slice of the current values of the original Refreshables.
+// Collect returns a new Refreshable that combines the latest values of multiple Refreshables into a slice.
 // The returned Refreshable is updated whenever any of the original Refreshables updates.
 // The unsubscribe function removes subscriptions from all original Refreshables.
 func Collect[T any](list ...Refreshable[T]) (Refreshable[[]T], UnsubscribeFunc) {
