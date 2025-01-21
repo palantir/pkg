@@ -59,13 +59,31 @@ func New[T any](val T) Updatable[T] {
 	return newDefault(val)
 }
 
+// Cached returns a new Refreshable that subscribes to the original Refreshable and caches its value.
+// This is useful in combination with View to avoid recomputing an expensive mapped value
+// each time it is retrieved. The returned refreshable is read-only (does not implement Update).
+func Cached[T any](original Refreshable[T]) (Refreshable[T], UnsubscribeFunc) {
+	out := newZero[T]()
+	stop := original.Subscribe(out.Update)
+	return out.readOnly(), stop
+}
+
+// View returns a Refreshable implementation that converts the original Refreshable value to a new value using mapFn.
+// Current() and Subscribe() invoke mapFn as needed on the current value of the original Refreshable.
+// Subscription callbacks are invoked with the mapped value each time the original value changes
+// and the result is not cached nor compared for equality with the previous value, so functions
+// subscribing to View refreshables are more likely to receive duplicate updates.
+func View[T any, M any](original Refreshable[T], mapFn func(T) M) Refreshable[M] {
+	return mapperRefreshable[T, M]{
+		base:   original,
+		mapper: mapFn,
+	}
+}
+
 // Map returns a new Refreshable based on the current one that handles updates based on the current Refreshable.
+// See Cached and View for more information.
 func Map[T any, M any](original Refreshable[T], mapFn func(T) M) (Refreshable[M], UnsubscribeFunc) {
-	out := newDefault(mapFn(original.Current()))
-	stop := original.Subscribe(func(v T) {
-		out.Update(mapFn(v))
-	})
-	return (*readOnlyRefreshable[M])(out), stop
+	return Cached(View(original, mapFn))
 }
 
 // MapContext is like Map but unsubscribes when the context is cancelled.
@@ -92,4 +110,43 @@ func MapWithError[T any, M any](original Refreshable[T], mapFn func(T) (M, error
 // An error is returned if the current original value is invalid.
 func Validate[T any](original Refreshable[T], validatingFn func(T) error) (Validated[T], UnsubscribeFunc, error) {
 	return MapWithError(original, identity(validatingFn))
+}
+
+// Merge returns a new Refreshable that combines the latest values of two Refreshables of different types using the mergeFn.
+// The returned Refreshable is updated whenever either of the original Refreshables updates.
+// The unsubscribe function removes subscriptions from both original Refreshables.
+func Merge[T1 any, T2 any, R any](original1 Refreshable[T1], original2 Refreshable[T2], mergeFn func(T1, T2) R) (Refreshable[R], UnsubscribeFunc) {
+	out := newZero[R]()
+	doUpdate := func() {
+		out.Update(mergeFn(original1.Current(), original2.Current()))
+	}
+	stop1 := original1.Subscribe(func(T1) { doUpdate() })
+	stop2 := original2.Subscribe(func(T2) { doUpdate() })
+	return out.readOnly(), func() {
+		stop1()
+		stop2()
+	}
+}
+
+// Collect returns a new Refreshable that combines the latest values of multiple Refreshables into a slice.
+// The returned Refreshable is updated whenever any of the original Refreshables updates.
+// The unsubscribe function removes subscriptions from all original Refreshables.
+func Collect[T any](list ...Refreshable[T]) (Refreshable[[]T], UnsubscribeFunc) {
+	out := newZero[[]T]()
+	doUpdate := func() {
+		current := make([]T, len(list))
+		for i := range list {
+			current[i] = list[i].Current()
+		}
+		out.Update(current)
+	}
+	stops := make([]UnsubscribeFunc, len(list))
+	for i := range list {
+		stops[i] = list[i].Subscribe(func(T) { doUpdate() })
+	}
+	return out.readOnly(), func() {
+		for _, stop := range stops {
+			stop()
+		}
+	}
 }

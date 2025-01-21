@@ -23,10 +23,7 @@ func newDefault[T any](val T) *defaultRefreshable[T] {
 }
 
 func newZero[T any]() *defaultRefreshable[T] {
-	d := new(defaultRefreshable[T])
-	var zero T
-	d.current.Store(&zero)
-	return d
+	return newDefault(*new(T))
 }
 
 // Update changes the value of the Refreshable, then blocks while subscribers are executed.
@@ -72,7 +69,10 @@ func (d *defaultRefreshable[T]) unsubscribe(consumerFnPtr *func(T)) UnsubscribeF
 			d.subscribers = append(d.subscribers[:matchIdx], d.subscribers[matchIdx+1:]...)
 		}
 	}
+}
 
+func (d *defaultRefreshable[T]) readOnly() *readOnlyRefreshable[T] {
+	return (*readOnlyRefreshable[T])(d)
 }
 
 // readOnlyRefreshable aliases defaultRefreshable but hides the Update method so the type
@@ -85,4 +85,20 @@ func (d *readOnlyRefreshable[T]) Current() T {
 
 func (d *readOnlyRefreshable[T]) Subscribe(consumer func(T)) UnsubscribeFunc {
 	return (*defaultRefreshable[T])(d).Subscribe(consumer)
+}
+
+// mapperRefreshable wraps an existing Refreshable and applies a mapping function to its values.
+// Subscribe may be called repeatedly with the same value when the underlying value changes but the mapped value does not.
+// mapperRefreshable does not implement Updatable because the mapped value may not be able to be converted back to the original type.
+type mapperRefreshable[S, T any] struct {
+	base   Refreshable[S]
+	mapper func(S) T
+}
+
+func (d mapperRefreshable[S, T]) Current() T {
+	return d.mapper(d.base.Current())
+}
+
+func (d mapperRefreshable[S, T]) Subscribe(consumer func(T)) UnsubscribeFunc {
+	return d.base.Subscribe(func(value S) { consumer(d.mapper(value)) })
 }
