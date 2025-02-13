@@ -1,0 +1,357 @@
+// Copyright (c) 2025 Palantir Technologies. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+package yamlpatch
+
+import (
+	"io"
+	"slices"
+
+	"github.com/goccy/go-yaml"
+	"github.com/goccy/go-yaml/ast"
+	"github.com/pkg/errors"
+)
+
+type flowStyler interface {
+	SetIsFlowStyle(isFlow bool)
+}
+
+// newGoyamlContainer returns the container impl matching node.Kind.
+// If the node is not a Map or Sequence, an error is returned.
+func newGoccyContainer(node ast.Node, encodeOptions ...yaml.EncodeOption) (YAMLContainer[ast.Node], error) {
+	if node == nil {
+		return nil, errors.Errorf("unexpected nil yaml node")
+	}
+
+	switch node.Type() {
+	case ast.MappingType:
+		return &goccyMappingContainer{
+			node:          node.(*ast.MappingNode),
+			encodeOptions: encodeOptions,
+		}, nil
+	case ast.SequenceType:
+		return &goccySequenceContainer{
+			node:          node.(*ast.SequenceNode),
+			encodeOptions: encodeOptions,
+		}, nil
+	case ast.DocumentType:
+		return &goccyDocumentContainer{
+			node:          node.(*ast.DocumentNode),
+			encodeOptions: encodeOptions,
+		}, nil
+	case ast.AliasType:
+		// Recursive call to bypass alias wrapping
+		// TODO(maybe): Block writes to nodes accessed via alias since they may have unintended side effects.
+		//  When generating the JSONPatch for a diff, the values are fully dealiased so if two paths that share an alias
+		//  begin to differ, a change will be produced that ends up changing the alias target. This will change the
+		//  resolved value(s) for the path that was supposed to remain unchanged. In this case the "best" approach is
+		//  probably to copy the alias target to the original path then edit the copy and remove the alias reference.
+		return newGoccyContainer(node.(*ast.AliasNode).Value, encodeOptions...)
+	default:
+		return nil, errors.Errorf("unexpected yaml node: type %s", node.Type())
+	}
+}
+
+var _ YAMLContainer[ast.Node] = (*goccyMappingContainer)(nil)
+
+type goccyMappingContainer struct {
+	node          *ast.MappingNode
+	encodeOptions []yaml.EncodeOption
+}
+
+func (g *goccyMappingContainer) Get(key string) (ast.Node, error) {
+	if err := g.validate(); err != nil {
+		return nil, err
+	}
+	_, _, valNode := g.find(key)
+	return valNode, nil
+}
+
+func (g *goccyMappingContainer) Set(key string, val ast.Node) error {
+	if err := g.validate(); err != nil {
+		return err
+	}
+
+	keyIdx, keyNode, prevValNode := g.find(key)
+	if keyIdx == -1 {
+		return errors.Errorf("key %s does not exist and can not be replaced", key)
+	}
+
+	// ensure flow style of node being added matches style of container
+	if flowNode, ok := val.(flowStyler); ok {
+		isFlowStyle := g.node.IsFlowStyle
+		// special case: if map is empty ("{}"), then use non-flow style. There's no way to specify an empty map in a
+		// non-flow style, and in most instances "flow" style is preferred.
+		if len(g.node.Values) == 0 {
+			isFlowStyle = false
+		}
+		flowNode.SetIsFlowStyle(isFlowStyle)
+	}
+
+	// if new and previous values are of same type (scalar or non-scalar), match indent level
+	_, newValueIsScalar := val.(ast.ScalarNode)
+	_, prevValueIsScalar := prevValNode.(ast.ScalarNode)
+	if newValueIsScalar == prevValueIsScalar {
+		val.AddColumn(prevValNode.GetToken().Position.IndentLevel * g.getIndentSpaces())
+	} else if !newValueIsScalar {
+		// new value is not a scalar, but old value was: set indent level of new value to be 1 more than key
+		val.AddColumn((keyNode.GetToken().Position.IndentLevel + 1) * g.getIndentSpaces())
+	}
+
+	g.node.Values[keyIdx].Value = val
+	return nil
+}
+
+// roundabout workaround to extract the indent level from the encoding options
+func (g *goccyMappingContainer) getIndentSpaces() int {
+	// roundabout workaround to extract the indent level from the encoding options
+	encoder := yaml.NewEncoder(io.Discard, g.encodeOptions...)
+	node, _ := encoder.EncodeToNode(true)
+	return node.GetToken().Position.IndentNum
+}
+
+func (g *goccyMappingContainer) Add(key string, val ast.Node) error {
+	if err := g.validate(); err != nil {
+		return err
+	}
+	if _, _, existingValue := g.find(key); existingValue != nil {
+		return errors.Errorf("key %s already exists and can not be added", key)
+	}
+
+	// ensure flow style of node being added matches style of container
+	if flowNode, ok := val.(flowStyler); ok {
+		isFlowStyle := g.node.IsFlowStyle
+		// special case: if map is empty ("{}"), then use non-flow style. There's no way to specify an empty map in a
+		// non-flow style, and in most instances "flow" style is preferred.
+		if len(g.node.Values) == 0 {
+			isFlowStyle = false
+			g.node.IsFlowStyle = false
+		}
+		flowNode.SetIsFlowStyle(isFlowStyle)
+	}
+
+	mapEntryNode, err := yaml.ValueToNode(yaml.MapSlice{
+		{
+			Key:   key,
+			Value: val,
+		},
+	}, yaml.Indent(g.getIndentSpaces()), yaml.IndentSequence(true))
+	if err != nil {
+		return err
+	}
+	mapEntryNodeTyped := mapEntryNode.(*ast.MappingNode)
+	mapEntryValue := mapEntryNodeTyped.Values[0]
+
+	if len(g.node.Values) > 0 {
+		mapEntryValue.AddColumn((g.node.Values[0].Key.GetToken().Position.IndentLevel) * g.getIndentSpaces())
+	} else {
+		mapEntryValue.AddColumn((g.node.GetToken().Prev.Position.IndentLevel + 1) * g.getIndentSpaces())
+	}
+
+	g.node.Values = append(g.node.Values, mapEntryValue)
+	return nil
+}
+
+func (g *goccyMappingContainer) Remove(key string) error {
+	if err := g.validate(); err != nil {
+		return err
+	}
+
+	keyIdx, _, _ := g.find(key)
+	if keyIdx == -1 {
+		return errors.Errorf("key %s does not exist and can not be removed", key)
+	}
+	// remove entry from content
+	g.node.Values = append(g.node.Values[:keyIdx], g.node.Values[keyIdx+1:]...)
+	return nil
+}
+
+func (g *goccyMappingContainer) find(key string) (keyIdx int, keyNode, valNode ast.Node) {
+	for entryIdx, mapEntry := range g.node.Values {
+		// Use mapEntry.Key.GetToken().Value instead of mapEntry.Key.String() because former should always be the
+		// raw/unquoted string value (latter may return string value that includes quotes)
+		if mapEntry.Key.GetToken().Value == key {
+			return entryIdx, mapEntry.Key, mapEntry.Value
+		}
+	}
+	return -1, nil, nil
+}
+
+func (g *goccyMappingContainer) validate() error {
+	for _, mapEntry := range g.node.Values {
+		if _, isScalar := mapEntry.Key.(ast.ScalarNode); !isScalar {
+			return errors.Errorf("jsonpatch only supports scalar mapping keys, got %s", mapEntry.Key.Type())
+		}
+	}
+	return nil
+}
+
+var _ YAMLContainer[ast.Node] = (*goccySequenceContainer)(nil)
+
+type goccySequenceContainer struct {
+	node          *ast.SequenceNode
+	encodeOptions []yaml.EncodeOption
+}
+
+func (g *goccySequenceContainer) Get(key string) (ast.Node, error) {
+	if key == "-" {
+		return nil, nil
+	}
+	// Parse key into integer and index into array
+	idx, err := parseSeqIndex(key)
+	if err != nil {
+		return nil, err
+	}
+	if idx > len(g.node.Values)-1 {
+		// key is out of bounds
+		return nil, nil
+	}
+	return g.node.Values[idx], nil
+}
+
+func (g *goccySequenceContainer) Set(key string, val ast.Node) error {
+	idx, err := parseSeqIndex(key)
+	if err != nil {
+		return err
+	}
+	if idx > len(g.node.Values)-1 {
+		return errors.Errorf("set index key out of bounds (idx %d, len %d)", idx, len(g.node.Values))
+	}
+	// ensure flow style of node being added matches style of container
+	if flowNode, ok := val.(flowStyler); ok {
+		isFlowStyle := g.node.IsFlowStyle
+		// special case: if sequence is empty ("[]"), then use non-flow style. There's no way to specify an empty
+		// sequence in a non-flow style, and in most instances "flow" style is preferred.
+		if len(g.node.Values) == 0 {
+			isFlowStyle = false
+			g.node.IsFlowStyle = false
+		}
+		flowNode.SetIsFlowStyle(isFlowStyle)
+	}
+	g.node.Values[idx] = val
+	return nil
+}
+
+func (g *goccySequenceContainer) Add(key string, val ast.Node) error {
+	var commentGroup *ast.CommentGroupNode
+	if !g.node.IsFlowStyle {
+		// comments for sequence items should be "head" comments (occur on the line before the value):
+		// if node has a comment set, clear it and add it to the appropriate head comment index.
+		// Do so even if empty so that the head comments for other entries line up properly.
+		commentGroup = val.GetComment()
+		if commentGroup != nil {
+			if err := val.SetComment(nil); err != nil {
+				return errors.Wrapf(err, "failed to clear comment for node")
+			}
+		}
+	}
+
+	// ensure flow style of node being added matches style of container
+	if flowNode, ok := val.(flowStyler); ok {
+		isFlowStyle := g.node.IsFlowStyle
+		// special case: if sequence is empty ("[]"), then use non-flow style. There's no way to specify an empty
+		// sequence in a non-flow style, and in most instances "flow" style is preferred.
+		if len(g.node.Values) == 0 {
+			isFlowStyle = false
+			g.node.IsFlowStyle = false
+		}
+		flowNode.SetIsFlowStyle(isFlowStyle)
+	}
+
+	if key == "-" {
+		g.node.Values = append(g.node.Values, val)
+		if !g.node.IsFlowStyle {
+			g.node.ValueHeadComments = append(g.node.ValueHeadComments, commentGroup)
+		}
+		return nil
+	}
+	idx, err := parseSeqIndex(key)
+	if err != nil {
+		return err
+	}
+	if idx > len(g.node.Values) {
+		return errors.Errorf("add index key out of bounds (idx %d, len %d)", idx, len(g.node.Values))
+	}
+
+	// update values with inserted element
+	g.node.Values = slices.Insert(g.node.Values, idx, val)
+
+	// if sequence is not "flow" style (single line), then also insert comment into value head comments slice
+	if !g.node.IsFlowStyle {
+		g.node.ValueHeadComments = slices.Insert(g.node.ValueHeadComments, idx, commentGroup)
+
+		// special case: comments on the first element of a sequence need special handling. Conceptually, the comment for
+		// the first element should be in g.node.ValueHeadsComments[0]. However, such a comment can also be interpreted as a
+		// comment on the overall sequence node itself, and it appears that this is how the library interprets such a
+		// comment when reading/loading from rendered YAML. In most cases this is fine, but if a new element is inserted at
+		// position 0, this can cause an issue: if the comment is in g.node.ValueHeadComments then the comment would be
+		// properly "shifted" to position 1, but if it's on the node, then the comment will remain rendered above position
+		// 0. Add special-case logic to deal with this: if the insertion is for position 0, the overall node has a comment,
+		// and there used to be another node at position 0, then move the comment from the overall node to position 1 and
+		// clear out the original value.
+		if idx == 0 && len(g.node.ValueHeadComments) > 1 && g.node.Comment != nil && g.node.ValueHeadComments[1] == nil {
+			g.node.ValueHeadComments[1] = g.node.Comment
+			g.node.Comment = nil
+		}
+	}
+
+	return nil
+}
+
+func (g *goccySequenceContainer) Remove(key string) error {
+	idx, err := parseSeqIndex(key)
+	if err != nil {
+		return err
+	}
+	if idx > len(g.node.Values)-1 {
+		return errors.Errorf("remove index key out of bounds (idx %d, len %d)", idx, len(g.node.Values))
+	}
+	// remove value from sequence
+	g.node.Values = slices.Delete(g.node.Values, idx, idx+1)
+	// if sequence is not flow style, remove comment node
+	if !g.node.IsFlowStyle {
+		g.node.ValueHeadComments = slices.Delete(g.node.ValueHeadComments, idx, idx+1)
+	}
+	return nil
+}
+
+var _ YAMLContainer[ast.Node] = (*goccyDocumentContainer)(nil)
+
+// goyamlDocumentContainer is a special container that wraps a yaml.Document.
+// Since documents have a single element, the 'key' argument in all methods must be the empty string "".
+// An error is returned if any other key is provided, since the intention is likely not to be accessing a document node.
+type goccyDocumentContainer struct {
+	node          *ast.DocumentNode
+	encodeOptions []yaml.EncodeOption
+}
+
+func (g *goccyDocumentContainer) Get(key string) (ast.Node, error) {
+	if key != "" {
+		return nil, errIllegalDocumentAccess
+	}
+	return g.node.Body, nil
+}
+
+func (g *goccyDocumentContainer) Set(key string, val ast.Node) error {
+	if key != "" {
+		return errIllegalDocumentAccess
+	}
+	g.node.Body = val
+	return nil
+}
+
+func (g *goccyDocumentContainer) Add(key string, val ast.Node) error {
+	if key != "" {
+		return errIllegalDocumentAccess
+	}
+	g.node.Body = val
+	return nil
+}
+
+func (g *goccyDocumentContainer) Remove(key string) error {
+	if key != "" {
+		return errIllegalDocumentAccess
+	}
+	return errors.Errorf("document does not implement Remove()")
+}

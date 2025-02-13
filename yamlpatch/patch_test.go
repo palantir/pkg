@@ -5,7 +5,6 @@
 package yamlpatch
 
 import (
-	"encoding/json"
 	"strings"
 	"testing"
 
@@ -13,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestApplyJSONPatch(t *testing.T) {
+func runApplyYAMLPatchTests[NodeT any](t *testing.T, testNamePrefix string, yamllib YAMLLibrary[NodeT]) {
 	for _, test := range []struct {
 		Name      string
 		Body      string
@@ -114,6 +113,50 @@ foo:
     - 3
     # the number 4
     - 4`,
+		},
+		{
+			Name:  "add to array with comments shifts comments",
+			Patch: []string{`{"op":"add","path":"/foo/arr/1","value":4,"comment":"the number 4"}`},
+			Body: `# my foo
+foo:
+  arr:
+    # number 1
+    - 1
+    # number 2
+    - 2
+    - 3 # number 3`,
+			Expected: `# my foo
+foo:
+  arr:
+    # number 1
+    - 1
+    # the number 4
+    - 4
+    # number 2
+    - 2
+    - 3 # number 3`,
+		},
+		{
+			Name:  "add to array with comments at position 0 shifts comments",
+			Patch: []string{`{"op":"add","path":"/foo/arr/0","value":4,"comment":"the number 4"}`},
+			Body: `# my foo
+foo:
+  arr:
+    # number 1
+    - 1
+    # number 2
+    - 2
+    - 3 # number 3`,
+			Expected: `# my foo
+foo:
+  arr:
+    # the number 4
+    - 4
+    # number 1
+    - 1
+    # number 2
+    - 2
+    - 3 # number 3`,
 		},
 		{
 			Name:  "replace object with comment",
@@ -460,15 +503,15 @@ foo:
 			ExpectErr: "op test /foo: testing path /foo value failed",
 		},
 	} {
-		t.Run(test.Name, func(t *testing.T) {
+		t.Run(testNamePrefix+" "+test.Name, func(t *testing.T) {
 			patch := make(Patch, len(test.Patch))
 			for i, patchStr := range test.Patch {
 				var op Operation
-				err := json.Unmarshal([]byte(patchStr), &op)
+				err := yamllib.Unmarshal([]byte(patchStr), &op)
 				require.NoError(t, err)
 				patch[i] = op
 			}
-			out, err := Apply([]byte(test.Body), patch)
+			out, err := ApplyUsingYAMLLibrary(yamllib, []byte(test.Body), patch)
 			if test.ExpectErr == "" {
 				require.NoError(t, err)
 				assert.Equal(t, test.Expected, strings.TrimSpace(string(out)))
@@ -479,26 +522,28 @@ foo:
 	}
 }
 
-func TestApplyJSONPatch_CustomObject(t *testing.T) {
-	// Tests adding an object where the Value has custom yaml serialization
-	type MyObject struct {
-		FieldA string `yaml:"custom-tag"`
-	}
+// Tests adding an object where the Value has custom yaml serialization
+type TestMyObject struct {
+	FieldA string `yaml:"custom-tag"`
+}
 
-	originalBytes := []byte(`existing-field: true`)
+func runApplyYAMLPatchCustomObjectTests[NodeT any](t *testing.T, testNamePrefix string, yamllib YAMLLibrary[NodeT]) {
+	t.Run(testNamePrefix+" custom object test", func(t *testing.T) {
+		originalBytes := []byte(`existing-field: true`)
 
-	out, err := Apply(originalBytes, Patch{
-		{
-			Type:  "add",
-			Path:  MustParsePath("/custom-path"),
-			Value: MyObject{FieldA: "custom-value"},
-		},
-	})
-	require.NoError(t, err)
+		out, err := ApplyUsingYAMLLibrary(yamllib, originalBytes, Patch{
+			{
+				Type:  "add",
+				Path:  MustParsePath("/custom-path"),
+				Value: TestMyObject{FieldA: "custom-value"},
+			},
+		})
+		require.NoError(t, err)
 
-	expected := `existing-field: true
+		expected := `existing-field: true
 custom-path:
   custom-tag: custom-value
 `
-	require.Equal(t, expected, string(out))
+		require.Equal(t, expected, string(out))
+	})
 }
