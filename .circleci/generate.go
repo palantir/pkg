@@ -23,7 +23,7 @@ orbs:
 image-version: &image-version "cimg/go:1.23.6-browsers"
 
 checkout-path: &checkout-path
-  checkout-path: /home/circleci/go/src/github.com/palantir/pkg
+  path: /home/circleci/go/src/github.com/palantir/pkg
 
 # Filter that matches all tags (will run on every build).
 all-tags-filter: &all-tags-filter
