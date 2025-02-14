@@ -57,7 +57,6 @@ requires_jobs: &requires_jobs
 `
 
 	requiresTemplateContent = `  - {{.Module}}-verify
-  - {{.Module}}-test
 `
 
 	jobsWorkflowsTemplateContent = `
@@ -89,15 +88,6 @@ workflows:
 
 	moduleTemplateContent = `
       # {{.Module}}
-      - go-jobs/godel_build:
-          name: {{.Module}}-build
-          executor: standard-executor-{{.Module}}
-          setup_steps:
-            - go-jobs/default_setup_steps:
-                checkout_steps:
-                  - checkout:
-                      <<: *checkout-path
-          <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: {{.Module}}-verify
           executor: standard-executor-{{.Module}}
@@ -106,19 +96,6 @@ workflows:
                 checkout_steps:
                   - checkout:
                       <<: *checkout-path
-          requires:
-            - {{.Module}}-build
-          <<: *all-tags-filter
-      - go-jobs/godel_test:
-          name: {{.Module}}-test
-          executor: standard-executor-{{.Module}}
-          setup_steps:
-            - go-jobs/default_setup_steps:
-                checkout_steps:
-                  - checkout:
-                      <<: *checkout-path
-          requires:
-            - {{.Module}}-build
           <<: *all-tags-filter
 `
 )
