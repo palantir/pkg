@@ -17,25 +17,35 @@ import (
 const (
 	header = `version: 2.1
 
+orbs:
+  go-jobs: palantir/go-jobs@0.6.0
+
+image-version: &image-version "cimg/go:1.23.6-browsers"
+
 checkout-path: &checkout-path
   checkout-path: /home/circleci/go/src/github.com/palantir/pkg
 
-orbs:
-  go: palantir/go@0.0.29
-  godel: palantir/godel@0.0.29
+# Filter that matches all tags (will run on every build).
+all-tags-filter: &all-tags-filter
+  filters:
+    tags:
+      only: /.*/
 
-homepath: &homepath
-  homepath: /home/circleci
-
-gopath: &gopath
-  gopath: /home/circleci/go
+# Filter that matches any branch besides primary branch and ignores all tags except for release candidates
+pull-request-filter: &pull-request-filter
+  filters:
+    tags:
+      only: /.*-rc.*/
+    branches:
+      ignore:
+        - master
 
 executors:`
 
 	executorTemplateContent = `
-  circleci-go-{{.Module}}:
+  standard-executor-{{.Module}}:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/{{.Module}}
 `
 
@@ -44,49 +54,54 @@ jobs:
   verify-circleci:
     working_directory: /home/circleci/go/src/github.com/palantir/pkg
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
     resource_class: small
     steps:
       - checkout
       - run: go version
       - run: go run .circleci/generate.go .
       - run: diff  <(cat .circleci/config.yml) <(go run .circleci/generate.go .)
-  circle-all:
-    docker:
-      - image: cimg/go:1.19-browsers
-    resource_class: small
-    steps:
-      - run: echo "All required jobs run successfully"
 
 workflows:
   version: 2
   verify-test:
     jobs:
       - verify-circleci
-      - circle-all:
-          requires: [ verify-circleci{{ range $job := .JobNames }}, {{ $job }}{{end}} ]
+      - go-jobs/circle_all:
+          name: "circle-all"
+          image: "busybox:1.36.1"
+          requires: *requires_jobs
+          <<: *pull-request-filter
 `
 
 	moduleTemplateContent = `
       # {{.Module}}
-      - godel/verify:
+      - go-jobs/godel_build:
+          name: {{.Module}}-build
+          executor: standard-executor-{{.Module}}
+          <<: *all-tags-filter
+      - go-jobs/godel_verify:
           name: {{.Module}}-verify
-          executor: circleci-go-{{.Module}}
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: {{.Module}}-test-go-prev
-          executor: circleci-go-{{.Module}}
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
+          executor: standard-executor-{{.Module}}
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           requires:
-            - {{.Module}}-verify
+            - {{.Module}}-build
+          <<: *all-tags-filter
+      - go-jobs/godel_test:
+          name: {{.Module}}-test
+          executor: standard-executor-{{.Module}}
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          requires:
+            - {{.Module}}-build
+          <<: *all-tags-filter
 `
 )
 
