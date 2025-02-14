@@ -46,7 +46,18 @@ executors:`
   standard-executor-{{.Module}}:
     docker:
       - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/{{.Module}}
+`
+
+	requiresHeader = `
+# The set of jobs that should be run on every build
+requires_jobs: &requires_jobs
+`
+
+	requiresTemplateContent = `  - {{.Module}}-verify
+  - {{.Module}}-test
 `
 
 	jobsWorkflowsTemplateContent = `
@@ -55,6 +66,8 @@ jobs:
     working_directory: /home/circleci/go/src/github.com/palantir/pkg
     docker:
       - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     resource_class: small
     steps:
       - checkout
@@ -127,6 +140,7 @@ func main() {
 
 var (
 	executorTemplate,
+	requiresTemplate,
 	jobsWorkflowsTemplate,
 	moduleTemplate *template.Template
 )
@@ -137,9 +151,13 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to create executorTemplate template: %v", err))
 	}
+	requiresTemplate, err = template.New("requiresTemplate").Parse(requiresTemplateContent)
+	if err != nil {
+		panic(fmt.Sprintf("failed to create requiresTemplate template: %v", err))
+	}
 	jobsWorkflowsTemplate, err = template.New("jobsWorkflowsTemplate").Parse(jobsWorkflowsTemplateContent)
 	if err != nil {
-		panic(fmt.Sprintf("failed to create headerTemplate template: %v", err))
+		panic(fmt.Sprintf("failed to create jobsWorkflowsTemplate template: %v", err))
 	}
 	moduleTemplate, err = template.New("moduleTemplate").Parse(moduleTemplateContent)
 	if err != nil {
@@ -165,6 +183,13 @@ func createConfigYML(modDirs []string) (string, error) {
 	for _, modTemplate := range modTemplates {
 		if err := executorTemplate.Execute(outBuf, modTemplate); err != nil {
 			return "", fmt.Errorf("failed to execute executorTemplate template: %v", err)
+		}
+	}
+
+	outBuf.WriteString(requiresHeader)
+	for _, modTemplate := range modTemplates {
+		if err := requiresTemplate.Execute(outBuf, modTemplate); err != nil {
+			return "", fmt.Errorf("failed to execute requiresTemplate template: %v", err)
 		}
 	}
 
