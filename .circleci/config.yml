@@ -1,791 +1,623 @@
 version: 2.1
 
-checkout-path: &checkout-path
-  checkout-path: /home/circleci/go/src/github.com/palantir/pkg
-
 orbs:
-  go: palantir/go@0.0.29
-  godel: palantir/godel@0.0.29
+  go-jobs: palantir/go-jobs@0.6.0
 
-homepath: &homepath
-  homepath: /home/circleci
+image-version: &image-version "cimg/go:1.23.6-browsers"
 
-gopath: &gopath
-  gopath: /home/circleci/go
+checkout-path: &checkout-path
+  path: /home/circleci/go/src/github.com/palantir/pkg
+
+# Filter that matches all tags (will run on every build).
+all-tags-filter: &all-tags-filter
+  filters:
+    tags:
+      only: /.*/
+
+# Filter that matches any branch besides primary branch and ignores all tags except for release candidates
+pull-request-filter: &pull-request-filter
+  filters:
+    tags:
+      only: /.*-rc.*/
+    branches:
+      ignore:
+        - master
 
 executors:
-  circleci-go-bearertoken:
+  standard-executor-bearertoken:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/bearertoken
 
-  circleci-go-binary:
+  standard-executor-binary:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/binary
 
-  circleci-go-boolean:
+  standard-executor-boolean:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/boolean
 
-  circleci-go-bytesbuffers:
+  standard-executor-bytesbuffers:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/bytesbuffers
 
-  circleci-go-cli:
+  standard-executor-cli:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/cli
 
-  circleci-go-cobracli:
+  standard-executor-cobracli:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/cobracli
 
-  circleci-go-datetime:
+  standard-executor-datetime:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/datetime
 
-  circleci-go-gittest:
+  standard-executor-gittest:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/gittest
 
-  circleci-go-httpclient:
+  standard-executor-httpclient:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/httpclient
 
-  circleci-go-httpserver:
+  standard-executor-httpserver:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/httpserver
 
-  circleci-go-matcher:
+  standard-executor-matcher:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/matcher
 
-  circleci-go-merge:
+  standard-executor-merge:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/merge
 
-  circleci-go-metrics:
+  standard-executor-metrics:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/metrics
 
-  circleci-go-objmatcher:
+  standard-executor-objmatcher:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/objmatcher
 
-  circleci-go-pkgpath:
+  standard-executor-pkgpath:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/pkgpath
 
-  circleci-go-refreshable:
+  standard-executor-refreshable:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/refreshable
 
-  circleci-go-retry:
+  standard-executor-retry:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/retry
 
-  circleci-go-rid:
+  standard-executor-rid:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/rid
 
-  circleci-go-safehttp:
+  standard-executor-safehttp:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/safehttp
 
-  circleci-go-safejson:
+  standard-executor-safejson:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/safejson
 
-  circleci-go-safelong:
+  standard-executor-safelong:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/safelong
 
-  circleci-go-safeyaml:
+  standard-executor-safeyaml:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/safeyaml
 
-  circleci-go-signals:
+  standard-executor-signals:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/signals
 
-  circleci-go-specdir:
+  standard-executor-specdir:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/specdir
 
-  circleci-go-tableprinter:
+  standard-executor-tableprinter:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/tableprinter
 
-  circleci-go-tlsconfig:
+  standard-executor-tlsconfig:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/tlsconfig
 
-  circleci-go-transform:
+  standard-executor-transform:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/transform
 
-  circleci-go-typenames:
+  standard-executor-typenames:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/typenames
 
-  circleci-go-uuid:
+  standard-executor-uuid:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/uuid
 
-  circleci-go-yamlpatch:
+  standard-executor-yamlpatch:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/yamlpatch
+
+# The set of jobs that should be run on every build
+requires_jobs: &requires_jobs
+  - bearertoken-verify
+  - binary-verify
+  - boolean-verify
+  - bytesbuffers-verify
+  - cli-verify
+  - cobracli-verify
+  - datetime-verify
+  - gittest-verify
+  - httpclient-verify
+  - httpserver-verify
+  - matcher-verify
+  - merge-verify
+  - metrics-verify
+  - objmatcher-verify
+  - pkgpath-verify
+  - refreshable-verify
+  - retry-verify
+  - rid-verify
+  - safehttp-verify
+  - safejson-verify
+  - safelong-verify
+  - safeyaml-verify
+  - signals-verify
+  - specdir-verify
+  - tableprinter-verify
+  - tlsconfig-verify
+  - transform-verify
+  - typenames-verify
+  - uuid-verify
+  - yamlpatch-verify
 
 jobs:
   verify-circleci:
     working_directory: /home/circleci/go/src/github.com/palantir/pkg
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     resource_class: small
     steps:
       - checkout
       - run: go version
       - run: go run .circleci/generate.go .
       - run: diff  <(cat .circleci/config.yml) <(go run .circleci/generate.go .)
-  circle-all:
-    docker:
-      - image: cimg/go:1.19-browsers
-    resource_class: small
-    steps:
-      - run: echo "All required jobs run successfully"
 
 workflows:
   version: 2
   verify-test:
     jobs:
       - verify-circleci
-      - circle-all:
-          requires: [ verify-circleci, bearertoken-verify, bearertoken-test-go-prev, binary-verify, binary-test-go-prev, boolean-verify, boolean-test-go-prev, bytesbuffers-verify, bytesbuffers-test-go-prev, cli-verify, cli-test-go-prev, cobracli-verify, cobracli-test-go-prev, datetime-verify, datetime-test-go-prev, gittest-verify, gittest-test-go-prev, httpclient-verify, httpclient-test-go-prev, httpserver-verify, httpserver-test-go-prev, matcher-verify, matcher-test-go-prev, merge-verify, merge-test-go-prev, metrics-verify, metrics-test-go-prev, objmatcher-verify, objmatcher-test-go-prev, pkgpath-verify, pkgpath-test-go-prev, refreshable-verify, refreshable-test-go-prev, retry-verify, retry-test-go-prev, rid-verify, rid-test-go-prev, safehttp-verify, safehttp-test-go-prev, safejson-verify, safejson-test-go-prev, safelong-verify, safelong-test-go-prev, safeyaml-verify, safeyaml-test-go-prev, signals-verify, signals-test-go-prev, specdir-verify, specdir-test-go-prev, tableprinter-verify, tableprinter-test-go-prev, tlsconfig-verify, tlsconfig-test-go-prev, transform-verify, transform-test-go-prev, typenames-verify, typenames-test-go-prev, uuid-verify, uuid-test-go-prev, yamlpatch-verify, yamlpatch-test-go-prev ]
+      - go-jobs/circle_all:
+          name: "circle-all"
+          image: "busybox:1.36.1"
+          requires: *requires_jobs
+          <<: *pull-request-filter
 
       # bearertoken
-      - godel/verify:
+      - go-jobs/godel_verify:
           name: bearertoken-verify
-          executor: circleci-go-bearertoken
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: bearertoken-test-go-prev
-          executor: circleci-go-bearertoken
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
-          requires:
-            - bearertoken-verify
+          executor: standard-executor-bearertoken
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter
 
       # binary
-      - godel/verify:
+      - go-jobs/godel_verify:
           name: binary-verify
-          executor: circleci-go-binary
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: binary-test-go-prev
-          executor: circleci-go-binary
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
-          requires:
-            - binary-verify
+          executor: standard-executor-binary
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter
 
       # boolean
-      - godel/verify:
+      - go-jobs/godel_verify:
           name: boolean-verify
-          executor: circleci-go-boolean
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: boolean-test-go-prev
-          executor: circleci-go-boolean
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
-          requires:
-            - boolean-verify
+          executor: standard-executor-boolean
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter
 
       # bytesbuffers
-      - godel/verify:
+      - go-jobs/godel_verify:
           name: bytesbuffers-verify
-          executor: circleci-go-bytesbuffers
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: bytesbuffers-test-go-prev
-          executor: circleci-go-bytesbuffers
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
-          requires:
-            - bytesbuffers-verify
+          executor: standard-executor-bytesbuffers
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter
 
       # cli
-      - godel/verify:
+      - go-jobs/godel_verify:
           name: cli-verify
-          executor: circleci-go-cli
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: cli-test-go-prev
-          executor: circleci-go-cli
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
-          requires:
-            - cli-verify
+          executor: standard-executor-cli
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter
 
       # cobracli
-      - godel/verify:
+      - go-jobs/godel_verify:
           name: cobracli-verify
-          executor: circleci-go-cobracli
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: cobracli-test-go-prev
-          executor: circleci-go-cobracli
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
-          requires:
-            - cobracli-verify
+          executor: standard-executor-cobracli
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter
 
       # datetime
-      - godel/verify:
+      - go-jobs/godel_verify:
           name: datetime-verify
-          executor: circleci-go-datetime
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: datetime-test-go-prev
-          executor: circleci-go-datetime
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
-          requires:
-            - datetime-verify
+          executor: standard-executor-datetime
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter
 
       # gittest
-      - godel/verify:
+      - go-jobs/godel_verify:
           name: gittest-verify
-          executor: circleci-go-gittest
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: gittest-test-go-prev
-          executor: circleci-go-gittest
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
-          requires:
-            - gittest-verify
+          executor: standard-executor-gittest
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter
 
       # httpclient
-      - godel/verify:
+      - go-jobs/godel_verify:
           name: httpclient-verify
-          executor: circleci-go-httpclient
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: httpclient-test-go-prev
-          executor: circleci-go-httpclient
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
-          requires:
-            - httpclient-verify
+          executor: standard-executor-httpclient
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter
 
       # httpserver
-      - godel/verify:
+      - go-jobs/godel_verify:
           name: httpserver-verify
-          executor: circleci-go-httpserver
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: httpserver-test-go-prev
-          executor: circleci-go-httpserver
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
-          requires:
-            - httpserver-verify
+          executor: standard-executor-httpserver
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter
 
       # matcher
-      - godel/verify:
+      - go-jobs/godel_verify:
           name: matcher-verify
-          executor: circleci-go-matcher
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: matcher-test-go-prev
-          executor: circleci-go-matcher
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
-          requires:
-            - matcher-verify
+          executor: standard-executor-matcher
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter
 
       # merge
-      - godel/verify:
+      - go-jobs/godel_verify:
           name: merge-verify
-          executor: circleci-go-merge
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: merge-test-go-prev
-          executor: circleci-go-merge
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
-          requires:
-            - merge-verify
+          executor: standard-executor-merge
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter
 
       # metrics
-      - godel/verify:
+      - go-jobs/godel_verify:
           name: metrics-verify
-          executor: circleci-go-metrics
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: metrics-test-go-prev
-          executor: circleci-go-metrics
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
-          requires:
-            - metrics-verify
+          executor: standard-executor-metrics
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter
 
       # objmatcher
-      - godel/verify:
+      - go-jobs/godel_verify:
           name: objmatcher-verify
-          executor: circleci-go-objmatcher
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: objmatcher-test-go-prev
-          executor: circleci-go-objmatcher
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
-          requires:
-            - objmatcher-verify
+          executor: standard-executor-objmatcher
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter
 
       # pkgpath
-      - godel/verify:
+      - go-jobs/godel_verify:
           name: pkgpath-verify
-          executor: circleci-go-pkgpath
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: pkgpath-test-go-prev
-          executor: circleci-go-pkgpath
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
-          requires:
-            - pkgpath-verify
+          executor: standard-executor-pkgpath
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter
 
       # refreshable
-      - godel/verify:
+      - go-jobs/godel_verify:
           name: refreshable-verify
-          executor: circleci-go-refreshable
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: refreshable-test-go-prev
-          executor: circleci-go-refreshable
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
-          requires:
-            - refreshable-verify
+          executor: standard-executor-refreshable
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter
 
       # retry
-      - godel/verify:
+      - go-jobs/godel_verify:
           name: retry-verify
-          executor: circleci-go-retry
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: retry-test-go-prev
-          executor: circleci-go-retry
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
-          requires:
-            - retry-verify
+          executor: standard-executor-retry
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter
 
       # rid
-      - godel/verify:
+      - go-jobs/godel_verify:
           name: rid-verify
-          executor: circleci-go-rid
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: rid-test-go-prev
-          executor: circleci-go-rid
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
-          requires:
-            - rid-verify
+          executor: standard-executor-rid
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter
 
       # safehttp
-      - godel/verify:
+      - go-jobs/godel_verify:
           name: safehttp-verify
-          executor: circleci-go-safehttp
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: safehttp-test-go-prev
-          executor: circleci-go-safehttp
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
-          requires:
-            - safehttp-verify
+          executor: standard-executor-safehttp
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter
 
       # safejson
-      - godel/verify:
+      - go-jobs/godel_verify:
           name: safejson-verify
-          executor: circleci-go-safejson
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: safejson-test-go-prev
-          executor: circleci-go-safejson
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
-          requires:
-            - safejson-verify
+          executor: standard-executor-safejson
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter
 
       # safelong
-      - godel/verify:
+      - go-jobs/godel_verify:
           name: safelong-verify
-          executor: circleci-go-safelong
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: safelong-test-go-prev
-          executor: circleci-go-safelong
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
-          requires:
-            - safelong-verify
+          executor: standard-executor-safelong
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter
 
       # safeyaml
-      - godel/verify:
+      - go-jobs/godel_verify:
           name: safeyaml-verify
-          executor: circleci-go-safeyaml
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: safeyaml-test-go-prev
-          executor: circleci-go-safeyaml
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
-          requires:
-            - safeyaml-verify
+          executor: standard-executor-safeyaml
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter
 
       # signals
-      - godel/verify:
+      - go-jobs/godel_verify:
           name: signals-verify
-          executor: circleci-go-signals
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: signals-test-go-prev
-          executor: circleci-go-signals
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
-          requires:
-            - signals-verify
+          executor: standard-executor-signals
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter
 
       # specdir
-      - godel/verify:
+      - go-jobs/godel_verify:
           name: specdir-verify
-          executor: circleci-go-specdir
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: specdir-test-go-prev
-          executor: circleci-go-specdir
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
-          requires:
-            - specdir-verify
+          executor: standard-executor-specdir
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter
 
       # tableprinter
-      - godel/verify:
+      - go-jobs/godel_verify:
           name: tableprinter-verify
-          executor: circleci-go-tableprinter
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: tableprinter-test-go-prev
-          executor: circleci-go-tableprinter
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
-          requires:
-            - tableprinter-verify
+          executor: standard-executor-tableprinter
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter
 
       # tlsconfig
-      - godel/verify:
+      - go-jobs/godel_verify:
           name: tlsconfig-verify
-          executor: circleci-go-tlsconfig
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: tlsconfig-test-go-prev
-          executor: circleci-go-tlsconfig
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
-          requires:
-            - tlsconfig-verify
+          executor: standard-executor-tlsconfig
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter
 
       # transform
-      - godel/verify:
+      - go-jobs/godel_verify:
           name: transform-verify
-          executor: circleci-go-transform
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: transform-test-go-prev
-          executor: circleci-go-transform
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
-          requires:
-            - transform-verify
+          executor: standard-executor-transform
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter
 
       # typenames
-      - godel/verify:
+      - go-jobs/godel_verify:
           name: typenames-verify
-          executor: circleci-go-typenames
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: typenames-test-go-prev
-          executor: circleci-go-typenames
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
-          requires:
-            - typenames-verify
+          executor: standard-executor-typenames
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter
 
       # uuid
-      - godel/verify:
+      - go-jobs/godel_verify:
           name: uuid-verify
-          executor: circleci-go-uuid
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: uuid-test-go-prev
-          executor: circleci-go-uuid
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
-          requires:
-            - uuid-verify
+          executor: standard-executor-uuid
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter
 
       # yamlpatch
-      - godel/verify:
+      - go-jobs/godel_verify:
           name: yamlpatch-verify
-          executor: circleci-go-yamlpatch
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: yamlpatch-test-go-prev
-          executor: circleci-go-yamlpatch
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
-          requires:
-            - yamlpatch-verify
+          executor: standard-executor-yamlpatch
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter

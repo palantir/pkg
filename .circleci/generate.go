@@ -17,26 +17,46 @@ import (
 const (
 	header = `version: 2.1
 
-checkout-path: &checkout-path
-  checkout-path: /home/circleci/go/src/github.com/palantir/pkg
-
 orbs:
-  go: palantir/go@0.0.29
-  godel: palantir/godel@0.0.29
+  go-jobs: palantir/go-jobs@0.6.0
 
-homepath: &homepath
-  homepath: /home/circleci
+image-version: &image-version "cimg/go:1.23.6-browsers"
 
-gopath: &gopath
-  gopath: /home/circleci/go
+checkout-path: &checkout-path
+  path: /home/circleci/go/src/github.com/palantir/pkg
+
+# Filter that matches all tags (will run on every build).
+all-tags-filter: &all-tags-filter
+  filters:
+    tags:
+      only: /.*/
+
+# Filter that matches any branch besides primary branch and ignores all tags except for release candidates
+pull-request-filter: &pull-request-filter
+  filters:
+    tags:
+      only: /.*-rc.*/
+    branches:
+      ignore:
+        - master
 
 executors:`
 
 	executorTemplateContent = `
-  circleci-go-{{.Module}}:
+  standard-executor-{{.Module}}:
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/{{.Module}}
+`
+
+	requiresHeader = `
+# The set of jobs that should be run on every build
+requires_jobs: &requires_jobs
+`
+
+	requiresTemplateContent = `  - {{.Module}}-verify
 `
 
 	jobsWorkflowsTemplateContent = `
@@ -44,49 +64,39 @@ jobs:
   verify-circleci:
     working_directory: /home/circleci/go/src/github.com/palantir/pkg
     docker:
-      - image: cimg/go:1.19-browsers
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
     resource_class: small
     steps:
       - checkout
       - run: go version
       - run: go run .circleci/generate.go .
       - run: diff  <(cat .circleci/config.yml) <(go run .circleci/generate.go .)
-  circle-all:
-    docker:
-      - image: cimg/go:1.19-browsers
-    resource_class: small
-    steps:
-      - run: echo "All required jobs run successfully"
 
 workflows:
   version: 2
   verify-test:
     jobs:
       - verify-circleci
-      - circle-all:
-          requires: [ verify-circleci{{ range $job := .JobNames }}, {{ $job }}{{end}} ]
+      - go-jobs/circle_all:
+          name: "circle-all"
+          image: "busybox:1.36.1"
+          requires: *requires_jobs
+          <<: *pull-request-filter
 `
 
 	moduleTemplateContent = `
       # {{.Module}}
-      - godel/verify:
+      - go-jobs/godel_verify:
           name: {{.Module}}-verify
-          executor: circleci-go-{{.Module}}
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          include-tests: true
-      - godel/test:
-          name: {{.Module}}-test-go-prev
-          executor: circleci-go-{{.Module}}
-          <<: *checkout-path
-          <<: *homepath
-          <<: *gopath
-          go-version-file: "../.palantir/go-version"
-          go-prev-version: 1
-          requires:
-            - {{.Module}}-verify
+          executor: standard-executor-{{.Module}}
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter
 `
 )
 
@@ -112,6 +122,7 @@ func main() {
 
 var (
 	executorTemplate,
+	requiresTemplate,
 	jobsWorkflowsTemplate,
 	moduleTemplate *template.Template
 )
@@ -122,9 +133,13 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to create executorTemplate template: %v", err))
 	}
+	requiresTemplate, err = template.New("requiresTemplate").Parse(requiresTemplateContent)
+	if err != nil {
+		panic(fmt.Sprintf("failed to create requiresTemplate template: %v", err))
+	}
 	jobsWorkflowsTemplate, err = template.New("jobsWorkflowsTemplate").Parse(jobsWorkflowsTemplateContent)
 	if err != nil {
-		panic(fmt.Sprintf("failed to create headerTemplate template: %v", err))
+		panic(fmt.Sprintf("failed to create jobsWorkflowsTemplate template: %v", err))
 	}
 	moduleTemplate, err = template.New("moduleTemplate").Parse(moduleTemplateContent)
 	if err != nil {
@@ -150,6 +165,13 @@ func createConfigYML(modDirs []string) (string, error) {
 	for _, modTemplate := range modTemplates {
 		if err := executorTemplate.Execute(outBuf, modTemplate); err != nil {
 			return "", fmt.Errorf("failed to execute executorTemplate template: %v", err)
+		}
+	}
+
+	outBuf.WriteString(requiresHeader)
+	for _, modTemplate := range modTemplates {
+		if err := requiresTemplate.Execute(outBuf, modTemplate); err != nil {
+			return "", fmt.Errorf("failed to execute requiresTemplate template: %v", err)
 		}
 	}
 
