@@ -326,6 +326,11 @@ workflows:
       - go-jobs/godel_build:
           name: bearertoken-build
           executor: standard-executor-bearertoken
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: bearertoken-verify
@@ -354,6 +359,11 @@ workflows:
       - go-jobs/godel_build:
           name: binary-build
           executor: standard-executor-binary
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: binary-verify
@@ -382,6 +392,11 @@ workflows:
       - go-jobs/godel_build:
           name: boolean-build
           executor: standard-executor-boolean
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: boolean-verify
@@ -410,6 +425,11 @@ workflows:
       - go-jobs/godel_build:
           name: bytesbuffers-build
           executor: standard-executor-bytesbuffers
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: bytesbuffers-verify
@@ -438,6 +458,11 @@ workflows:
       - go-jobs/godel_build:
           name: cli-build
           executor: standard-executor-cli
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: cli-verify
@@ -466,6 +491,11 @@ workflows:
       - go-jobs/godel_build:
           name: cobracli-build
           executor: standard-executor-cobracli
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: cobracli-verify
@@ -494,6 +524,11 @@ workflows:
       - go-jobs/godel_build:
           name: datetime-build
           executor: standard-executor-datetime
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: datetime-verify
@@ -522,6 +557,11 @@ workflows:
       - go-jobs/godel_build:
           name: gittest-build
           executor: standard-executor-gittest
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: gittest-verify
@@ -550,6 +590,11 @@ workflows:
       - go-jobs/godel_build:
           name: httpclient-build
           executor: standard-executor-httpclient
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: httpclient-verify
@@ -578,6 +623,11 @@ workflows:
       - go-jobs/godel_build:
           name: httpserver-build
           executor: standard-executor-httpserver
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: httpserver-verify
@@ -606,6 +656,11 @@ workflows:
       - go-jobs/godel_build:
           name: matcher-build
           executor: standard-executor-matcher
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: matcher-verify
@@ -634,6 +689,11 @@ workflows:
       - go-jobs/godel_build:
           name: merge-build
           executor: standard-executor-merge
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: merge-verify
@@ -662,6 +722,11 @@ workflows:
       - go-jobs/godel_build:
           name: metrics-build
           executor: standard-executor-metrics
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: metrics-verify
@@ -690,6 +755,11 @@ workflows:
       - go-jobs/godel_build:
           name: objmatcher-build
           executor: standard-executor-objmatcher
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: objmatcher-verify
@@ -718,6 +788,11 @@ workflows:
       - go-jobs/godel_build:
           name: pkgpath-build
           executor: standard-executor-pkgpath
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: pkgpath-verify
@@ -746,6 +821,11 @@ workflows:
       - go-jobs/godel_build:
           name: refreshable-build
           executor: standard-executor-refreshable
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: refreshable-verify
@@ -774,6 +854,11 @@ workflows:
       - go-jobs/godel_build:
           name: retry-build
           executor: standard-executor-retry
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: retry-verify
@@ -802,6 +887,11 @@ workflows:
       - go-jobs/godel_build:
           name: rid-build
           executor: standard-executor-rid
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: rid-verify
@@ -830,6 +920,11 @@ workflows:
       - go-jobs/godel_build:
           name: safehttp-build
           executor: standard-executor-safehttp
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: safehttp-verify
@@ -858,6 +953,11 @@ workflows:
       - go-jobs/godel_build:
           name: safejson-build
           executor: standard-executor-safejson
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: safejson-verify
@@ -886,6 +986,11 @@ workflows:
       - go-jobs/godel_build:
           name: safelong-build
           executor: standard-executor-safelong
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: safelong-verify
@@ -914,6 +1019,11 @@ workflows:
       - go-jobs/godel_build:
           name: safeyaml-build
           executor: standard-executor-safeyaml
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: safeyaml-verify
@@ -942,6 +1052,11 @@ workflows:
       - go-jobs/godel_build:
           name: signals-build
           executor: standard-executor-signals
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: signals-verify
@@ -970,6 +1085,11 @@ workflows:
       - go-jobs/godel_build:
           name: specdir-build
           executor: standard-executor-specdir
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: specdir-verify
@@ -998,6 +1118,11 @@ workflows:
       - go-jobs/godel_build:
           name: tableprinter-build
           executor: standard-executor-tableprinter
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: tableprinter-verify
@@ -1026,6 +1151,11 @@ workflows:
       - go-jobs/godel_build:
           name: tlsconfig-build
           executor: standard-executor-tlsconfig
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: tlsconfig-verify
@@ -1054,6 +1184,11 @@ workflows:
       - go-jobs/godel_build:
           name: transform-build
           executor: standard-executor-transform
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: transform-verify
@@ -1082,6 +1217,11 @@ workflows:
       - go-jobs/godel_build:
           name: typenames-build
           executor: standard-executor-typenames
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: typenames-verify
@@ -1110,6 +1250,11 @@ workflows:
       - go-jobs/godel_build:
           name: uuid-build
           executor: standard-executor-uuid
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: uuid-verify
@@ -1138,6 +1283,11 @@ workflows:
       - go-jobs/godel_build:
           name: yamlpatch-build
           executor: standard-executor-yamlpatch
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: yamlpatch-verify

@@ -92,6 +92,11 @@ workflows:
       - go-jobs/godel_build:
           name: {{.Module}}-build
           executor: standard-executor-{{.Module}}
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
           <<: *all-tags-filter
       - go-jobs/godel_verify:
           name: {{.Module}}-verify
