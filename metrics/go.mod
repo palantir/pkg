@@ -1,6 +1,6 @@
 module github.com/palantir/pkg/metrics
 
-go 1.21
+go 1.23.0
 
 require (
 	github.com/palantir/go-metrics v1.1.1
