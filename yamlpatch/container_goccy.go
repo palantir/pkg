@@ -17,9 +17,12 @@ type flowStyler interface {
 	SetIsFlowStyle(isFlow bool)
 }
 
-// newGoyamlContainer returns the container impl matching node.Kind.
+type GoccyContainerOptions struct {
+}
+
+// newGoccyContainer returns the container impl matching node.Kind.
 // If the node is not a Map or Sequence, an error is returned.
-func newGoccyContainer(node ast.Node, encodeOptions ...yaml.EncodeOption) (YAMLContainer[ast.Node], error) {
+func newGoccyContainer(node ast.Node, useNonFlowWhenAddingToEmpty bool, encodeOptions ...yaml.EncodeOption) (YAMLContainer[ast.Node], error) {
 	if node == nil {
 		return nil, errors.Errorf("unexpected nil yaml node")
 	}
@@ -27,13 +30,15 @@ func newGoccyContainer(node ast.Node, encodeOptions ...yaml.EncodeOption) (YAMLC
 	switch node.Type() {
 	case ast.MappingType:
 		return &goccyMappingContainer{
-			node:          node.(*ast.MappingNode),
-			encodeOptions: encodeOptions,
+			node:                         node.(*ast.MappingNode),
+			useNonFlowWhenModifyingEmpty: useNonFlowWhenAddingToEmpty,
+			encodeOptions:                encodeOptions,
 		}, nil
 	case ast.SequenceType:
 		return &goccySequenceContainer{
-			node:          node.(*ast.SequenceNode),
-			encodeOptions: encodeOptions,
+			node:                         node.(*ast.SequenceNode),
+			useNonFlowWhenModifyingEmpty: useNonFlowWhenAddingToEmpty,
+			encodeOptions:                encodeOptions,
 		}, nil
 	case ast.DocumentType:
 		return &goccyDocumentContainer{
@@ -47,7 +52,7 @@ func newGoccyContainer(node ast.Node, encodeOptions ...yaml.EncodeOption) (YAMLC
 		//  begin to differ, a change will be produced that ends up changing the alias target. This will change the
 		//  resolved value(s) for the path that was supposed to remain unchanged. In this case the "best" approach is
 		//  probably to copy the alias target to the original path then edit the copy and remove the alias reference.
-		return newGoccyContainer(node.(*ast.AliasNode).Value, encodeOptions...)
+		return newGoccyContainer(node.(*ast.AliasNode).Value, useNonFlowWhenAddingToEmpty, encodeOptions...)
 	default:
 		return nil, errors.Errorf("unexpected yaml node: type %s", node.Type())
 	}
@@ -56,8 +61,9 @@ func newGoccyContainer(node ast.Node, encodeOptions ...yaml.EncodeOption) (YAMLC
 var _ YAMLContainer[ast.Node] = (*goccyMappingContainer)(nil)
 
 type goccyMappingContainer struct {
-	node          *ast.MappingNode
-	encodeOptions []yaml.EncodeOption
+	node                         *ast.MappingNode
+	useNonFlowWhenModifyingEmpty bool
+	encodeOptions                []yaml.EncodeOption
 }
 
 func (g *goccyMappingContainer) Get(key string) (ast.Node, error) {
@@ -78,25 +84,33 @@ func (g *goccyMappingContainer) Set(key string, val ast.Node) error {
 		return errors.Errorf("key %s does not exist and can not be replaced", key)
 	}
 
-	// ensure flow style of node being added matches style of container
-	if flowNode, ok := val.(flowStyler); ok {
-		isFlowStyle := g.node.IsFlowStyle
-		// special case: if map is empty ("{}"), then use non-flow style. There's no way to specify an empty map in a
-		// non-flow style, and in most instances "flow" style is preferred.
-		if len(g.node.Values) == 0 {
-			isFlowStyle = false
-		}
-		flowNode.SetIsFlowStyle(isFlowStyle)
+	if len(g.node.Values) == 0 && g.useNonFlowWhenModifyingEmpty {
+		// special case: when setting on empty map ("{}") with useNonFlowWhenModifyingEmpty=true, use non-flow style
+		g.node.IsFlowStyle = false
 	}
 
-	// if new and previous values are of same type (scalar or non-scalar), match indent level
+	// match flow style of node
+	if flowNode, ok := val.(flowStyler); ok {
+		flowNode.SetIsFlowStyle(g.node.IsFlowStyle)
+	}
+
+	// if new and old values are of same type (scalar or non-scalar) match indent level
 	_, newValueIsScalar := val.(ast.ScalarNode)
 	_, prevValueIsScalar := prevValNode.(ast.ScalarNode)
 	if newValueIsScalar == prevValueIsScalar {
-		val.AddColumn(prevValNode.GetToken().Position.IndentLevel * g.getIndentSpaces())
+		newIndentLevel := prevValNode.GetToken().Position.IndentLevel
+		// special-case logic to handle edge case: if previous value was a non-empty sequence and "getIsIndentSequence"
+		// is true, then if the indent level is matched, the "indentSequence" logic will cause the new sequence
+		//if prevSeqNode, ok := prevValNode.(*ast.SequenceNode); ok && len(prevSeqNode.Values) != 0 && g.getIsIndentSequence() {
+		//	newIndentLevel--
+		//}
+		if _, ok := val.(*ast.SequenceNode); ok && getIsIndentSequence(g.encodeOptions) && !(prevValNode.GetToken().Position.Line == keyNode.GetToken().Position.Line) {
+			newIndentLevel--
+		}
+		val.AddColumn(newIndentLevel * getIndentSpaces(g.encodeOptions))
 	} else if !newValueIsScalar {
 		// new value is not a scalar, but old value was: set indent level of new value to be 1 more than key
-		val.AddColumn((keyNode.GetToken().Position.IndentLevel + 1) * g.getIndentSpaces())
+		val.AddColumn((keyNode.GetToken().Position.IndentLevel + 1) * getIndentSpaces(g.encodeOptions))
 	}
 
 	g.node.Values[keyIdx].Value = val
@@ -104,11 +118,19 @@ func (g *goccyMappingContainer) Set(key string, val ast.Node) error {
 }
 
 // roundabout workaround to extract the indent level from the encoding options
-func (g *goccyMappingContainer) getIndentSpaces() int {
-	// roundabout workaround to extract the indent level from the encoding options
-	encoder := yaml.NewEncoder(io.Discard, g.encodeOptions...)
+func getIndentSpaces(encodeOptions []yaml.EncodeOption) int {
+	encoder := yaml.NewEncoder(io.Discard, encodeOptions...)
 	node, _ := encoder.EncodeToNode(true)
 	return node.GetToken().Position.IndentNum
+}
+
+// roundabout workaround to extract "IsIndentSequence" value from the encoding options
+func getIsIndentSequence(encodeOptions []yaml.EncodeOption) bool {
+	encoder := yaml.NewEncoder(io.Discard, encodeOptions...)
+	// write a single sequence node and verify whether it is indented
+	node, _ := encoder.EncodeToNode([]bool{true})
+	nodePos := node.GetToken().Position
+	return nodePos.Column > nodePos.IndentNum
 }
 
 func (g *goccyMappingContainer) Add(key string, val ast.Node) error {
@@ -119,16 +141,14 @@ func (g *goccyMappingContainer) Add(key string, val ast.Node) error {
 		return errors.Errorf("key %s already exists and can not be added", key)
 	}
 
-	// ensure flow style of node being added matches style of container
+	if len(g.node.Values) == 0 && g.useNonFlowWhenModifyingEmpty {
+		// special case: when adding to empty map ("{}") with useNonFlowWhenModifyingEmpty=true, use non-flow style
+		g.node.IsFlowStyle = false
+	}
+
+	// match flow style of node
 	if flowNode, ok := val.(flowStyler); ok {
-		isFlowStyle := g.node.IsFlowStyle
-		// special case: if map is empty ("{}"), then use non-flow style. There's no way to specify an empty map in a
-		// non-flow style, and in most instances "flow" style is preferred.
-		if len(g.node.Values) == 0 {
-			isFlowStyle = false
-			g.node.IsFlowStyle = false
-		}
-		flowNode.SetIsFlowStyle(isFlowStyle)
+		flowNode.SetIsFlowStyle(g.node.IsFlowStyle)
 	}
 
 	mapEntryNode, err := yaml.ValueToNode(yaml.MapSlice{
@@ -136,7 +156,7 @@ func (g *goccyMappingContainer) Add(key string, val ast.Node) error {
 			Key:   key,
 			Value: val,
 		},
-	}, yaml.Indent(g.getIndentSpaces()), yaml.IndentSequence(true))
+	}, yaml.Indent(getIndentSpaces(g.encodeOptions)), yaml.IndentSequence(true))
 	if err != nil {
 		return err
 	}
@@ -144,9 +164,9 @@ func (g *goccyMappingContainer) Add(key string, val ast.Node) error {
 	mapEntryValue := mapEntryNodeTyped.Values[0]
 
 	if len(g.node.Values) > 0 {
-		mapEntryValue.AddColumn((g.node.Values[0].Key.GetToken().Position.IndentLevel) * g.getIndentSpaces())
+		mapEntryValue.AddColumn((g.node.Values[0].Key.GetToken().Position.IndentLevel) * getIndentSpaces(g.encodeOptions))
 	} else {
-		mapEntryValue.AddColumn((g.node.GetToken().Prev.Position.IndentLevel + 1) * g.getIndentSpaces())
+		mapEntryValue.AddColumn((g.node.GetToken().Prev.Position.IndentLevel + 1) * getIndentSpaces(g.encodeOptions))
 	}
 
 	g.node.Values = append(g.node.Values, mapEntryValue)
@@ -190,8 +210,9 @@ func (g *goccyMappingContainer) validate() error {
 var _ YAMLContainer[ast.Node] = (*goccySequenceContainer)(nil)
 
 type goccySequenceContainer struct {
-	node          *ast.SequenceNode
-	encodeOptions []yaml.EncodeOption
+	node                         *ast.SequenceNode
+	useNonFlowWhenModifyingEmpty bool
+	encodeOptions                []yaml.EncodeOption
 }
 
 func (g *goccySequenceContainer) Get(key string) (ast.Node, error) {
@@ -218,22 +239,51 @@ func (g *goccySequenceContainer) Set(key string, val ast.Node) error {
 	if idx > len(g.node.Values)-1 {
 		return errors.Errorf("set index key out of bounds (idx %d, len %d)", idx, len(g.node.Values))
 	}
-	// ensure flow style of node being added matches style of container
-	if flowNode, ok := val.(flowStyler); ok {
-		isFlowStyle := g.node.IsFlowStyle
-		// special case: if sequence is empty ("[]"), then use non-flow style. There's no way to specify an empty
-		// sequence in a non-flow style, and in most instances "flow" style is preferred.
-		if len(g.node.Values) == 0 {
-			isFlowStyle = false
-			g.node.IsFlowStyle = false
-		}
-		flowNode.SetIsFlowStyle(isFlowStyle)
+
+	if len(g.node.Values) == 0 && g.useNonFlowWhenModifyingEmpty {
+		// special case: when setting on empty sequence ("[]]") with useNonFlowWhenModifyingEmpty=true, use non-flow style
+		g.node.IsFlowStyle = false
 	}
+
+	// match flow style of node
+	if flowNode, ok := val.(flowStyler); ok {
+		flowNode.SetIsFlowStyle(g.node.IsFlowStyle)
+	}
+
 	g.node.Values[idx] = val
 	return nil
 }
 
 func (g *goccySequenceContainer) Add(key string, val ast.Node) error {
+	if len(g.node.Values) == 0 && g.useNonFlowWhenModifyingEmpty {
+		// special case: when adding to empty sequence ("[]") with useNonFlowWhenModifyingEmpty=true, use non-flow style
+		g.node.IsFlowStyle = false
+
+		// when sequences are formatted, formatting is performed based on the column.
+		// If sequence was previously flow style AND the sequence content was on the same line as the previous token (:),
+		// set column for node to be 1 indented from key
+		if g.node.Start != nil && g.node.Start.Position != nil &&
+			g.node.GetToken().Prev != nil && g.node.GetToken().Prev.Position != nil &&
+			g.node.GetToken().Prev.Prev != nil && g.node.GetToken().Prev.Prev.Position != nil {
+			seqStartBracketPos := g.node.Start.Position
+			colonBeforeSeq := g.node.GetToken().Prev
+			defBeforeSeq := colonBeforeSeq.Prev
+
+			// previously, sequence was on same line as definition: since this is changing, update position
+			if seqStartBracketPos.Line == colonBeforeSeq.Position.Line {
+				g.node.Start.Position.Column = defBeforeSeq.Position.Column
+				if getIsIndentSequence(g.encodeOptions) {
+					g.node.Start.Position.Column += getIndentSpaces(g.encodeOptions)
+				}
+			}
+		}
+	}
+
+	// match flow style of node
+	if flowNode, ok := val.(flowStyler); ok {
+		flowNode.SetIsFlowStyle(g.node.IsFlowStyle)
+	}
+
 	var commentGroup *ast.CommentGroupNode
 	if !g.node.IsFlowStyle {
 		// comments for sequence items should be "head" comments (occur on the line before the value):
@@ -245,18 +295,6 @@ func (g *goccySequenceContainer) Add(key string, val ast.Node) error {
 				return errors.Wrapf(err, "failed to clear comment for node")
 			}
 		}
-	}
-
-	// ensure flow style of node being added matches style of container
-	if flowNode, ok := val.(flowStyler); ok {
-		isFlowStyle := g.node.IsFlowStyle
-		// special case: if sequence is empty ("[]"), then use non-flow style. There's no way to specify an empty
-		// sequence in a non-flow style, and in most instances "flow" style is preferred.
-		if len(g.node.Values) == 0 {
-			isFlowStyle = false
-			g.node.IsFlowStyle = false
-		}
-		flowNode.SetIsFlowStyle(isFlowStyle)
 	}
 
 	if key == "-" {

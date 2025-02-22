@@ -15,8 +15,9 @@ func TestContainers_goccy(t *testing.T) {
 		t,
 		"goccy",
 		NewGoccyYAMLLibrary(
-			yaml.Indent(containerTestIndentSpaces),
-			yaml.IndentSequence(false),
+			GoccyUseNonFlowWhenModifyingEmptyContainer(false),
+			GoccyYAMLEncodeOption(yaml.Indent(containerTestIndentSpaces)),
+			GoccyYAMLEncodeOption(yaml.IndentSequence(false)),
 		),
 	)
 }

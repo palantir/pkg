@@ -12,21 +12,49 @@ import (
 	"github.com/pkg/errors"
 )
 
-func NewGoccyYAMLLibrary(opts ...yaml.EncodeOption) YAMLLibrary[ast.Node] {
-	// default options. If same options are provided as arguments, they will override the defaults.
-	defaultOptions := []yaml.EncodeOption{
-		yaml.Indent(defaultIndentSpaces),
-		yaml.IndentSequence(true),
+type GoccyYAMLLibraryOption interface {
+	apply(opt *goccyYAMLLib)
+}
+
+type goccyYAMLLibOptionFunc func(opt *goccyYAMLLib)
+
+func (f goccyYAMLLibOptionFunc) apply(opt *goccyYAMLLib) {
+	f(opt)
+}
+
+func GoccyYAMLEncodeOption(encodeOption yaml.EncodeOption) GoccyYAMLLibraryOption {
+	return goccyYAMLLibOptionFunc(func(opt *goccyYAMLLib) {
+		opt.encodeOptions = append(opt.encodeOptions, encodeOption)
+	})
+}
+
+func GoccyUseNonFlowWhenModifyingEmptyContainer(useNonFlowWhenModifyingEmptyContainer bool) GoccyYAMLLibraryOption {
+	return goccyYAMLLibOptionFunc(func(opt *goccyYAMLLib) {
+		opt.useNonFlowWhenModifyingEmptyContainer = useNonFlowWhenModifyingEmptyContainer
+	})
+}
+
+func NewGoccyYAMLLibrary(opts ...GoccyYAMLLibraryOption) YAMLLibrary[ast.Node] {
+	yamllib := &goccyYAMLLib{}
+
+	defaultOptions := []GoccyYAMLLibraryOption{
+		GoccyUseNonFlowWhenModifyingEmptyContainer(true),
+		GoccyYAMLEncodeOption(yaml.Indent(defaultIndentSpaces)),
+		GoccyYAMLEncodeOption(yaml.IndentSequence(true)),
 	}
-	return &goccyYAMLLib{
-		encodeOptions: append(defaultOptions, opts...),
+	allOptions := append(defaultOptions, opts...)
+	for _, opt := range allOptions {
+		opt.apply(yamllib)
 	}
+
+	return yamllib
 }
 
 var _ YAMLLibrary[ast.Node] = (*goccyYAMLLib)(nil)
 
 type goccyYAMLLib struct {
-	encodeOptions []yaml.EncodeOption
+	useNonFlowWhenModifyingEmptyContainer bool
+	encodeOptions                         []yaml.EncodeOption
 }
 
 func (g *goccyYAMLLib) Unmarshal(in []byte, out interface{}) error {
@@ -114,7 +142,7 @@ func (g *goccyYAMLLib) SetDocumentNodeContent(documentNode ast.Node, valueNode a
 }
 
 func (g *goccyYAMLLib) NewContainer(node ast.Node) (YAMLContainer[ast.Node], error) {
-	return newGoccyContainer(node, g.encodeOptions...)
+	return newGoccyContainer(node, g.useNonFlowWhenModifyingEmptyContainer, g.encodeOptions...)
 }
 
 func (g *goccyYAMLLib) CopyNode(node ast.Node) (ast.Node, error) {
