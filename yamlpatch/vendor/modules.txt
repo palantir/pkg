@@ -1,6 +1,17 @@
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
 github.com/davecgh/go-spew/spew
+# github.com/goccy/go-yaml v1.15.22
+## explicit; go 1.21.0
+github.com/goccy/go-yaml
+github.com/goccy/go-yaml/ast
+github.com/goccy/go-yaml/internal/errors
+github.com/goccy/go-yaml/internal/format
+github.com/goccy/go-yaml/lexer
+github.com/goccy/go-yaml/parser
+github.com/goccy/go-yaml/printer
+github.com/goccy/go-yaml/scanner
+github.com/goccy/go-yaml/token
 # github.com/palantir/pkg v1.1.0
 ## explicit; go 1.19
 github.com/palantir/pkg

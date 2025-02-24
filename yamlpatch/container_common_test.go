@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Palantir Technologies. All rights reserved.
+// Copyright (c) 2025 Palantir Technologies. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -9,14 +9,15 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v3"
 )
 
-func TestContainers(t *testing.T) {
+const containerTestIndentSpaces = 4
+
+func runContainerTests[NodeT any](t *testing.T, testNamePrefix string, yamllib YAMLLibrary[NodeT]) {
 	for _, test := range []struct {
 		Name     string
 		Doc      string
-		Patch    func(t *testing.T, node *yaml.Node)
+		Patch    func(t *testing.T, node NodeT)
 		Expected string
 	}{
 		{
@@ -24,12 +25,12 @@ func TestContainers(t *testing.T) {
 			Doc: `foo:
     bar: val
 `,
-			Patch: func(t *testing.T, node *yaml.Node) {
-				c, err := newContainer(node)
+			Patch: func(t *testing.T, node NodeT) {
+				c, err := yamllib.NewContainer(node)
 				require.NoError(t, err)
 				fooNode, err := c.Get("foo")
 				require.NoError(t, err)
-				fooValue, err := yamlNodeToValue(fooNode)
+				fooValue, err := yamllib.NodeToValue(fooNode)
 				require.NoError(t, err)
 				expected := map[string]interface{}{"bar": "val"}
 				assert.Equal(t, expected, fooValue)
@@ -43,16 +44,16 @@ func TestContainers(t *testing.T) {
 			Doc: `foo:
     bar: val
 `,
-			Patch: func(t *testing.T, node *yaml.Node) {
-				c, err := newContainer(node)
+			Patch: func(t *testing.T, node NodeT) {
+				c, err := yamllib.NewContainer(node)
 				require.NoError(t, err)
 				fooNode, err := c.Get("foo")
 				require.NoError(t, err)
-				fooContainer, err := newContainer(fooNode)
+				fooContainer, err := yamllib.NewContainer(fooNode)
 				require.NoError(t, err)
 				barNode, err := fooContainer.Get("bar")
 				require.NoError(t, err)
-				barValue, err := yamlNodeToValue(barNode)
+				barValue, err := yamllib.NodeToValue(barNode)
 				require.NoError(t, err)
 				assert.Equal(t, "val", barValue)
 			},
@@ -65,8 +66,8 @@ func TestContainers(t *testing.T) {
 			Doc: `foo:
     bar: val
 `,
-			Patch: func(t *testing.T, node *yaml.Node) {
-				c, err := newContainer(node)
+			Patch: func(t *testing.T, node NodeT) {
+				c, err := yamllib.NewContainer(node)
 				require.NoError(t, err)
 				missingNode, err := c.Get("notfound")
 				require.NoError(t, err)
@@ -81,10 +82,10 @@ func TestContainers(t *testing.T) {
 			Doc: `foo:
     bar: val
 `,
-			Patch: func(t *testing.T, node *yaml.Node) {
-				c, err := newContainer(node)
+			Patch: func(t *testing.T, node NodeT) {
+				c, err := yamllib.NewContainer(node)
 				require.NoError(t, err)
-				valNode, err := valueToYAMLNode("newvalue", "")
+				valNode, err := yamllib.ValueToNode("newvalue", "")
 				require.NoError(t, err)
 				err = c.Add("newkey", valNode)
 				require.NoError(t, err)
@@ -97,10 +98,10 @@ newkey: newvalue
 		{
 			Name: "map: add complex value",
 			Doc:  `key: value`,
-			Patch: func(t *testing.T, node *yaml.Node) {
-				c, err := newContainer(node)
+			Patch: func(t *testing.T, node NodeT) {
+				c, err := yamllib.NewContainer(node)
 				require.NoError(t, err)
-				valNode, err := valueToYAMLNode(map[string]interface{}{"bar": "val"}, "")
+				valNode, err := yamllib.ValueToNode(map[string]interface{}{"bar": "val"}, "")
 				require.NoError(t, err)
 				err = c.Add("foo", valNode)
 				require.NoError(t, err)
@@ -113,10 +114,10 @@ foo:
 		{
 			Name: "map: add key already exists error",
 			Doc:  "foo: bar\n",
-			Patch: func(t *testing.T, node *yaml.Node) {
-				c, err := newContainer(node)
+			Patch: func(t *testing.T, node NodeT) {
+				c, err := yamllib.NewContainer(node)
 				require.NoError(t, err)
-				valNode, err := valueToYAMLNode("newvalue", "")
+				valNode, err := yamllib.ValueToNode("newvalue", "")
 				require.NoError(t, err)
 				err = c.Add("foo", valNode)
 				require.EqualError(t, err, "key foo already exists and can not be added")
@@ -128,10 +129,10 @@ foo:
 			Doc: `foo:
     bar: val
 `,
-			Patch: func(t *testing.T, node *yaml.Node) {
-				c, err := newContainer(node)
+			Patch: func(t *testing.T, node NodeT) {
+				c, err := yamllib.NewContainer(node)
 				require.NoError(t, err)
-				valNode, err := valueToYAMLNode("newvalue", "")
+				valNode, err := yamllib.ValueToNode("newvalue", "")
 				require.NoError(t, err)
 				err = c.Set("foo", valNode)
 				require.NoError(t, err)
@@ -141,10 +142,10 @@ foo:
 		{
 			Name: "map: set complex value",
 			Doc:  `foo: value`,
-			Patch: func(t *testing.T, node *yaml.Node) {
-				c, err := newContainer(node)
+			Patch: func(t *testing.T, node NodeT) {
+				c, err := yamllib.NewContainer(node)
 				require.NoError(t, err)
-				valNode, err := valueToYAMLNode(map[string]interface{}{"bar": "update", "baz": 2}, "")
+				valNode, err := yamllib.ValueToNode(map[string]interface{}{"bar": "update", "baz": 2}, "")
 				require.NoError(t, err)
 				err = c.Set("foo", valNode)
 				require.NoError(t, err)
@@ -157,10 +158,10 @@ foo:
 		{
 			Name: "map: set key does not exist error",
 			Doc:  "foo: bar\n",
-			Patch: func(t *testing.T, node *yaml.Node) {
-				c, err := newContainer(node)
+			Patch: func(t *testing.T, node NodeT) {
+				c, err := yamllib.NewContainer(node)
 				require.NoError(t, err)
-				valNode, err := valueToYAMLNode("newvalue", "")
+				valNode, err := yamllib.ValueToNode("newvalue", "")
 				require.NoError(t, err)
 				err = c.Set("notfound", valNode)
 				require.EqualError(t, err, "key notfound does not exist and can not be replaced")
@@ -174,8 +175,8 @@ newkey: newvalue
 foo:
     bar: val
 `,
-			Patch: func(t *testing.T, node *yaml.Node) {
-				c, err := newContainer(node)
+			Patch: func(t *testing.T, node NodeT) {
+				c, err := yamllib.NewContainer(node)
 				require.NoError(t, err)
 				err = c.Remove("foo")
 				require.NoError(t, err)
@@ -193,8 +194,8 @@ newkey: newvalue
 foo:
     bar: val
 `,
-			Patch: func(t *testing.T, node *yaml.Node) {
-				c, err := newContainer(node)
+			Patch: func(t *testing.T, node NodeT) {
+				c, err := yamllib.NewContainer(node)
 				require.NoError(t, err)
 				err = c.Remove("foo")
 				require.NoError(t, err)
@@ -204,8 +205,8 @@ foo:
 		{
 			Name: "map: remove key does not exist error",
 			Doc:  `foo: bar`,
-			Patch: func(t *testing.T, node *yaml.Node) {
-				c, err := newContainer(node)
+			Patch: func(t *testing.T, node NodeT) {
+				c, err := yamllib.NewContainer(node)
 				require.NoError(t, err)
 				err = c.Remove("notfound")
 				require.EqualError(t, err, "key notfound does not exist and can not be removed")
@@ -219,12 +220,12 @@ foo:
 - foo: bar
 - 2
 `,
-			Patch: func(t *testing.T, node *yaml.Node) {
-				c, err := newContainer(node)
+			Patch: func(t *testing.T, node NodeT) {
+				c, err := yamllib.NewContainer(node)
 				require.NoError(t, err)
 				fooNode, err := c.Get("1")
 				require.NoError(t, err)
-				fooValue, err := yamlNodeToValue(fooNode)
+				fooValue, err := yamllib.NodeToValue(fooNode)
 				require.NoError(t, err)
 				expected := map[string]interface{}{"foo": "bar"}
 				assert.Equal(t, expected, fooValue)
@@ -241,23 +242,23 @@ foo:
 - foo: bar
 - list: [ 2, 3 ]
 `,
-			Patch: func(t *testing.T, node *yaml.Node) {
-				c, err := newContainer(node)
+			Patch: func(t *testing.T, node NodeT) {
+				c, err := yamllib.NewContainer(node)
 				require.NoError(t, err)
 				elemNode, err := c.Get("2")
 				require.NoError(t, err)
-				elemContainer, err := newContainer(elemNode)
+				elemContainer, err := yamllib.NewContainer(elemNode)
 				require.NoError(t, err)
 				listNode, err := elemContainer.Get("list")
 				require.NoError(t, err)
-				listContainer, err := newContainer(listNode)
+				listContainer, err := yamllib.NewContainer(listNode)
 				require.NoError(t, err)
 				innerElemNode, err := listContainer.Get("0")
 				require.NoError(t, err)
 
-				innerElemValue, err := yamlNodeToValue(innerElemNode)
+				innerElemValue, err := yamllib.NodeToValue(innerElemNode)
 				require.NoError(t, err)
-				assert.Equal(t, 2, innerElemValue)
+				assert.Equal(t, 2, convertToInt(innerElemValue))
 			},
 			Expected: `- 0
 - foo: bar
@@ -270,8 +271,8 @@ foo:
 - 1
 - 2
 `,
-			Patch: func(t *testing.T, node *yaml.Node) {
-				c, err := newContainer(node)
+			Patch: func(t *testing.T, node NodeT) {
+				c, err := yamllib.NewContainer(node)
 				require.NoError(t, err)
 				missingNode, err := c.Get("3")
 				require.NoError(t, err)
@@ -288,10 +289,10 @@ foo:
 - 1
 - 2
 `,
-			Patch: func(t *testing.T, node *yaml.Node) {
-				c, err := newContainer(node)
+			Patch: func(t *testing.T, node NodeT) {
+				c, err := yamllib.NewContainer(node)
 				require.NoError(t, err)
-				valNode, err := valueToYAMLNode("newvalue", "")
+				valNode, err := yamllib.ValueToNode("newvalue", "")
 				require.NoError(t, err)
 				err = c.Add("-", valNode)
 				require.NoError(t, err)
@@ -308,10 +309,10 @@ foo:
 - 1
 - 2
 `,
-			Patch: func(t *testing.T, node *yaml.Node) {
-				c, err := newContainer(node)
+			Patch: func(t *testing.T, node NodeT) {
+				c, err := yamllib.NewContainer(node)
 				require.NoError(t, err)
-				valNode, err := valueToYAMLNode("newvalue", "")
+				valNode, err := yamllib.ValueToNode("newvalue", "")
 				require.NoError(t, err)
 				err = c.Add("3", valNode)
 				require.NoError(t, err)
@@ -328,10 +329,10 @@ foo:
 - 1
 - 2
 `,
-			Patch: func(t *testing.T, node *yaml.Node) {
-				c, err := newContainer(node)
+			Patch: func(t *testing.T, node NodeT) {
+				c, err := yamllib.NewContainer(node)
 				require.NoError(t, err)
-				valNode, err := valueToYAMLNode("newvalue", "")
+				valNode, err := yamllib.ValueToNode("newvalue", "")
 				require.NoError(t, err)
 				err = c.Add("0", valNode)
 				require.NoError(t, err)
@@ -348,10 +349,10 @@ foo:
 - 1
 - 2
 `,
-			Patch: func(t *testing.T, node *yaml.Node) {
-				c, err := newContainer(node)
+			Patch: func(t *testing.T, node NodeT) {
+				c, err := yamllib.NewContainer(node)
 				require.NoError(t, err)
-				valNode, err := valueToYAMLNode("newvalue", "")
+				valNode, err := yamllib.ValueToNode("newvalue", "")
 				require.NoError(t, err)
 				err = c.Add("1", valNode)
 				require.NoError(t, err)
@@ -365,10 +366,10 @@ foo:
 		{
 			Name: "seq: add key to empty sequence",
 			Doc:  `[]`,
-			Patch: func(t *testing.T, node *yaml.Node) {
-				c, err := newContainer(node)
+			Patch: func(t *testing.T, node NodeT) {
+				c, err := yamllib.NewContainer(node)
 				require.NoError(t, err)
-				valNode, err := valueToYAMLNode("newvalue", "")
+				valNode, err := yamllib.ValueToNode("newvalue", "")
 				require.NoError(t, err)
 				err = c.Add("-", valNode)
 				require.NoError(t, err)
@@ -382,10 +383,10 @@ foo:
 - 1
 - 2
 `,
-			Patch: func(t *testing.T, node *yaml.Node) {
-				c, err := newContainer(node)
+			Patch: func(t *testing.T, node NodeT) {
+				c, err := yamllib.NewContainer(node)
 				require.NoError(t, err)
-				valNode, err := valueToYAMLNode("newvalue", "")
+				valNode, err := yamllib.ValueToNode("newvalue", "")
 				require.NoError(t, err)
 				err = c.Add("4", valNode)
 				require.EqualError(t, err, "add index key out of bounds (idx 4, len 3)")
@@ -401,10 +402,10 @@ foo:
 - 1
 - 2
 `,
-			Patch: func(t *testing.T, node *yaml.Node) {
-				c, err := newContainer(node)
+			Patch: func(t *testing.T, node NodeT) {
+				c, err := yamllib.NewContainer(node)
 				require.NoError(t, err)
-				valNode, err := valueToYAMLNode("newvalue", "")
+				valNode, err := yamllib.ValueToNode("newvalue", "")
 				require.NoError(t, err)
 				err = c.Set("1", valNode)
 				require.NoError(t, err)
@@ -420,10 +421,10 @@ foo:
 - 1
 - 2
 `,
-			Patch: func(t *testing.T, node *yaml.Node) {
-				c, err := newContainer(node)
+			Patch: func(t *testing.T, node NodeT) {
+				c, err := yamllib.NewContainer(node)
 				require.NoError(t, err)
-				valNode, err := valueToYAMLNode(map[string]interface{}{"bar": "update", "baz": 2}, "")
+				valNode, err := yamllib.ValueToNode(map[string]interface{}{"bar": "update", "baz": 2}, "")
 				require.NoError(t, err)
 				err = c.Set("1", valNode)
 				require.NoError(t, err)
@@ -439,10 +440,10 @@ foo:
 			Doc: `- 0
 - 1
 `,
-			Patch: func(t *testing.T, node *yaml.Node) {
-				c, err := newContainer(node)
+			Patch: func(t *testing.T, node NodeT) {
+				c, err := yamllib.NewContainer(node)
 				require.NoError(t, err)
-				valNode, err := valueToYAMLNode("newvalue", "")
+				valNode, err := yamllib.ValueToNode("newvalue", "")
 				require.NoError(t, err)
 				err = c.Set("2", valNode)
 				require.EqualError(t, err, "set index key out of bounds (idx 2, len 2)")
@@ -457,8 +458,8 @@ foo:
 - 1
 - 2
 `,
-			Patch: func(t *testing.T, node *yaml.Node) {
-				c, err := newContainer(node)
+			Patch: func(t *testing.T, node NodeT) {
+				c, err := yamllib.NewContainer(node)
 				require.NoError(t, err)
 				err = c.Remove("1")
 				require.NoError(t, err)
@@ -473,8 +474,8 @@ foo:
 - 1
 - 2
 `,
-			Patch: func(t *testing.T, node *yaml.Node) {
-				c, err := newContainer(node)
+			Patch: func(t *testing.T, node NodeT) {
+				c, err := yamllib.NewContainer(node)
 				require.NoError(t, err)
 				err = c.Remove("0")
 				require.NoError(t, err)
@@ -489,8 +490,8 @@ foo:
 - 1
 - 2
 `,
-			Patch: func(t *testing.T, node *yaml.Node) {
-				c, err := newContainer(node)
+			Patch: func(t *testing.T, node NodeT) {
+				c, err := yamllib.NewContainer(node)
 				require.NoError(t, err)
 				err = c.Remove("2")
 				require.NoError(t, err)
@@ -510,8 +511,8 @@ newkey: newvalue
 foo:
     bar: val
 `,
-			Patch: func(t *testing.T, node *yaml.Node) {
-				c, err := newContainer(node)
+			Patch: func(t *testing.T, node NodeT) {
+				c, err := yamllib.NewContainer(node)
 				require.NoError(t, err)
 				err = c.Remove("foo")
 				require.NoError(t, err)
@@ -521,8 +522,8 @@ foo:
 		{
 			Name: "seq: remove key does not exist error",
 			Doc:  `foo: bar`,
-			Patch: func(t *testing.T, node *yaml.Node) {
-				c, err := newContainer(node)
+			Patch: func(t *testing.T, node NodeT) {
+				c, err := yamllib.NewContainer(node)
 				require.NoError(t, err)
 				err = c.Remove("notfound")
 				require.EqualError(t, err, "key notfound does not exist and can not be removed")
@@ -530,25 +531,54 @@ foo:
 			Expected: "foo: bar\n",
 		},
 	} {
-		t.Run(test.Name, func(t *testing.T) {
-			node, err := unmarshalNode([]byte(test.Doc))
+		t.Run(testNamePrefix+" "+test.Name, func(t *testing.T) {
+			node, err := yamllib.BytesToContentNode([]byte(test.Doc))
 			require.NoError(t, err)
 
 			test.Patch(t, node)
-			out, err := yaml.Marshal(node)
+			out, err := yamllib.NodeToBytes(node)
 			require.NoError(t, err)
 
-			assertYAMLEqual(t, []byte(test.Expected), out, true)
+			assertYAMLEqual(t, yamllib, []byte(test.Expected), out, true)
 		})
 	}
 }
 
-func assertYAMLEqual(t *testing.T, a, b []byte, testTextEqual bool) {
+func assertYAMLEqual[NodeT any](t *testing.T, yamllib YAMLLibrary[NodeT], a, b []byte, testTextEqual bool) {
 	var objA interface{}
-	require.NoError(t, yaml.Unmarshal(a, &objA))
+	require.NoError(t, yamllib.Unmarshal(a, &objA))
 	var objB interface{}
-	require.NoError(t, yaml.Unmarshal(b, &objB))
+	require.NoError(t, yamllib.Unmarshal(b, &objB))
 	if assert.Equal(t, objA, objB) && testTextEqual {
 		assert.Equal(t, string(a), string(b), "YAML objects had equal data but differing text")
 	}
+}
+
+// necessary because YAML/JSON representation of integers is not strictly defined. As such, if a YAML value like
+// "num: 23" is loaded into an arbitrary data structure/map, the value could be an int, int64, uint, etc. depending on
+// the library/implementation/configuration. Because these tests are meant to be generic and applicable across different
+// library implementations, this function should be used to normalize integers before comparison/assertion.
+func convertToInt(in any) int {
+	switch v := in.(type) {
+	case int:
+		return v
+	case int8:
+		return int(v)
+	case int16:
+		return int(v)
+	case int32:
+		return int(v)
+	case int64:
+		return int(v)
+	case uint8:
+		return int(v)
+	case uint16:
+		return int(v)
+	case uint32:
+		return int(v)
+	case uint64:
+		return int(v)
+	}
+	// this will panic
+	return in.(int)
 }
