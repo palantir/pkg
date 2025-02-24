@@ -98,19 +98,14 @@ func (g *goccyMappingContainer) Set(key string, val ast.Node) error {
 	_, newValueIsScalar := val.(ast.ScalarNode)
 	_, prevValueIsScalar := prevValNode.(ast.ScalarNode)
 	if newValueIsScalar == prevValueIsScalar {
-		newIndentLevel := prevValNode.GetToken().Position.IndentLevel
-		// special-case logic to handle edge case: if previous value was a non-empty sequence and "getIsIndentSequence"
-		// is true, then if the indent level is matched, the "indentSequence" logic will cause the new sequence
-		//if prevSeqNode, ok := prevValNode.(*ast.SequenceNode); ok && len(prevSeqNode.Values) != 0 && g.getIsIndentSequence() {
-		//	newIndentLevel--
-		//}
+		indentNum := prevValNode.GetToken().Position.IndentNum
 		if _, ok := val.(*ast.SequenceNode); ok && getIsIndentSequence(g.encodeOptions) && !(prevValNode.GetToken().Position.Line == keyNode.GetToken().Position.Line) {
-			newIndentLevel--
+			indentNum -= getIndentSpaces(g.encodeOptions)
 		}
-		val.AddColumn(newIndentLevel * getIndentSpaces(g.encodeOptions))
+		val.AddColumn(indentNum)
 	} else if !newValueIsScalar {
 		// new value is not a scalar, but old value was: set indent level of new value to be 1 more than key
-		val.AddColumn((keyNode.GetToken().Position.IndentLevel + 1) * getIndentSpaces(g.encodeOptions))
+		val.AddColumn(keyNode.GetToken().Position.IndentNum + getIndentSpaces(g.encodeOptions))
 	}
 
 	g.node.Values[keyIdx].Value = val
@@ -164,9 +159,9 @@ func (g *goccyMappingContainer) Add(key string, val ast.Node) error {
 	mapEntryValue := mapEntryNodeTyped.Values[0]
 
 	if len(g.node.Values) > 0 {
-		mapEntryValue.AddColumn((g.node.Values[0].Key.GetToken().Position.IndentLevel) * getIndentSpaces(g.encodeOptions))
+		mapEntryValue.AddColumn(g.node.Values[0].Key.GetToken().Position.IndentNum)
 	} else {
-		mapEntryValue.AddColumn((g.node.GetToken().Prev.Position.IndentLevel + 1) * getIndentSpaces(g.encodeOptions))
+		mapEntryValue.AddColumn(g.node.GetToken().Prev.Position.IndentNum + getIndentSpaces(g.encodeOptions))
 	}
 
 	g.node.Values = append(g.node.Values, mapEntryValue)

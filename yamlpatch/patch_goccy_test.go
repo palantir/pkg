@@ -32,7 +32,7 @@ func TestApplyYAMLPatch_CustomObjectTest_goccy(t *testing.T) {
 	)
 }
 
-func TestApplyYAMLPatch_AddOrReplaceSequence_goccy(t *testing.T) {
+func TestApplyYAMLPatch_AddOrReplace_goccy(t *testing.T) {
 	for _, tc := range []struct {
 		name           string
 		in             string
@@ -40,6 +40,75 @@ func TestApplyYAMLPatch_AddOrReplaceSequence_goccy(t *testing.T) {
 		patch          Patch
 		want           string
 	}{
+		{
+			name: "add element to map that contains another entry matches indentation",
+			in: `top-level-one-indent-0:
+  one-indent-1:
+    - one-indent-2:
+        one-indent-3:
+          one-indent-4: four-value
+top-level-two-indent-0:
+  two-indent-1:
+    two-indent-2:
+      two-indent-3: three-value
+`,
+			patch: Patch{
+				{
+					Type:    OperationAdd,
+					Path:    MustParsePath("/top-level-two-indent-0/two-indent-1/two-indent-2/two-indent-3-val-2"),
+					From:    nil,
+					Value:   "two-value",
+					Comment: "",
+				},
+			},
+			want: `top-level-one-indent-0:
+  one-indent-1:
+    - one-indent-2:
+        one-indent-3:
+          one-indent-4: four-value
+top-level-two-indent-0:
+  two-indent-1:
+    two-indent-2:
+      two-indent-3: three-value
+      two-indent-3-val-2: two-value
+`,
+		},
+		{
+			name: "add element to map that contains another entry does not match indentation if workaround is disabled",
+			in: `top-level-one-indent-0:
+  one-indent-1:
+    - one-indent-2:
+        one-indent-3:
+          one-indent-4: four-value
+top-level-two-indent-0:
+  two-indent-1:
+    two-indent-2:
+      two-indent-3: three-value
+`,
+			yamllibOptions: []GoccyYAMLLibraryOption{
+				GoccyDisableAdjustIndentLevelWorkaround(true),
+			},
+			patch: Patch{
+				{
+					Type:    OperationAdd,
+					Path:    MustParsePath("/top-level-two-indent-0/two-indent-1/two-indent-2/two-indent-3-val-2"),
+					From:    nil,
+					Value:   "two-value",
+					Comment: "",
+				},
+			},
+			want: `top-level-one-indent-0:
+  one-indent-1:
+    - one-indent-2:
+        one-indent-3:
+          one-indent-4: four-value
+top-level-two-indent-0:
+  two-indent-1:
+    two-indent-2:
+      two-indent-3: three-value
+      two-indent-3-val-2: two-value
+`,
+		},
 		{
 			name: "add single element to non-flow list",
 			in: `my-list:
@@ -116,7 +185,8 @@ func TestApplyYAMLPatch_AddOrReplaceSequence_goccy(t *testing.T) {
 					Comment: "",
 				},
 			},
-			want: `my-list: [three]
+			want: `my-list:
+[three]
 `,
 		},
 		{
@@ -227,6 +297,26 @@ func TestApplyYAMLPatch_AddOrReplaceSequence_goccy(t *testing.T) {
 			},
 			want: `my-list:
   - new
+`,
+		},
+		{
+			name: "set elements on non-empty non-flow list value matches previous indent level that is greater than set",
+			in: `my-list:
+    - old
+  `,
+			patch: Patch{
+				{
+					Type: OperationReplace,
+					Path: MustParsePath("/my-list"),
+					From: nil,
+					Value: []string{
+						"new",
+					},
+					Comment: "",
+				},
+			},
+			want: `my-list:
+    - new
 `,
 		},
 		{
