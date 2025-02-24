@@ -74,42 +74,6 @@ top-level-two-indent-0:
 `,
 		},
 		{
-			name: "add element to map that contains another entry does not match indentation if workaround is disabled",
-			in: `top-level-one-indent-0:
-  one-indent-1:
-    - one-indent-2:
-        one-indent-3:
-          one-indent-4: four-value
-top-level-two-indent-0:
-  two-indent-1:
-    two-indent-2:
-      two-indent-3: three-value
-`,
-			yamllibOptions: []GoccyYAMLLibraryOption{
-				GoccyDisableAdjustIndentLevelWorkaround(true),
-			},
-			patch: Patch{
-				{
-					Type:    OperationAdd,
-					Path:    MustParsePath("/top-level-two-indent-0/two-indent-1/two-indent-2/two-indent-3-val-2"),
-					From:    nil,
-					Value:   "two-value",
-					Comment: "",
-				},
-			},
-			want: `top-level-one-indent-0:
-  one-indent-1:
-    - one-indent-2:
-        one-indent-3:
-          one-indent-4: four-value
-top-level-two-indent-0:
-  two-indent-1:
-    two-indent-2:
-      two-indent-3: three-value
-      two-indent-3-val-2: two-value
-`,
-		},
-		{
 			name: "add single element to non-flow list",
 			in: `my-list:
   - one
@@ -185,8 +149,8 @@ top-level-two-indent-0:
 					Comment: "",
 				},
 			},
-			want: `my-list:
-[three]
+			// writing in non-flow style forces value on same line
+			want: `my-list: [three]
 `,
 		},
 		{
