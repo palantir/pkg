@@ -2,21 +2,22 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package yamlpatch
+package goccyyamlpatcher
 
 import (
 	"testing"
 
 	"github.com/goccy/go-yaml"
+	"github.com/palantir/pkg/yamlpatch/internal/yamlpatchcommon"
 )
 
 func TestContainers_goccy(t *testing.T) {
-	runContainerTests(
+	yamlpatchcommon.RunContainerTests(
 		t,
 		"goccy",
-		NewGoccyYAMLLibrary(
+		newGoccyYAMLLibrary(
 			GoccyUseNonFlowWhenModifyingEmptyContainer(false),
-			GoccyYAMLEncodeOption(yaml.Indent(containerTestIndentSpaces)),
+			GoccyYAMLEncodeOption(yaml.Indent(yamlpatchcommon.ContainerTestIndentSpaces)),
 			GoccyYAMLEncodeOption(yaml.IndentSequence(false)),
 		),
 	)

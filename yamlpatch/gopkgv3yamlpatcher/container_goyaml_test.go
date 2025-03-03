@@ -2,12 +2,14 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package yamlpatch
+package gopkgv3yamlpatcher
 
 import (
 	"testing"
+
+	"github.com/palantir/pkg/yamlpatch/internal/yamlpatchcommon"
 )
 
 func TestContainers_goyaml(t *testing.T) {
-	runContainerTests(t, "goyaml", newGoyamlYAMLLibrary(containerTestIndentSpaces))
+	yamlpatchcommon.RunContainerTests(t, "goyaml", newGoyamlYAMLLibrary(IndentSpaces(yamlpatchcommon.ContainerTestIndentSpaces)))
 }

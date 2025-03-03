@@ -2,7 +2,25 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package yamlpatch
+package yamlpatchcommon
+
+import (
+	"github.com/palantir/pkg/yamlpatch/yamlpatch"
+)
+
+func NewYAMLPatchApplier[NodeT any](lib YAMLLibrary[NodeT]) yamlpatch.Patcher {
+	return &yamlLibraryPatcher[NodeT]{
+		yamllib: lib,
+	}
+}
+
+type yamlLibraryPatcher[NodeT any] struct {
+	yamllib YAMLLibrary[NodeT]
+}
+
+func (y *yamlLibraryPatcher[T]) Apply(originalBytes []byte, patch yamlpatch.Patch) ([]byte, error) {
+	return applyUsingYAMLLibrary(y.yamllib, originalBytes, patch)
+}
 
 type YAMLLibrary[NodeT any] interface {
 	// Unmarshal unmarshals the provided YAML bytes into the provided output value.

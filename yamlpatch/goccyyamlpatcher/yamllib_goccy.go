@@ -2,44 +2,28 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package yamlpatch
+package goccyyamlpatcher
 
 import (
 	"github.com/goccy/go-yaml"
 	"github.com/goccy/go-yaml/ast"
 	"github.com/goccy/go-yaml/parser"
 	"github.com/goccy/go-yaml/token"
+	"github.com/palantir/pkg/yamlpatch/internal/yamlpatchcommon"
+	"github.com/palantir/pkg/yamlpatch/yamlpatch"
 	"github.com/pkg/errors"
 )
 
-type GoccyYAMLLibraryOption interface {
-	apply(opt *goccyYAMLLib)
+func New(opts ...GoccyYAMLOption) yamlpatch.Patcher {
+	return yamlpatchcommon.NewYAMLPatchApplier(newGoccyYAMLLibrary(opts...))
 }
 
-type goccyYAMLLibOptionFunc func(opt *goccyYAMLLib)
-
-func (f goccyYAMLLibOptionFunc) apply(opt *goccyYAMLLib) {
-	f(opt)
-}
-
-func GoccyYAMLEncodeOption(encodeOption yaml.EncodeOption) GoccyYAMLLibraryOption {
-	return goccyYAMLLibOptionFunc(func(opt *goccyYAMLLib) {
-		opt.encodeOptions = append(opt.encodeOptions, encodeOption)
-	})
-}
-
-func GoccyUseNonFlowWhenModifyingEmptyContainer(useNonFlowWhenModifyingEmptyContainer bool) GoccyYAMLLibraryOption {
-	return goccyYAMLLibOptionFunc(func(opt *goccyYAMLLib) {
-		opt.useNonFlowWhenModifyingEmptyContainer = useNonFlowWhenModifyingEmptyContainer
-	})
-}
-
-func NewGoccyYAMLLibrary(opts ...GoccyYAMLLibraryOption) YAMLLibrary[ast.Node] {
+func newGoccyYAMLLibrary(opts ...GoccyYAMLOption) yamlpatchcommon.YAMLLibrary[ast.Node] {
 	yamllib := &goccyYAMLLib{}
 
-	defaultOptions := []GoccyYAMLLibraryOption{
+	defaultOptions := []GoccyYAMLOption{
 		GoccyUseNonFlowWhenModifyingEmptyContainer(true),
-		GoccyYAMLEncodeOption(yaml.Indent(defaultIndentSpaces)),
+		GoccyYAMLEncodeOption(yaml.Indent(yamlpatchcommon.DefaultIndentSpaces)),
 		GoccyYAMLEncodeOption(yaml.IndentSequence(true)),
 	}
 	allOptions := append(defaultOptions, opts...)
@@ -50,7 +34,7 @@ func NewGoccyYAMLLibrary(opts ...GoccyYAMLLibraryOption) YAMLLibrary[ast.Node] {
 	return yamllib
 }
 
-var _ YAMLLibrary[ast.Node] = (*goccyYAMLLib)(nil)
+var _ yamlpatchcommon.YAMLLibrary[ast.Node] = (*goccyYAMLLib)(nil)
 
 type goccyYAMLLib struct {
 	useNonFlowWhenModifyingEmptyContainer bool
@@ -141,7 +125,7 @@ func (g *goccyYAMLLib) SetDocumentNodeContent(documentNode ast.Node, valueNode a
 	return nil
 }
 
-func (g *goccyYAMLLib) NewContainer(node ast.Node) (YAMLContainer[ast.Node], error) {
+func (g *goccyYAMLLib) NewContainer(node ast.Node) (yamlpatchcommon.YAMLContainer[ast.Node], error) {
 	return newGoccyContainer(node, g.useNonFlowWhenModifyingEmptyContainer, g.encodeOptions...)
 }
 

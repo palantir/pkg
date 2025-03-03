@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package yamlpatch
+package yamlpatchcommon
 
 import (
 	"testing"
@@ -11,9 +11,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const containerTestIndentSpaces = 4
+const ContainerTestIndentSpaces = 4
 
-func runContainerTests[NodeT any](t *testing.T, testNamePrefix string, yamllib YAMLLibrary[NodeT]) {
+func RunContainerTests[NodeT any](t *testing.T, testNamePrefix string, yamllib YAMLLibrary[NodeT]) {
 	for _, test := range []struct {
 		Name     string
 		Doc      string

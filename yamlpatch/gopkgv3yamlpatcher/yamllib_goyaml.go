@@ -2,26 +2,32 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package yamlpatch
+package gopkgv3yamlpatcher
 
 import (
 	"bytes"
 
+	"github.com/palantir/pkg/yamlpatch/internal/yamlpatchcommon"
+	"github.com/palantir/pkg/yamlpatch/yamlpatch"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 )
 
-func NewGoyamlYAMLLibrary() YAMLLibrary[*yaml.Node] {
-	return newGoyamlYAMLLibrary(defaultIndentSpaces)
+func New(options ...YAMLOption) yamlpatch.Patcher {
+	return yamlpatchcommon.NewYAMLPatchApplier(newGoyamlYAMLLibrary(options...))
 }
 
-func newGoyamlYAMLLibrary(indentSpaces int) YAMLLibrary[*yaml.Node] {
-	return &goyamlYAMLLib{
-		indentSpaces: indentSpaces,
+func newGoyamlYAMLLibrary(options ...YAMLOption) yamlpatchcommon.YAMLLibrary[*yaml.Node] {
+	yamlLib := &goyamlYAMLLib{
+		indentSpaces: yamlpatchcommon.DefaultIndentSpaces,
 	}
+	for _, option := range options {
+		option.apply(yamlLib)
+	}
+	return yamlLib
 }
 
-var _ YAMLLibrary[*yaml.Node] = (*goyamlYAMLLib)(nil)
+var _ yamlpatchcommon.YAMLLibrary[*yaml.Node] = (*goyamlYAMLLib)(nil)
 
 type goyamlYAMLLib struct {
 	indentSpaces int
@@ -104,7 +110,7 @@ func (g *goyamlYAMLLib) SetDocumentNodeContent(documentNode *yaml.Node, valueNod
 	return nil
 }
 
-func (g *goyamlYAMLLib) NewContainer(node *yaml.Node) (YAMLContainer[*yaml.Node], error) {
+func (g *goyamlYAMLLib) NewContainer(node *yaml.Node) (yamlpatchcommon.YAMLContainer[*yaml.Node], error) {
 	return newGoyamlContainer(node)
 }
 

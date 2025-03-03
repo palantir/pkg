@@ -2,19 +2,17 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package yamlpatch
+package gopkgv3yamlpatcher
 
 import (
-	"fmt"
-	"strconv"
-
+	"github.com/palantir/pkg/yamlpatch/internal/yamlpatchcommon"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 )
 
 // newGoyamlContainer returns the container impl matching node.Kind.
 // If the node is not a Map or Sequence, an error is returned.
-func newGoyamlContainer(node *yaml.Node) (YAMLContainer[*yaml.Node], error) {
+func newGoyamlContainer(node *yaml.Node) (yamlpatchcommon.YAMLContainer[*yaml.Node], error) {
 	if node == nil {
 		return nil, errors.Errorf("unexpected nil yaml node")
 	}
@@ -43,7 +41,7 @@ func newGoyamlContainer(node *yaml.Node) (YAMLContainer[*yaml.Node], error) {
 	}
 }
 
-var _ YAMLContainer[*yaml.Node] = (*goyamlMappingContainer)(nil)
+var _ yamlpatchcommon.YAMLContainer[*yaml.Node] = (*goyamlMappingContainer)(nil)
 
 type goyamlMappingContainer struct {
 	node *yaml.Node
@@ -124,7 +122,7 @@ func (g *goyamlMappingContainer) validate() error {
 	return nil
 }
 
-var _ YAMLContainer[*yaml.Node] = (*goyamlSequenceContainer)(nil)
+var _ yamlpatchcommon.YAMLContainer[*yaml.Node] = (*goyamlSequenceContainer)(nil)
 
 type goyamlSequenceContainer struct {
 	node *yaml.Node
@@ -135,7 +133,7 @@ func (g *goyamlSequenceContainer) Get(key string) (*yaml.Node, error) {
 		return nil, nil
 	}
 	// Parse key into integer and index into array
-	idx, err := parseSeqIndex(key)
+	idx, err := yamlpatchcommon.ParseSeqIndex(key)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +145,7 @@ func (g *goyamlSequenceContainer) Get(key string) (*yaml.Node, error) {
 }
 
 func (g *goyamlSequenceContainer) Set(key string, val *yaml.Node) error {
-	idx, err := parseSeqIndex(key)
+	idx, err := yamlpatchcommon.ParseSeqIndex(key)
 	if err != nil {
 		return err
 	}
@@ -163,7 +161,7 @@ func (g *goyamlSequenceContainer) Add(key string, val *yaml.Node) error {
 		g.node.Content = append(g.node.Content, val)
 		return nil
 	}
-	idx, err := parseSeqIndex(key)
+	idx, err := yamlpatchcommon.ParseSeqIndex(key)
 	if err != nil {
 		return err
 	}
@@ -181,7 +179,7 @@ func (g *goyamlSequenceContainer) Add(key string, val *yaml.Node) error {
 }
 
 func (g *goyamlSequenceContainer) Remove(key string) error {
-	idx, err := parseSeqIndex(key)
+	idx, err := yamlpatchcommon.ParseSeqIndex(key)
 	if err != nil {
 		return err
 	}
@@ -196,18 +194,7 @@ func (g *goyamlSequenceContainer) Remove(key string) error {
 	return nil
 }
 
-func parseSeqIndex(indexStr string) (int, error) {
-	idx, err := strconv.Atoi(indexStr)
-	if err != nil {
-		return 0, errors.Wrapf(err, "index into SequenceNode with non-integer %q key", indexStr)
-	}
-	if idx < 0 {
-		return 0, errors.Errorf("index into SequenceNode with negative %q key", indexStr)
-	}
-	return idx, nil
-}
-
-var _ YAMLContainer[*yaml.Node] = (*goyamlDocumentContainer)(nil)
+var _ yamlpatchcommon.YAMLContainer[*yaml.Node] = (*goyamlDocumentContainer)(nil)
 
 // goyamlDocumentContainer is a special container that wraps a yaml.Document.
 // Since documents have a single element, the 'key' argument in all methods must be the empty string "".
@@ -216,11 +203,9 @@ type goyamlDocumentContainer struct {
 	node *yaml.Node
 }
 
-var errIllegalDocumentAccess = fmt.Errorf("*goyamlDocumentContainer does not allow non-empty key access")
-
 func (g *goyamlDocumentContainer) Get(key string) (*yaml.Node, error) {
 	if key != "" {
-		return nil, errIllegalDocumentAccess
+		return nil, yamlpatchcommon.ErrIllegalDocumentAccess
 	}
 	if g.isEmpty() {
 		return nil, nil
@@ -230,7 +215,7 @@ func (g *goyamlDocumentContainer) Get(key string) (*yaml.Node, error) {
 
 func (g *goyamlDocumentContainer) Set(key string, val *yaml.Node) error {
 	if key != "" {
-		return errIllegalDocumentAccess
+		return yamlpatchcommon.ErrIllegalDocumentAccess
 	}
 	if g.isEmpty() {
 		return errors.Errorf("document value does not exist and can not be replaced")
@@ -241,7 +226,7 @@ func (g *goyamlDocumentContainer) Set(key string, val *yaml.Node) error {
 
 func (g *goyamlDocumentContainer) Add(key string, val *yaml.Node) error {
 	if key != "" {
-		return errIllegalDocumentAccess
+		return yamlpatchcommon.ErrIllegalDocumentAccess
 	}
 	// If we have a 'null' node, we can overwrite it.
 	if !g.isEmpty() {
@@ -253,7 +238,7 @@ func (g *goyamlDocumentContainer) Add(key string, val *yaml.Node) error {
 
 func (g *goyamlDocumentContainer) Remove(key string) error {
 	if key != "" {
-		return errIllegalDocumentAccess
+		return yamlpatchcommon.ErrIllegalDocumentAccess
 	}
 	return errors.Errorf("document does not implement Remove()")
 }

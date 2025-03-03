@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package yamlpatch
+package goccyyamlpatcher
 
 import (
 	"io"
@@ -10,6 +10,7 @@ import (
 
 	"github.com/goccy/go-yaml"
 	"github.com/goccy/go-yaml/ast"
+	"github.com/palantir/pkg/yamlpatch/internal/yamlpatchcommon"
 	"github.com/pkg/errors"
 )
 
@@ -22,7 +23,7 @@ type GoccyContainerOptions struct {
 
 // newGoccyContainer returns the container impl matching node.Kind.
 // If the node is not a Map or Sequence, an error is returned.
-func newGoccyContainer(node ast.Node, useNonFlowWhenAddingToEmpty bool, encodeOptions ...yaml.EncodeOption) (YAMLContainer[ast.Node], error) {
+func newGoccyContainer(node ast.Node, useNonFlowWhenAddingToEmpty bool, encodeOptions ...yaml.EncodeOption) (yamlpatchcommon.YAMLContainer[ast.Node], error) {
 	if node == nil {
 		return nil, errors.Errorf("unexpected nil yaml node")
 	}
@@ -58,7 +59,7 @@ func newGoccyContainer(node ast.Node, useNonFlowWhenAddingToEmpty bool, encodeOp
 	}
 }
 
-var _ YAMLContainer[ast.Node] = (*goccyMappingContainer)(nil)
+var _ yamlpatchcommon.YAMLContainer[ast.Node] = (*goccyMappingContainer)(nil)
 
 type goccyMappingContainer struct {
 	node                         *ast.MappingNode
@@ -202,7 +203,7 @@ func (g *goccyMappingContainer) validate() error {
 	return nil
 }
 
-var _ YAMLContainer[ast.Node] = (*goccySequenceContainer)(nil)
+var _ yamlpatchcommon.YAMLContainer[ast.Node] = (*goccySequenceContainer)(nil)
 
 type goccySequenceContainer struct {
 	node                         *ast.SequenceNode
@@ -215,7 +216,7 @@ func (g *goccySequenceContainer) Get(key string) (ast.Node, error) {
 		return nil, nil
 	}
 	// Parse key into integer and index into array
-	idx, err := parseSeqIndex(key)
+	idx, err := yamlpatchcommon.ParseSeqIndex(key)
 	if err != nil {
 		return nil, err
 	}
@@ -227,7 +228,7 @@ func (g *goccySequenceContainer) Get(key string) (ast.Node, error) {
 }
 
 func (g *goccySequenceContainer) Set(key string, val ast.Node) error {
-	idx, err := parseSeqIndex(key)
+	idx, err := yamlpatchcommon.ParseSeqIndex(key)
 	if err != nil {
 		return err
 	}
@@ -299,7 +300,7 @@ func (g *goccySequenceContainer) Add(key string, val ast.Node) error {
 		}
 		return nil
 	}
-	idx, err := parseSeqIndex(key)
+	idx, err := yamlpatchcommon.ParseSeqIndex(key)
 	if err != nil {
 		return err
 	}
@@ -333,7 +334,7 @@ func (g *goccySequenceContainer) Add(key string, val ast.Node) error {
 }
 
 func (g *goccySequenceContainer) Remove(key string) error {
-	idx, err := parseSeqIndex(key)
+	idx, err := yamlpatchcommon.ParseSeqIndex(key)
 	if err != nil {
 		return err
 	}
@@ -349,7 +350,7 @@ func (g *goccySequenceContainer) Remove(key string) error {
 	return nil
 }
 
-var _ YAMLContainer[ast.Node] = (*goccyDocumentContainer)(nil)
+var _ yamlpatchcommon.YAMLContainer[ast.Node] = (*goccyDocumentContainer)(nil)
 
 // goyamlDocumentContainer is a special container that wraps a yaml.Document.
 // Since documents have a single element, the 'key' argument in all methods must be the empty string "".
@@ -361,14 +362,14 @@ type goccyDocumentContainer struct {
 
 func (g *goccyDocumentContainer) Get(key string) (ast.Node, error) {
 	if key != "" {
-		return nil, errIllegalDocumentAccess
+		return nil, yamlpatchcommon.ErrIllegalDocumentAccess
 	}
 	return g.node.Body, nil
 }
 
 func (g *goccyDocumentContainer) Set(key string, val ast.Node) error {
 	if key != "" {
-		return errIllegalDocumentAccess
+		return yamlpatchcommon.ErrIllegalDocumentAccess
 	}
 	g.node.Body = val
 	return nil
@@ -376,7 +377,7 @@ func (g *goccyDocumentContainer) Set(key string, val ast.Node) error {
 
 func (g *goccyDocumentContainer) Add(key string, val ast.Node) error {
 	if key != "" {
-		return errIllegalDocumentAccess
+		return yamlpatchcommon.ErrIllegalDocumentAccess
 	}
 	g.node.Body = val
 	return nil
@@ -384,7 +385,7 @@ func (g *goccyDocumentContainer) Add(key string, val ast.Node) error {
 
 func (g *goccyDocumentContainer) Remove(key string) error {
 	if key != "" {
-		return errIllegalDocumentAccess
+		return yamlpatchcommon.ErrIllegalDocumentAccess
 	}
 	return errors.Errorf("document does not implement Remove()")
 }

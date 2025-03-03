@@ -2,31 +2,33 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package yamlpatch
+package goccyyamlpatcher
 
 import (
 	"testing"
 
 	"github.com/goccy/go-yaml"
+	"github.com/palantir/pkg/yamlpatch/internal/yamlpatchcommon"
+	"github.com/palantir/pkg/yamlpatch/yamlpatch"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestApplyYAMLPatch_goccy(t *testing.T) {
-	runApplyYAMLPatchTests(
+	yamlpatchcommon.RunApplyYAMLPatchTests(
 		t,
 		"goccy",
-		NewGoccyYAMLLibrary(
+		newGoccyYAMLLibrary(
 			GoccyYAMLEncodeOption(yaml.IndentSequence(false)),
 		),
 	)
 }
 
 func TestApplyYAMLPatch_CustomObjectTest_goccy(t *testing.T) {
-	runApplyYAMLPatchCustomObjectTests(
+	yamlpatchcommon.RunApplyYAMLPatchCustomObjectTests(
 		t,
 		"goccy",
-		NewGoccyYAMLLibrary(
+		New(
 			GoccyYAMLEncodeOption(yaml.IndentSequence(false)),
 		),
 	)
@@ -36,8 +38,8 @@ func TestApplyYAMLPatch_AddOrReplace_goccy(t *testing.T) {
 	for _, tc := range []struct {
 		name           string
 		in             string
-		yamllibOptions []GoccyYAMLLibraryOption
-		patch          Patch
+		yamllibOptions []GoccyYAMLOption
+		patch          yamlpatch.Patch
 		want           string
 	}{
 		{
@@ -52,10 +54,10 @@ top-level-two-indent-0:
     two-indent-2:
       two-indent-3: three-value
 `,
-			patch: Patch{
+			patch: yamlpatch.Patch{
 				{
-					Type:    OperationAdd,
-					Path:    MustParsePath("/top-level-two-indent-0/two-indent-1/two-indent-2/two-indent-3-val-2"),
+					Type:    yamlpatch.OperationAdd,
+					Path:    yamlpatch.MustParsePath("/top-level-two-indent-0/two-indent-1/two-indent-2/two-indent-3-val-2"),
 					From:    nil,
 					Value:   "two-value",
 					Comment: "",
@@ -79,10 +81,10 @@ top-level-two-indent-0:
   - one
   - two
   `,
-			patch: Patch{
+			patch: yamlpatch.Patch{
 				{
-					Type:    OperationAdd,
-					Path:    MustParsePath("/my-list/-"),
+					Type:    yamlpatch.OperationAdd,
+					Path:    yamlpatch.MustParsePath("/my-list/-"),
 					From:    nil,
 					Value:   "three",
 					Comment: "",
@@ -98,13 +100,13 @@ top-level-two-indent-0:
 			name: "add single element to empty independent flow list",
 			in: `[]
   `,
-			yamllibOptions: []GoccyYAMLLibraryOption{
+			yamllibOptions: []GoccyYAMLOption{
 				GoccyUseNonFlowWhenModifyingEmptyContainer(false),
 			},
-			patch: Patch{
+			patch: yamlpatch.Patch{
 				{
-					Type:    OperationAdd,
-					Path:    MustParsePath("/-"),
+					Type:    yamlpatch.OperationAdd,
+					Path:    yamlpatch.MustParsePath("/-"),
 					From:    nil,
 					Value:   "three",
 					Comment: "",
@@ -117,13 +119,13 @@ top-level-two-indent-0:
 			name: "add single element to empty flow list value",
 			in: `my-list: []
   `,
-			yamllibOptions: []GoccyYAMLLibraryOption{
+			yamllibOptions: []GoccyYAMLOption{
 				GoccyUseNonFlowWhenModifyingEmptyContainer(false),
 			},
-			patch: Patch{
+			patch: yamlpatch.Patch{
 				{
-					Type:    OperationAdd,
-					Path:    MustParsePath("/my-list/-"),
+					Type:    yamlpatch.OperationAdd,
+					Path:    yamlpatch.MustParsePath("/my-list/-"),
 					From:    nil,
 					Value:   "three",
 					Comment: "",
@@ -137,13 +139,13 @@ top-level-two-indent-0:
 			in: `my-list:
 []
   `,
-			yamllibOptions: []GoccyYAMLLibraryOption{
+			yamllibOptions: []GoccyYAMLOption{
 				GoccyUseNonFlowWhenModifyingEmptyContainer(false),
 			},
-			patch: Patch{
+			patch: yamlpatch.Patch{
 				{
-					Type:    OperationAdd,
-					Path:    MustParsePath("/my-list/-"),
+					Type:    yamlpatch.OperationAdd,
+					Path:    yamlpatch.MustParsePath("/my-list/-"),
 					From:    nil,
 					Value:   "three",
 					Comment: "",
@@ -157,10 +159,10 @@ top-level-two-indent-0:
 			name: "add single element to empty flow list value in non-flow mode",
 			in: `my-list: []
   `,
-			patch: Patch{
+			patch: yamlpatch.Patch{
 				{
-					Type:    OperationAdd,
-					Path:    MustParsePath("/my-list/-"),
+					Type:    yamlpatch.OperationAdd,
+					Path:    yamlpatch.MustParsePath("/my-list/-"),
 					From:    nil,
 					Value:   "three",
 					Comment: "",
@@ -174,13 +176,13 @@ top-level-two-indent-0:
 			name: "add single element to empty flow list value in non-flow mode with indent off",
 			in: `my-list: []
   `,
-			yamllibOptions: []GoccyYAMLLibraryOption{
+			yamllibOptions: []GoccyYAMLOption{
 				GoccyYAMLEncodeOption(yaml.IndentSequence(false)),
 			},
-			patch: Patch{
+			patch: yamlpatch.Patch{
 				{
-					Type:    OperationAdd,
-					Path:    MustParsePath("/my-list/-"),
+					Type:    yamlpatch.OperationAdd,
+					Path:    yamlpatch.MustParsePath("/my-list/-"),
 					From:    nil,
 					Value:   "three",
 					Comment: "",
@@ -195,10 +197,10 @@ top-level-two-indent-0:
 			in: `my-list:
   []
   `,
-			patch: Patch{
+			patch: yamlpatch.Patch{
 				{
-					Type:    OperationAdd,
-					Path:    MustParsePath("/my-list/-"),
+					Type:    yamlpatch.OperationAdd,
+					Path:    yamlpatch.MustParsePath("/my-list/-"),
 					From:    nil,
 					Value:   "three",
 					Comment: "",
@@ -212,10 +214,10 @@ top-level-two-indent-0:
 			name: "add single element to non-empty flow list value",
 			in: `my-list: ["one"]
   `,
-			patch: Patch{
+			patch: yamlpatch.Patch{
 				{
-					Type:    OperationAdd,
-					Path:    MustParsePath("/my-list/-"),
+					Type:    yamlpatch.OperationAdd,
+					Path:    yamlpatch.MustParsePath("/my-list/-"),
 					From:    nil,
 					Value:   "three",
 					Comment: "",
@@ -228,10 +230,10 @@ top-level-two-indent-0:
 			name: "set element on empty flow list value in non-flow mode",
 			in: `my-list: []
   `,
-			patch: Patch{
+			patch: yamlpatch.Patch{
 				{
-					Type: OperationReplace,
-					Path: MustParsePath("/my-list"),
+					Type: yamlpatch.OperationReplace,
+					Path: yamlpatch.MustParsePath("/my-list"),
 					From: nil,
 					Value: []string{
 						"new",
@@ -248,10 +250,10 @@ top-level-two-indent-0:
 			in: `my-list:
   - old
   `,
-			patch: Patch{
+			patch: yamlpatch.Patch{
 				{
-					Type: OperationReplace,
-					Path: MustParsePath("/my-list"),
+					Type: yamlpatch.OperationReplace,
+					Path: yamlpatch.MustParsePath("/my-list"),
 					From: nil,
 					Value: []string{
 						"new",
@@ -268,10 +270,10 @@ top-level-two-indent-0:
 			in: `my-list:
     - old
   `,
-			patch: Patch{
+			patch: yamlpatch.Patch{
 				{
-					Type: OperationReplace,
-					Path: MustParsePath("/my-list"),
+					Type: yamlpatch.OperationReplace,
+					Path: yamlpatch.MustParsePath("/my-list"),
 					From: nil,
 					Value: []string{
 						"new",
@@ -288,10 +290,10 @@ top-level-two-indent-0:
 			in: `my-list:
 - old
   `,
-			patch: Patch{
+			patch: yamlpatch.Patch{
 				{
-					Type: OperationReplace,
-					Path: MustParsePath("/my-list"),
+					Type: yamlpatch.OperationReplace,
+					Path: yamlpatch.MustParsePath("/my-list"),
 					From: nil,
 					Value: []string{
 						"new",
@@ -305,9 +307,9 @@ top-level-two-indent-0:
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			yamllib := NewGoccyYAMLLibrary(tc.yamllibOptions...)
+			yamlPatcher := New(tc.yamllibOptions...)
 
-			out, err := ApplyUsingYAMLLibrary(yamllib, []byte(tc.in), tc.patch)
+			out, err := yamlPatcher.Apply([]byte(tc.in), tc.patch)
 			require.NoError(t, err)
 
 			assert.Equal(t, tc.want, string(out))

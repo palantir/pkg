@@ -2,17 +2,18 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package yamlpatch
+package yamlpatchcommon
 
 import (
 	"strings"
 	"testing"
 
+	"github.com/palantir/pkg/yamlpatch/yamlpatch"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func runApplyYAMLPatchTests[NodeT any](t *testing.T, testNamePrefix string, yamllib YAMLLibrary[NodeT]) {
+func RunApplyYAMLPatchTests[NodeT any](t *testing.T, testNamePrefix string, yamllib YAMLLibrary[NodeT]) {
 	for _, test := range []struct {
 		Name      string
 		Body      string
@@ -504,14 +505,14 @@ foo:
 		},
 	} {
 		t.Run(testNamePrefix+" "+test.Name, func(t *testing.T) {
-			patch := make(Patch, len(test.Patch))
+			patch := make(yamlpatch.Patch, len(test.Patch))
 			for i, patchStr := range test.Patch {
-				var op Operation
+				var op yamlpatch.Operation
 				err := yamllib.Unmarshal([]byte(patchStr), &op)
 				require.NoError(t, err)
 				patch[i] = op
 			}
-			out, err := ApplyUsingYAMLLibrary(yamllib, []byte(test.Body), patch)
+			out, err := applyUsingYAMLLibrary(yamllib, []byte(test.Body), patch)
 			if test.ExpectErr == "" {
 				require.NoError(t, err)
 				assert.Equal(t, test.Expected, strings.TrimSpace(string(out)))
@@ -522,19 +523,17 @@ foo:
 	}
 }
 
-// Tests adding an object where the Value has custom yaml serialization
 type TestMyObject struct {
 	FieldA string `yaml:"custom-tag"`
 }
 
-func runApplyYAMLPatchCustomObjectTests[NodeT any](t *testing.T, testNamePrefix string, yamllib YAMLLibrary[NodeT]) {
+func RunApplyYAMLPatchCustomObjectTests(t *testing.T, testNamePrefix string, yamlPatcher yamlpatch.Patcher) {
 	t.Run(testNamePrefix+" custom object test", func(t *testing.T) {
 		originalBytes := []byte(`existing-field: true`)
-
-		out, err := ApplyUsingYAMLLibrary(yamllib, originalBytes, Patch{
+		out, err := yamlPatcher.Apply(originalBytes, yamlpatch.Patch{
 			{
 				Type:  "add",
-				Path:  MustParsePath("/custom-path"),
+				Path:  yamlpatch.MustParsePath("/custom-path"),
 				Value: TestMyObject{FieldA: "custom-value"},
 			},
 		})
