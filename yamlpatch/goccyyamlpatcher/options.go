@@ -8,24 +8,24 @@ import (
 	"github.com/goccy/go-yaml"
 )
 
-type GoccyYAMLOption interface {
+type YAMLOption interface {
 	apply(opt *goccyYAMLLib)
 }
 
-type goccyYAMLLibOptionFunc func(opt *goccyYAMLLib)
+type yamlLibOptionFunc func(opt *goccyYAMLLib)
 
-func (f goccyYAMLLibOptionFunc) apply(opt *goccyYAMLLib) {
+func (f yamlLibOptionFunc) apply(opt *goccyYAMLLib) {
 	f(opt)
 }
 
-func GoccyYAMLEncodeOption(encodeOption yaml.EncodeOption) GoccyYAMLOption {
-	return goccyYAMLLibOptionFunc(func(opt *goccyYAMLLib) {
+func YAMLEncodeOption(encodeOption yaml.EncodeOption) YAMLOption {
+	return yamlLibOptionFunc(func(opt *goccyYAMLLib) {
 		opt.encodeOptions = append(opt.encodeOptions, encodeOption)
 	})
 }
 
-func GoccyUseNonFlowWhenModifyingEmptyContainer(useNonFlowWhenModifyingEmptyContainer bool) GoccyYAMLOption {
-	return goccyYAMLLibOptionFunc(func(opt *goccyYAMLLib) {
+func UseNonFlowWhenModifyingEmptyContainer(useNonFlowWhenModifyingEmptyContainer bool) YAMLOption {
+	return yamlLibOptionFunc(func(opt *goccyYAMLLib) {
 		opt.useNonFlowWhenModifyingEmptyContainer = useNonFlowWhenModifyingEmptyContainer
 	})
 }

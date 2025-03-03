@@ -14,31 +14,31 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestApplyYAMLPatch_goccy(t *testing.T) {
+func TestApplyYAMLPatch(t *testing.T) {
 	yamlpatchcommon.RunApplyYAMLPatchTests(
 		t,
 		"goccy",
 		newGoccyYAMLLibrary(
-			GoccyYAMLEncodeOption(yaml.IndentSequence(false)),
+			YAMLEncodeOption(yaml.IndentSequence(false)),
 		),
 	)
 }
 
-func TestApplyYAMLPatch_CustomObjectTest_goccy(t *testing.T) {
+func TestApplyYAMLPatch_CustomObjectTest(t *testing.T) {
 	yamlpatchcommon.RunApplyYAMLPatchCustomObjectTests(
 		t,
 		"goccy",
 		New(
-			GoccyYAMLEncodeOption(yaml.IndentSequence(false)),
+			YAMLEncodeOption(yaml.IndentSequence(false)),
 		),
 	)
 }
 
-func TestApplyYAMLPatch_AddOrReplace_goccy(t *testing.T) {
+func TestApplyYAMLPatch_AddOrReplace(t *testing.T) {
 	for _, tc := range []struct {
 		name           string
 		in             string
-		yamllibOptions []GoccyYAMLOption
+		yamllibOptions []YAMLOption
 		patch          yamlpatch.Patch
 		want           string
 	}{
@@ -100,8 +100,8 @@ top-level-two-indent-0:
 			name: "add single element to empty independent flow list",
 			in: `[]
   `,
-			yamllibOptions: []GoccyYAMLOption{
-				GoccyUseNonFlowWhenModifyingEmptyContainer(false),
+			yamllibOptions: []YAMLOption{
+				UseNonFlowWhenModifyingEmptyContainer(false),
 			},
 			patch: yamlpatch.Patch{
 				{
@@ -119,8 +119,8 @@ top-level-two-indent-0:
 			name: "add single element to empty flow list value",
 			in: `my-list: []
   `,
-			yamllibOptions: []GoccyYAMLOption{
-				GoccyUseNonFlowWhenModifyingEmptyContainer(false),
+			yamllibOptions: []YAMLOption{
+				UseNonFlowWhenModifyingEmptyContainer(false),
 			},
 			patch: yamlpatch.Patch{
 				{
@@ -139,8 +139,8 @@ top-level-two-indent-0:
 			in: `my-list:
 []
   `,
-			yamllibOptions: []GoccyYAMLOption{
-				GoccyUseNonFlowWhenModifyingEmptyContainer(false),
+			yamllibOptions: []YAMLOption{
+				UseNonFlowWhenModifyingEmptyContainer(false),
 			},
 			patch: yamlpatch.Patch{
 				{
@@ -176,8 +176,8 @@ top-level-two-indent-0:
 			name: "add single element to empty flow list value in non-flow mode with indent off",
 			in: `my-list: []
   `,
-			yamllibOptions: []GoccyYAMLOption{
-				GoccyYAMLEncodeOption(yaml.IndentSequence(false)),
+			yamllibOptions: []YAMLOption{
+				YAMLEncodeOption(yaml.IndentSequence(false)),
 			},
 			patch: yamlpatch.Patch{
 				{

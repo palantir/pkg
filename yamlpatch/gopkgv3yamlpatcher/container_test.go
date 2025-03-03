@@ -10,6 +10,6 @@ import (
 	"github.com/palantir/pkg/yamlpatch/internal/yamlpatchcommon"
 )
 
-func TestContainers_goyaml(t *testing.T) {
+func TestContainers(t *testing.T) {
 	yamlpatchcommon.RunContainerTests(t, "goyaml", newGoyamlYAMLLibrary(IndentSpaces(yamlpatchcommon.ContainerTestIndentSpaces)))
 }

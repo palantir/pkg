@@ -14,17 +14,17 @@ import (
 	"github.com/pkg/errors"
 )
 
-func New(opts ...GoccyYAMLOption) yamlpatch.Patcher {
+func New(opts ...YAMLOption) yamlpatch.Patcher {
 	return yamlpatchcommon.NewYAMLPatchApplier(newGoccyYAMLLibrary(opts...))
 }
 
-func newGoccyYAMLLibrary(opts ...GoccyYAMLOption) yamlpatchcommon.YAMLLibrary[ast.Node] {
+func newGoccyYAMLLibrary(opts ...YAMLOption) yamlpatchcommon.YAMLLibrary[ast.Node] {
 	yamllib := &goccyYAMLLib{}
 
-	defaultOptions := []GoccyYAMLOption{
-		GoccyUseNonFlowWhenModifyingEmptyContainer(true),
-		GoccyYAMLEncodeOption(yaml.Indent(yamlpatchcommon.DefaultIndentSpaces)),
-		GoccyYAMLEncodeOption(yaml.IndentSequence(true)),
+	defaultOptions := []YAMLOption{
+		UseNonFlowWhenModifyingEmptyContainer(true),
+		YAMLEncodeOption(yaml.Indent(yamlpatchcommon.DefaultIndentSpaces)),
+		YAMLEncodeOption(yaml.IndentSequence(true)),
 	}
 	allOptions := append(defaultOptions, opts...)
 	for _, opt := range allOptions {

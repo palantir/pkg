@@ -10,10 +10,10 @@ import (
 	"github.com/palantir/pkg/yamlpatch/internal/yamlpatchcommon"
 )
 
-func TestApplyYAMLPatch_goyaml(t *testing.T) {
+func TestApplyYAMLPatch(t *testing.T) {
 	yamlpatchcommon.RunApplyYAMLPatchTests(t, "goyaml", newGoyamlYAMLLibrary())
 }
 
-func TestApplyYAMLPatch_CustomObjectTest_goyaml(t *testing.T) {
+func TestApplyYAMLPatch_CustomObjectTest(t *testing.T) {
 	yamlpatchcommon.RunApplyYAMLPatchCustomObjectTests(t, "goyaml", New())
 }

@@ -18,9 +18,6 @@ type flowStyler interface {
 	SetIsFlowStyle(isFlow bool)
 }
 
-type GoccyContainerOptions struct {
-}
-
 // newGoccyContainer returns the container impl matching node.Kind.
 // If the node is not a Map or Sequence, an error is returned.
 func newGoccyContainer(node ast.Node, useNonFlowWhenAddingToEmpty bool, encodeOptions ...yaml.EncodeOption) (yamlpatchcommon.YAMLContainer[ast.Node], error) {

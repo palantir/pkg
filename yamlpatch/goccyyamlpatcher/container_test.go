@@ -11,14 +11,14 @@ import (
 	"github.com/palantir/pkg/yamlpatch/internal/yamlpatchcommon"
 )
 
-func TestContainers_goccy(t *testing.T) {
+func TestContainers(t *testing.T) {
 	yamlpatchcommon.RunContainerTests(
 		t,
 		"goccy",
 		newGoccyYAMLLibrary(
-			GoccyUseNonFlowWhenModifyingEmptyContainer(false),
-			GoccyYAMLEncodeOption(yaml.Indent(yamlpatchcommon.ContainerTestIndentSpaces)),
-			GoccyYAMLEncodeOption(yaml.IndentSequence(false)),
+			UseNonFlowWhenModifyingEmptyContainer(false),
+			YAMLEncodeOption(yaml.Indent(yamlpatchcommon.ContainerTestIndentSpaces)),
+			YAMLEncodeOption(yaml.IndentSequence(false)),
 		),
 	)
 }
