@@ -2,18 +2,19 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package yamlpatchcommon
+package testhelpers
 
 import (
 	"strings"
 	"testing"
 
+	"github.com/palantir/pkg/yamlpatch/internal/yamlpatchcommon"
 	"github.com/palantir/pkg/yamlpatch/yamlpatch"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func RunApplyYAMLPatchTests[NodeT any](t *testing.T, testNamePrefix string, yamllib YAMLLibrary[NodeT]) {
+func RunApplyYAMLPatchTests[NodeT any](t *testing.T, testNamePrefix string, yamllib yamlpatchcommon.YAMLLibrary[NodeT]) {
 	for _, test := range []struct {
 		Name      string
 		Body      string
@@ -512,7 +513,7 @@ foo:
 				require.NoError(t, err)
 				patch[i] = op
 			}
-			out, err := applyUsingYAMLLibrary(yamllib, []byte(test.Body), patch)
+			out, err := yamlpatchcommon.ApplyUsingYAMLLibrary(yamllib, []byte(test.Body), patch)
 			if test.ExpectErr == "" {
 				require.NoError(t, err)
 				assert.Equal(t, test.Expected, strings.TrimSpace(string(out)))

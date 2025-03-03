@@ -7,9 +7,9 @@ package gopkgv3yamlpatcher
 import (
 	"testing"
 
-	"github.com/palantir/pkg/yamlpatch/internal/yamlpatchcommon"
+	"github.com/palantir/pkg/yamlpatch/internal/testhelpers"
 )
 
 func TestContainers(t *testing.T) {
-	yamlpatchcommon.RunContainerTests(t, "goyaml", newGoyamlYAMLLibrary(IndentSpaces(yamlpatchcommon.ContainerTestIndentSpaces)))
+	testhelpers.RunContainerTests(t, "goyaml", newGoyamlYAMLLibrary(IndentSpaces(testhelpers.ContainerTestIndentSpaces)))
 }

@@ -19,7 +19,7 @@ type yamlLibraryPatcher[NodeT any] struct {
 }
 
 func (y *yamlLibraryPatcher[T]) Apply(originalBytes []byte, patch yamlpatch.Patch) ([]byte, error) {
-	return applyUsingYAMLLibrary(y.yamllib, originalBytes, patch)
+	return ApplyUsingYAMLLibrary(y.yamllib, originalBytes, patch)
 }
 
 type YAMLLibrary[NodeT any] interface {

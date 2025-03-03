@@ -8,14 +8,14 @@ import (
 	"testing"
 
 	"github.com/goccy/go-yaml"
-	"github.com/palantir/pkg/yamlpatch/internal/yamlpatchcommon"
+	"github.com/palantir/pkg/yamlpatch/internal/testhelpers"
 	"github.com/palantir/pkg/yamlpatch/yamlpatch"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestApplyYAMLPatch(t *testing.T) {
-	yamlpatchcommon.RunApplyYAMLPatchTests(
+	testhelpers.RunApplyYAMLPatchTests(
 		t,
 		"goccy",
 		newGoccyYAMLLibrary(
@@ -25,7 +25,7 @@ func TestApplyYAMLPatch(t *testing.T) {
 }
 
 func TestApplyYAMLPatch_CustomObjectTest(t *testing.T) {
-	yamlpatchcommon.RunApplyYAMLPatchCustomObjectTests(
+	testhelpers.RunApplyYAMLPatchCustomObjectTests(
 		t,
 		"goccy",
 		New(

@@ -8,16 +8,16 @@ import (
 	"testing"
 
 	"github.com/goccy/go-yaml"
-	"github.com/palantir/pkg/yamlpatch/internal/yamlpatchcommon"
+	"github.com/palantir/pkg/yamlpatch/internal/testhelpers"
 )
 
 func TestContainers(t *testing.T) {
-	yamlpatchcommon.RunContainerTests(
+	testhelpers.RunContainerTests(
 		t,
 		"goccy",
 		newGoccyYAMLLibrary(
 			UseNonFlowWhenModifyingEmptyContainer(false),
-			YAMLEncodeOption(yaml.Indent(yamlpatchcommon.ContainerTestIndentSpaces)),
+			YAMLEncodeOption(yaml.Indent(testhelpers.ContainerTestIndentSpaces)),
 			YAMLEncodeOption(yaml.IndentSequence(false)),
 		),
 	)

@@ -2,18 +2,19 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package yamlpatchcommon
+package testhelpers
 
 import (
 	"testing"
 
+	"github.com/palantir/pkg/yamlpatch/internal/yamlpatchcommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 const ContainerTestIndentSpaces = 4
 
-func RunContainerTests[NodeT any](t *testing.T, testNamePrefix string, yamllib YAMLLibrary[NodeT]) {
+func RunContainerTests[NodeT any](t *testing.T, testNamePrefix string, yamllib yamlpatchcommon.YAMLLibrary[NodeT]) {
 	for _, test := range []struct {
 		Name     string
 		Doc      string
@@ -544,7 +545,7 @@ foo:
 	}
 }
 
-func assertYAMLEqual[NodeT any](t *testing.T, yamllib YAMLLibrary[NodeT], a, b []byte, testTextEqual bool) {
+func assertYAMLEqual[NodeT any](t *testing.T, yamllib yamlpatchcommon.YAMLLibrary[NodeT], a, b []byte, testTextEqual bool) {
 	var objA interface{}
 	require.NoError(t, yamllib.Unmarshal(a, &objA))
 	var objB interface{}

@@ -16,10 +16,10 @@ var (
 	DefaultIndentSpaces = 2
 )
 
-// applyUsingYAMLLibrary applies the provided patch to a yaml document provided in originalBytes using the provided YAML
+// ApplyUsingYAMLLibrary applies the provided patch to a yaml document provided in originalBytes using the provided YAML
 // library and returns the updated content. A best effort is made to minimize changes outside the patched paths but some
 // whitespace changes are unavoidable.
-func applyUsingYAMLLibrary[NodeT any](yamllib YAMLLibrary[NodeT], originalBytes []byte, patch yamlpatch.Patch) ([]byte, error) {
+func ApplyUsingYAMLLibrary[NodeT any](yamllib YAMLLibrary[NodeT], originalBytes []byte, patch yamlpatch.Patch) ([]byte, error) {
 	node, err := yamllib.BytesToNode(originalBytes)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to convert YAML bytes to node")

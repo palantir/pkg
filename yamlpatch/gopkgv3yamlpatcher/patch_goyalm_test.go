@@ -7,13 +7,13 @@ package gopkgv3yamlpatcher
 import (
 	"testing"
 
-	"github.com/palantir/pkg/yamlpatch/internal/yamlpatchcommon"
+	"github.com/palantir/pkg/yamlpatch/internal/testhelpers"
 )
 
 func TestApplyYAMLPatch(t *testing.T) {
-	yamlpatchcommon.RunApplyYAMLPatchTests(t, "goyaml", newGoyamlYAMLLibrary())
+	testhelpers.RunApplyYAMLPatchTests(t, "goyaml", newGoyamlYAMLLibrary())
 }
 
 func TestApplyYAMLPatch_CustomObjectTest(t *testing.T) {
-	yamlpatchcommon.RunApplyYAMLPatchCustomObjectTests(t, "goyaml", New())
+	testhelpers.RunApplyYAMLPatchCustomObjectTests(t, "goyaml", New())
 }
