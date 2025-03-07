@@ -20,7 +20,7 @@ const (
 orbs:
   go-jobs: palantir/go-jobs@0.6.0
 
-image-version: &image-version "cimg/go:1.23.6-browsers"
+image-version: &image-version "cimg/go:1.24.1-browsers"
 
 checkout-path: &checkout-path
   path: /home/circleci/go/src/github.com/palantir/pkg
