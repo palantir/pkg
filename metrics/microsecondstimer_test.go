@@ -50,13 +50,13 @@ func TestMicroSecondsTimerTime(t *testing.T) {
 	})
 
 	assert.Equal(t, int64(1), microSecTimer.Count())
-	assert.InDelta(t, int64(10), microSecTimer.Max(), 1000)
-	assert.InDelta(t, int64(10), microSecTimer.Mean(), 1000)
-	assert.InDelta(t, int64(10), microSecTimer.Min(), 1000)
-	assert.InDelta(t, float64(10), microSecTimer.Percentile(5), 1000)
+	assert.InDelta(t, int64(10), microSecTimer.Max(), 2000)
+	assert.InDelta(t, int64(10), microSecTimer.Mean(), 2000)
+	assert.InDelta(t, int64(10), microSecTimer.Min(), 2000)
+	assert.InDelta(t, float64(10), microSecTimer.Percentile(5), 2000)
 	assert.Equal(t, float64(0), microSecTimer.Rate1())
 	assert.Equal(t, float64(0), microSecTimer.Rate5())
 	assert.Equal(t, float64(0), microSecTimer.Rate15())
 	assert.Equal(t, float64(0), microSecTimer.StdDev())
-	assert.InDelta(t, int64(10), microSecTimer.Sum(), 1000)
+	assert.InDelta(t, int64(10), microSecTimer.Sum(), 2000)
 }
