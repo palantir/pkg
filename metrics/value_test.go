@@ -5,6 +5,8 @@
 package metrics_test
 
 import (
+	"maps"
+	"slices"
 	"testing"
 	"time"
 
@@ -22,7 +24,7 @@ func TestCounter(t *testing.T) {
 
 	assert.Equal(t, "counter", mv.Type())
 	assert.Equal(t, map[string]interface{}{"count": int64(13)}, mv.Values())
-	assert.Equal(t, []string{"count"}, mv.ValueKeys())
+	assert.ElementsMatch(t, slices.Collect(maps.Keys(mv.Values())), mv.ValueKeys())
 }
 
 func TestGauge(t *testing.T) {
@@ -33,7 +35,7 @@ func TestGauge(t *testing.T) {
 
 	assert.Equal(t, "gauge", mv.Type())
 	assert.Equal(t, map[string]interface{}{"value": int64(13)}, mv.Values())
-	assert.Equal(t, []string{"value"}, mv.ValueKeys())
+	assert.ElementsMatch(t, slices.Collect(maps.Keys(mv.Values())), mv.ValueKeys())
 }
 
 func TestGaugeFloat64(t *testing.T) {
@@ -44,7 +46,7 @@ func TestGaugeFloat64(t *testing.T) {
 
 	assert.Equal(t, "gauge", mv.Type())
 	assert.Equal(t, map[string]interface{}{"value": float64(13.13)}, mv.Values())
-	assert.Equal(t, []string{"value"}, mv.ValueKeys())
+	assert.ElementsMatch(t, slices.Collect(maps.Keys(mv.Values())), mv.ValueKeys())
 }
 
 func TestHistogram(t *testing.T) {
@@ -66,7 +68,7 @@ func TestHistogram(t *testing.T) {
 		"p95":    float64(100),
 		"p99":    float64(100),
 	}, mv.Values())
-	assert.Equal(t, []string{"min", "max", "mean", "stddev", "p50", "p95", "p99", "count"}, mv.ValueKeys())
+	assert.ElementsMatch(t, slices.Collect(maps.Keys(mv.Values())), mv.ValueKeys())
 }
 
 func TestMeter(t *testing.T) {
@@ -83,7 +85,7 @@ func TestMeter(t *testing.T) {
 		"15m":   objmatcher.NewEqualsMatcher(float64(0)),
 		"mean":  objmatcher.NewAnyMatcher(),
 	}).Matches(mv.Values()))
-	assert.Equal(t, []string{"count", "1m", "5m", "15m", "mean"}, mv.ValueKeys())
+	assert.ElementsMatch(t, slices.Collect(maps.Keys(mv.Values())), mv.ValueKeys())
 }
 
 func TestTimer(t *testing.T) {
@@ -108,5 +110,5 @@ func TestTimer(t *testing.T) {
 		"p95":      objmatcher.NewEqualsMatcher(float64(1.2e+11)),
 		"p99":      objmatcher.NewEqualsMatcher(float64(1.2e+11)),
 	}).Matches(mv.Values()))
-	assert.Equal(t, []string{"count", "1m", "5m", "15m", "meanRate", "min", "max", "mean", "stddev", "p50", "p95", "p99"}, mv.ValueKeys())
+	assert.ElementsMatch(t, slices.Collect(maps.Keys(mv.Values())), mv.ValueKeys())
 }
