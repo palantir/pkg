@@ -13,7 +13,12 @@ type MetricVal interface {
 	Values() map[string]interface{}
 }
 
-func ToMetricVal(in interface{}) MetricVal {
+type MetricValWithKeys interface {
+	MetricVal
+	ValueKeys() []string
+}
+
+func ToMetricVal(in interface{}) MetricValWithKeys {
 	switch val := in.(type) {
 	case metrics.Counter:
 		return &counterVal{Counter: val}
@@ -45,6 +50,12 @@ func (v *counterVal) Values() map[string]interface{} {
 	}
 }
 
+func (v *counterVal) ValueKeys() []string {
+	return []string{
+		"count",
+	}
+}
+
 type gaugeVal struct {
 	metrics.Gauge
 }
@@ -59,6 +70,12 @@ func (v *gaugeVal) Values() map[string]interface{} {
 	}
 }
 
+func (v *gaugeVal) ValueKeys() []string {
+	return []string{
+		"value",
+	}
+}
+
 type gaugeFloat64Val struct {
 	metrics.GaugeFloat64
 }
@@ -70,6 +87,12 @@ func (v *gaugeFloat64Val) Type() string {
 func (v *gaugeFloat64Val) Values() map[string]interface{} {
 	return map[string]interface{}{
 		"value": v.Value(),
+	}
+}
+
+func (v *gaugeFloat64Val) ValueKeys() []string {
+	return []string{
+		"value",
 	}
 }
 
@@ -94,6 +117,19 @@ func (v *histogramVal) Values() map[string]interface{} {
 	}
 }
 
+func (v *histogramVal) ValueKeys() []string {
+	return []string{
+		"min",
+		"max",
+		"mean",
+		"stddev",
+		"p50",
+		"p95",
+		"p99",
+		"count",
+	}
+}
+
 type meterVal struct {
 	metrics.Meter
 }
@@ -109,6 +145,16 @@ func (v *meterVal) Values() map[string]interface{} {
 		"5m":    v.Meter.Rate5(),
 		"15m":   v.Meter.Rate15(),
 		"mean":  v.Meter.RateMean(),
+	}
+}
+
+func (v *meterVal) ValueKeys() []string {
+	return []string{
+		"count",
+		"1m",
+		"5m",
+		"15m",
+		"mean",
 	}
 }
 
@@ -134,5 +180,22 @@ func (v *timerVal) Values() map[string]interface{} {
 		"p50":      v.Timer.Percentile(0.5),
 		"p95":      v.Timer.Percentile(0.95),
 		"p99":      v.Timer.Percentile(0.99),
+	}
+}
+
+func (v *timerVal) ValueKeys() []string {
+	return []string{
+		"count",
+		"1m",
+		"5m",
+		"15m",
+		"meanRate",
+		"min",
+		"max",
+		"mean",
+		"stddev",
+		"p50",
+		"p95",
+		"p99",
 	}
 }

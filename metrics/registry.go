@@ -92,6 +92,44 @@ func NewRootMetricsRegistry() RootRegistry {
 	}
 }
 
+func RegistryCardinality(registry RootRegistry, skipValue func(metricType string, metricName string, valueKey string) bool) int {
+	switch r := registry.(type) {
+	case *rootRegistry:
+		cardinality := 0
+		r.registry.Each(func(name string, metric interface{}) {
+			// filter out the runtime metrics that are defined in the exclude list
+			if _, ok := goRuntimeMetricsToExclude[name]; ok {
+				return
+			}
+			val := ToMetricVal(metric)
+			if val == nil {
+				// this should never happen as all the things we put inside the registry can be turned into MetricVal
+				panic("could not convert metric to MetricVal")
+			}
+			for _, key := range val.ValueKeys() {
+				if !skipValue(val.Type(), name, key) {
+					cardinality++
+				}
+			}
+		})
+		return cardinality
+	default:
+		cardinality := 0
+		r.Each(func(name string, tags Tags, value MetricVal) {
+			// filter out the runtime metrics that are defined in the exclude list
+			if _, ok := goRuntimeMetricsToExclude[name]; ok {
+				return
+			}
+			for key := range value.Values() {
+				if !skipValue(value.Type(), name, key) {
+					cardinality++
+				}
+			}
+		})
+		return cardinality
+	}
+}
+
 var runtimeMemStats sync.Once
 
 // CaptureRuntimeMemStats registers runtime memory metrics collectors and spawns
