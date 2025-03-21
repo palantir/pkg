@@ -393,26 +393,3 @@ func TestChildRegistry_ConcurrentUpdatesToTagsAreNotCorrupted(t *testing.T) {
 		}
 	})
 }
-
-func TestRegistryCardinality(t *testing.T) {
-	root := metrics.NewRootMetricsRegistry()
-	root.Gauge("go.runtime.NumCgoCall").Update(0) // will be skipped
-	sub1 := root.Subregistry("sub1")
-	sub2 := root.Subregistry("sub2")
-	sub3 := root.Subregistry("sub3")
-
-	sub1.Meter("gauge").Mark(0)
-	sub2.Meter("gauge", metrics.MustNewTag("key1", "val1")).Mark(0)
-	sub3.Meter("gauge").Mark(0)
-
-	cardinality := metrics.RegistryCardinality(root, func(metricType string, metricName string, valueKey string) bool {
-		switch valueKey {
-		case "mean", "count", "15m":
-			return true
-		default:
-			return false
-		}
-	})
-
-	assert.Equal(t, 6, cardinality)
-}

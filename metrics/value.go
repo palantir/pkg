@@ -60,6 +60,8 @@ type gaugeVal struct {
 	metrics.Gauge
 }
 
+var gaugeValueKeys = []string{"value"}
+
 func (v *gaugeVal) Type() string {
 	return "gauge"
 }
@@ -71,9 +73,7 @@ func (v *gaugeVal) Values() map[string]interface{} {
 }
 
 func (v *gaugeVal) ValueKeys() []string {
-	return []string{
-		"value",
-	}
+	return gaugeValueKeys
 }
 
 type gaugeFloat64Val struct {
@@ -91,14 +91,14 @@ func (v *gaugeFloat64Val) Values() map[string]interface{} {
 }
 
 func (v *gaugeFloat64Val) ValueKeys() []string {
-	return []string{
-		"value",
-	}
+	return gaugeValueKeys
 }
 
 type histogramVal struct {
 	metrics.Histogram
 }
+
+var histogramValueKeys = []string{"min", "max", "mean", "stddev", "p50", "p95", "p99", "count"}
 
 func (v *histogramVal) Type() string {
 	return "histogram"
@@ -118,21 +118,14 @@ func (v *histogramVal) Values() map[string]interface{} {
 }
 
 func (v *histogramVal) ValueKeys() []string {
-	return []string{
-		"min",
-		"max",
-		"mean",
-		"stddev",
-		"p50",
-		"p95",
-		"p99",
-		"count",
-	}
+	return histogramValueKeys
 }
 
 type meterVal struct {
 	metrics.Meter
 }
+
+var meterValueKeys = []string{"count", "1m", "5m", "15m", "mean"}
 
 func (v *meterVal) Type() string {
 	return "meter"
@@ -149,18 +142,14 @@ func (v *meterVal) Values() map[string]interface{} {
 }
 
 func (v *meterVal) ValueKeys() []string {
-	return []string{
-		"count",
-		"1m",
-		"5m",
-		"15m",
-		"mean",
-	}
+	return meterValueKeys
 }
 
 type timerVal struct {
 	metrics.Timer
 }
+
+var timerValueKeys = []string{"count", "1m", "5m", "15m", "meanRate", "min", "max", "mean", "stddev", "p50", "p95", "p99"}
 
 func (v *timerVal) Type() string {
 	return "timer"
@@ -184,18 +173,5 @@ func (v *timerVal) Values() map[string]interface{} {
 }
 
 func (v *timerVal) ValueKeys() []string {
-	return []string{
-		"count",
-		"1m",
-		"5m",
-		"15m",
-		"meanRate",
-		"min",
-		"max",
-		"mean",
-		"stddev",
-		"p50",
-		"p95",
-		"p99",
-	}
+	return timerValueKeys
 }
