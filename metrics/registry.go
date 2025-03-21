@@ -93,10 +93,14 @@ func NewRootMetricsRegistry() RootRegistry {
 }
 
 func RegistryCardinality(registry RootRegistry, skipValue func(metricType string, metricName string, valueKey string) bool) int {
+	cardinality := 0
 	switch r := registry.(type) {
 	case *rootRegistry:
-		cardinality := 0
-		r.registry.Each(func(name string, metric interface{}) {
+		r.registry.Each(func(id string, metric interface{}) {
+			r.idToMetricMutex.RLock()
+			name := r.idToMetricWithTags[metricTagsID(id)].name
+			r.idToMetricMutex.RUnlock()
+
 			// filter out the runtime metrics that are defined in the exclude list
 			if _, ok := goRuntimeMetricsToExclude[name]; ok {
 				return
@@ -112,9 +116,7 @@ func RegistryCardinality(registry RootRegistry, skipValue func(metricType string
 				}
 			}
 		})
-		return cardinality
 	default:
-		cardinality := 0
 		r.Each(func(name string, tags Tags, value MetricVal) {
 			// filter out the runtime metrics that are defined in the exclude list
 			if _, ok := goRuntimeMetricsToExclude[name]; ok {
@@ -126,8 +128,8 @@ func RegistryCardinality(registry RootRegistry, skipValue func(metricType string
 				}
 			}
 		})
-		return cardinality
 	}
+	return cardinality
 }
 
 var runtimeMemStats sync.Once
