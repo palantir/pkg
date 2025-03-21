@@ -94,41 +94,25 @@ func NewRootMetricsRegistry() RootRegistry {
 
 func RegistryCardinality(registry RootRegistry, skipValue func(metricType string, metricName string, valueKey string) bool) int {
 	cardinality := 0
-	switch r := registry.(type) {
-	case *rootRegistry:
-		r.registry.Each(func(id string, metric interface{}) {
-			r.idToMetricMutex.RLock()
-			name := r.idToMetricWithTags[metricTagsID(id)].name
-			r.idToMetricMutex.RUnlock()
-
-			// filter out the runtime metrics that are defined in the exclude list
-			if _, ok := goRuntimeMetricsToExclude[name]; ok {
-				return
-			}
-			val := ToMetricVal(metric)
-			if val == nil {
-				// this should never happen as all the things we put inside the registry can be turned into MetricVal
-				panic("could not convert metric to MetricVal")
-			}
-			for _, key := range val.ValueKeys() {
-				if !skipValue(val.Type(), name, key) {
+	registry.Each(func(name string, tags Tags, value MetricVal) {
+		// filter out the runtime metrics that are defined in the exclude list
+		if _, ok := goRuntimeMetricsToExclude[name]; ok {
+			return
+		}
+		if valueWithKeys, ok := value.(MetricValWithKeys); ok {
+			for _, key := range valueWithKeys.ValueKeys() {
+				if !skipValue(value.Type(), name, key) {
 					cardinality++
 				}
 			}
-		})
-	default:
-		r.Each(func(name string, tags Tags, value MetricVal) {
-			// filter out the runtime metrics that are defined in the exclude list
-			if _, ok := goRuntimeMetricsToExclude[name]; ok {
-				return
-			}
+		} else {
 			for key := range value.Values() {
 				if !skipValue(value.Type(), name, key) {
 					cardinality++
 				}
 			}
-		})
-	}
+		}
+	})
 	return cardinality
 }
 
