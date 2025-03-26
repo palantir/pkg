@@ -5,7 +5,7 @@ go 1.24.0
 require (
 	github.com/mitchellh/go-wordwrap v1.0.0
 	github.com/palantir/pkg v1.1.0
-	github.com/spf13/viper v1.20.0
+	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/crypto v0.36.0
 )
