@@ -119,3 +119,67 @@ func BenchmarkHistogram(b *testing.B) {
 		b.ReportAllocs()
 	})
 }
+
+func BenchmarkEach(b *testing.B) {
+	reg := NewRootMetricsRegistry()
+	tag := MustNewTag("key", "value")
+	for i := 0; i < 100; i++ {
+		for j := 0; j < 100; j++ {
+			reg.Counter(fmt.Sprintf("counter%d", i), tag).Inc(int64(j))
+			reg.Histogram(fmt.Sprintf("histogram%d", i), tag).Update(int64(j))
+		}
+	}
+	b.Run("without values", func(b *testing.B) {
+
+		b.Run("value.Type()", func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				reg.Each(func(name string, tags Tags, value MetricVal) {
+					metricType := value.Type()
+					_ = metricType
+				})
+			}
+		})
+
+		b.Run("value.Keys()", func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				reg.Each(func(name string, tags Tags, value MetricVal) {
+					metricType := value.Type()
+					_ = metricType
+					for key := range value.Keys {
+						_ = key
+					}
+				})
+			}
+		})
+	})
+
+	b.Run("with values", func(b *testing.B) {
+		b.Run("value.Keys()", func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				reg.Each(func(name string, tags Tags, value MetricVal) {
+					metricType := value.Type()
+					_ = metricType
+					for key := range value.Keys {
+						val := value.Value(key)
+						_ = val
+					}
+				})
+			}
+		})
+
+		b.Run("value.Values()", func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				reg.Each(func(name string, tags Tags, value MetricVal) {
+					metricType := value.Type()
+					_ = metricType
+					metricValues := value.Values()
+					_ = metricValues
+				})
+			}
+		})
+	})
+}

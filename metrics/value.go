@@ -10,6 +10,21 @@ import (
 
 type MetricVal interface {
 	Type() string
+
+	// Keys implements iter.Seq[string] by returning the keys that can be used to retrieve values from the metric.
+	// Example:
+	//
+	//	for key := range val.Keys {
+	//		if !skip(key) {
+	//			fmt.Println(key, mv.Value(key))
+	// 		}
+	//	}
+	Keys(yield func(string) bool)
+
+	// Value returns the computed value for the given key. If the key is not recognized, returns nil.
+	Value(key string) interface{}
+
+	// Deprecated: use Keys and Value to iterate through values and avoid eager computation of skipped keys.
 	Values() map[string]interface{}
 }
 
@@ -39,6 +54,22 @@ func (v *counterVal) Type() string {
 	return "counter"
 }
 
+func (v *counterVal) Keys(yield func(string) bool) {
+	for _, key := range []string{"count"} {
+		if !yield(key) {
+			return
+		}
+	}
+}
+
+func (v *counterVal) Value(key string) interface{} {
+	switch key {
+	case "count":
+		return v.Counter.Count()
+	}
+	return nil
+}
+
 func (v *counterVal) Values() map[string]interface{} {
 	return map[string]interface{}{
 		"count": v.Count(),
@@ -53,9 +84,26 @@ func (v *gaugeVal) Type() string {
 	return "gauge"
 }
 
+func (v *gaugeVal) Keys(yield func(string) bool) {
+	for _, key := range []string{"value"} {
+		if !yield(key) {
+			return
+		}
+	}
+}
+
+func (v *gaugeVal) Value(key string) interface{} {
+	switch key {
+	case "value":
+		return v.Gauge.Value()
+	default:
+		return nil
+	}
+}
+
 func (v *gaugeVal) Values() map[string]interface{} {
 	return map[string]interface{}{
-		"value": v.Value(),
+		"value": v.Gauge.Value(),
 	}
 }
 
@@ -67,9 +115,26 @@ func (v *gaugeFloat64Val) Type() string {
 	return "gauge"
 }
 
+func (v *gaugeFloat64Val) Keys(yield func(string) bool) {
+	for _, key := range []string{"value"} {
+		if !yield(key) {
+			return
+		}
+	}
+}
+
+func (v *gaugeFloat64Val) Value(key string) interface{} {
+	switch key {
+	case "value":
+		return v.GaugeFloat64.Value()
+	default:
+		return nil
+	}
+}
+
 func (v *gaugeFloat64Val) Values() map[string]interface{} {
 	return map[string]interface{}{
-		"value": v.Value(),
+		"value": v.GaugeFloat64.Value(),
 	}
 }
 
@@ -79,6 +144,37 @@ type histogramVal struct {
 
 func (v *histogramVal) Type() string {
 	return "histogram"
+}
+
+func (v *histogramVal) Keys(yield func(string) bool) {
+	for _, key := range []string{"count", "min", "max", "mean", "stddev", "p50", "p95", "p99"} {
+		if !yield(key) {
+			return
+		}
+	}
+}
+
+func (v *histogramVal) Value(key string) interface{} {
+	switch key {
+	case "count":
+		return v.Histogram.Count()
+	case "min":
+		return v.Histogram.Min()
+	case "max":
+		return v.Histogram.Max()
+	case "mean":
+		return v.Histogram.Mean()
+	case "stddev":
+		return v.Histogram.StdDev()
+	case "p50":
+		return v.Histogram.Percentile(0.5)
+	case "p95":
+		return v.Histogram.Percentile(0.95)
+	case "p99":
+		return v.Histogram.Percentile(0.99)
+	default:
+		return nil
+	}
 }
 
 func (v *histogramVal) Values() map[string]interface{} {
@@ -102,6 +198,31 @@ func (v *meterVal) Type() string {
 	return "meter"
 }
 
+func (v *meterVal) Keys(yield func(string) bool) {
+	for _, key := range []string{"count", "1m", "5m", "15m", "mean"} {
+		if !yield(key) {
+			return
+		}
+	}
+}
+
+func (v *meterVal) Value(key string) interface{} {
+	switch key {
+	case "count":
+		return v.Meter.Count()
+	case "1m":
+		return v.Meter.Rate1()
+	case "5m":
+		return v.Meter.Rate5()
+	case "15m":
+		return v.Meter.Rate15()
+	case "mean":
+		return v.Meter.RateMean()
+	default:
+		return nil
+	}
+}
+
 func (v *meterVal) Values() map[string]interface{} {
 	return map[string]interface{}{
 		"count": v.Meter.Count(),
@@ -118,6 +239,45 @@ type timerVal struct {
 
 func (v *timerVal) Type() string {
 	return "timer"
+}
+
+func (v *timerVal) Keys(yield func(string) bool) {
+	for _, key := range []string{"count", "1m", "5m", "15m", "meanRate", "min", "max", "mean", "stddev", "p50", "p95", "p99"} {
+		if !yield(key) {
+			return
+		}
+	}
+}
+
+func (v *timerVal) Value(key string) interface{} {
+	switch key {
+	case "count":
+		return v.Timer.Count()
+	case "1m":
+		return v.Timer.Rate1()
+	case "5m":
+		return v.Timer.Rate5()
+	case "15m":
+		return v.Timer.Rate15()
+	case "meanRate":
+		return v.Timer.RateMean()
+	case "min":
+		return v.Timer.Min()
+	case "max":
+		return v.Timer.Max()
+	case "mean":
+		return v.Timer.Mean()
+	case "stddev":
+		return v.Timer.StdDev()
+	case "p50":
+		return v.Timer.Percentile(0.5)
+	case "p95":
+		return v.Timer.Percentile(0.95)
+	case "p99":
+		return v.Timer.Percentile(0.99)
+	default:
+		return nil
+	}
 }
 
 func (v *timerVal) Values() map[string]interface{} {
