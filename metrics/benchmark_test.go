@@ -147,7 +147,7 @@ func BenchmarkEach(b *testing.B) {
 				reg.Each(func(name string, tags Tags, value MetricVal) {
 					metricType := value.Type()
 					_ = metricType
-					for key := range value.Keys {
+					for key := range value.Keys() {
 						_ = key
 					}
 				})
@@ -162,7 +162,7 @@ func BenchmarkEach(b *testing.B) {
 				reg.Each(func(name string, tags Tags, value MetricVal) {
 					metricType := value.Type()
 					_ = metricType
-					for key := range value.Keys {
+					for key := range value.Keys() {
 						val := value.Value(key)
 						_ = val
 					}

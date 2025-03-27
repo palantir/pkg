@@ -5,6 +5,8 @@
 package metrics
 
 import (
+	"iter"
+
 	"github.com/palantir/go-metrics"
 )
 
@@ -14,12 +16,12 @@ type MetricVal interface {
 	// Keys implements iter.Seq[string] by returning the keys that can be used to retrieve values from the metric.
 	// Example:
 	//
-	//	for key := range val.Keys {
+	//	for key := range val.Keys() {
 	//		if !skip(key) {
 	//			fmt.Println(key, mv.Value(key))
 	// 		}
 	//	}
-	Keys(yield func(string) bool)
+	Keys() iter.Seq[string]
 
 	// Value returns the computed value for the given key. If the key is not recognized, returns nil.
 	Value(key string) interface{}
@@ -54,10 +56,12 @@ func (v *counterVal) Type() string {
 	return "counter"
 }
 
-func (v *counterVal) Keys(yield func(string) bool) {
-	for _, key := range []string{"count"} {
-		if !yield(key) {
-			return
+func (v *counterVal) Keys() iter.Seq[string] {
+	return func(yield func(string) bool) {
+		for _, key := range []string{"count"} {
+			if !yield(key) {
+				return
+			}
 		}
 	}
 }
@@ -66,14 +70,13 @@ func (v *counterVal) Value(key string) interface{} {
 	switch key {
 	case "count":
 		return v.Counter.Count()
+	default:
+		return nil
 	}
-	return nil
 }
 
 func (v *counterVal) Values() map[string]interface{} {
-	return map[string]interface{}{
-		"count": v.Count(),
-	}
+	return collectValuesByKey(v)
 }
 
 type gaugeVal struct {
@@ -84,10 +87,12 @@ func (v *gaugeVal) Type() string {
 	return "gauge"
 }
 
-func (v *gaugeVal) Keys(yield func(string) bool) {
-	for _, key := range []string{"value"} {
-		if !yield(key) {
-			return
+func (v *gaugeVal) Keys() iter.Seq[string] {
+	return func(yield func(string) bool) {
+		for _, key := range []string{"value"} {
+			if !yield(key) {
+				return
+			}
 		}
 	}
 }
@@ -102,9 +107,7 @@ func (v *gaugeVal) Value(key string) interface{} {
 }
 
 func (v *gaugeVal) Values() map[string]interface{} {
-	return map[string]interface{}{
-		"value": v.Gauge.Value(),
-	}
+	return collectValuesByKey(v)
 }
 
 type gaugeFloat64Val struct {
@@ -115,10 +118,12 @@ func (v *gaugeFloat64Val) Type() string {
 	return "gauge"
 }
 
-func (v *gaugeFloat64Val) Keys(yield func(string) bool) {
-	for _, key := range []string{"value"} {
-		if !yield(key) {
-			return
+func (v *gaugeFloat64Val) Keys() iter.Seq[string] {
+	return func(yield func(string) bool) {
+		for _, key := range []string{"value"} {
+			if !yield(key) {
+				return
+			}
 		}
 	}
 }
@@ -133,9 +138,7 @@ func (v *gaugeFloat64Val) Value(key string) interface{} {
 }
 
 func (v *gaugeFloat64Val) Values() map[string]interface{} {
-	return map[string]interface{}{
-		"value": v.GaugeFloat64.Value(),
-	}
+	return collectValuesByKey(v)
 }
 
 type histogramVal struct {
@@ -146,10 +149,12 @@ func (v *histogramVal) Type() string {
 	return "histogram"
 }
 
-func (v *histogramVal) Keys(yield func(string) bool) {
-	for _, key := range []string{"count", "min", "max", "mean", "stddev", "p50", "p95", "p99"} {
-		if !yield(key) {
-			return
+func (v *histogramVal) Keys() iter.Seq[string] {
+	return func(yield func(string) bool) {
+		for _, key := range []string{"count", "min", "max", "mean", "stddev", "p50", "p95", "p99"} {
+			if !yield(key) {
+				return
+			}
 		}
 	}
 }
@@ -178,16 +183,7 @@ func (v *histogramVal) Value(key string) interface{} {
 }
 
 func (v *histogramVal) Values() map[string]interface{} {
-	return map[string]interface{}{
-		"min":    v.Histogram.Min(),
-		"max":    v.Histogram.Max(),
-		"mean":   v.Histogram.Mean(),
-		"stddev": v.Histogram.StdDev(),
-		"p50":    v.Histogram.Percentile(0.5),
-		"p95":    v.Histogram.Percentile(0.95),
-		"p99":    v.Histogram.Percentile(0.99),
-		"count":  v.Histogram.Count(),
-	}
+	return collectValuesByKey(v)
 }
 
 type meterVal struct {
@@ -198,10 +194,12 @@ func (v *meterVal) Type() string {
 	return "meter"
 }
 
-func (v *meterVal) Keys(yield func(string) bool) {
-	for _, key := range []string{"count", "1m", "5m", "15m", "mean"} {
-		if !yield(key) {
-			return
+func (v *meterVal) Keys() iter.Seq[string] {
+	return func(yield func(string) bool) {
+		for _, key := range []string{"count", "1m", "5m", "15m", "mean"} {
+			if !yield(key) {
+				return
+			}
 		}
 	}
 }
@@ -224,13 +222,7 @@ func (v *meterVal) Value(key string) interface{} {
 }
 
 func (v *meterVal) Values() map[string]interface{} {
-	return map[string]interface{}{
-		"count": v.Meter.Count(),
-		"1m":    v.Meter.Rate1(),
-		"5m":    v.Meter.Rate5(),
-		"15m":   v.Meter.Rate15(),
-		"mean":  v.Meter.RateMean(),
-	}
+	return collectValuesByKey(v)
 }
 
 type timerVal struct {
@@ -241,10 +233,12 @@ func (v *timerVal) Type() string {
 	return "timer"
 }
 
-func (v *timerVal) Keys(yield func(string) bool) {
-	for _, key := range []string{"count", "1m", "5m", "15m", "meanRate", "min", "max", "mean", "stddev", "p50", "p95", "p99"} {
-		if !yield(key) {
-			return
+func (v *timerVal) Keys() iter.Seq[string] {
+	return func(yield func(string) bool) {
+		for _, key := range []string{"count", "1m", "5m", "15m", "meanRate", "min", "max", "mean", "stddev", "p50", "p95", "p99"} {
+			if !yield(key) {
+				return
+			}
 		}
 	}
 }
@@ -281,18 +275,13 @@ func (v *timerVal) Value(key string) interface{} {
 }
 
 func (v *timerVal) Values() map[string]interface{} {
-	return map[string]interface{}{
-		"count":    v.Timer.Count(),
-		"1m":       v.Timer.Rate1(),
-		"5m":       v.Timer.Rate5(),
-		"15m":      v.Timer.Rate15(),
-		"meanRate": v.Timer.RateMean(),
-		"min":      v.Timer.Min(),
-		"max":      v.Timer.Max(),
-		"mean":     v.Timer.Mean(),
-		"stddev":   v.Timer.StdDev(),
-		"p50":      v.Timer.Percentile(0.5),
-		"p95":      v.Timer.Percentile(0.95),
-		"p99":      v.Timer.Percentile(0.99),
+	return collectValuesByKey(v)
+}
+
+func collectValuesByKey(mv MetricVal) map[string]interface{} {
+	values := make(map[string]interface{})
+	for key := range mv.Keys() {
+		values[key] = mv.Value(key)
 	}
+	return values
 }

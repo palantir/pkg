@@ -113,7 +113,7 @@ func TestTimer(t *testing.T) {
 
 func assertValuesEqualValueMap(t *testing.T, mv metrics.MetricVal, expected objmatcher.MapMatcher) {
 	vals := map[string]interface{}{}
-	for key := range mv.Keys {
+	for key := range mv.Keys() {
 		vals[key] = mv.Value(key)
 	}
 	if assert.NoError(t, expected.Matches(vals)) {
