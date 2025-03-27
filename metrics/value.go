@@ -23,6 +23,10 @@ type MetricVal interface {
 	//	}
 	Keys() iter.Seq[string]
 
+	// KeySlice returns the keys that can be used to retrieve values from the metric.
+	// The returned slice must not be modified.
+	KeySlice() []string
+
 	// Value returns the computed value for the given key. If the key is not recognized, returns nil.
 	Value(key string) interface{}
 
@@ -54,6 +58,12 @@ type counterVal struct {
 
 func (v *counterVal) Type() string {
 	return "counter"
+}
+
+var counterKeys = []string{"count"}
+
+func (v *counterVal) KeySlice() []string {
+	return counterKeys
 }
 
 func (v *counterVal) Keys() iter.Seq[string] {
@@ -97,6 +107,12 @@ func (v *gaugeVal) Keys() iter.Seq[string] {
 	}
 }
 
+var gaugeKeys = []string{"value"}
+
+func (v *gaugeVal) KeySlice() []string {
+	return gaugeKeys
+}
+
 func (v *gaugeVal) Value(key string) interface{} {
 	switch key {
 	case "value":
@@ -128,6 +144,10 @@ func (v *gaugeFloat64Val) Keys() iter.Seq[string] {
 	}
 }
 
+func (v *gaugeFloat64Val) KeySlice() []string {
+	return gaugeKeys
+}
+
 func (v *gaugeFloat64Val) Value(key string) interface{} {
 	switch key {
 	case "value":
@@ -157,6 +177,12 @@ func (v *histogramVal) Keys() iter.Seq[string] {
 			}
 		}
 	}
+}
+
+var histogramKeys = []string{"count", "min", "max", "mean", "stddev", "p50", "p95", "p99"}
+
+func (v *histogramVal) KeySlice() []string {
+	return histogramKeys
 }
 
 func (v *histogramVal) Value(key string) interface{} {
@@ -204,6 +230,12 @@ func (v *meterVal) Keys() iter.Seq[string] {
 	}
 }
 
+var meterKeys = []string{"count", "1m", "5m", "15m", "mean"}
+
+func (v *meterVal) KeySlice() []string {
+	return meterKeys
+}
+
 func (v *meterVal) Value(key string) interface{} {
 	switch key {
 	case "count":
@@ -243,6 +275,12 @@ func (v *timerVal) Keys() iter.Seq[string] {
 	}
 }
 
+var timerKeys = []string{"count", "1m", "5m", "15m", "meanRate", "min", "max", "mean", "stddev", "p50", "p95", "p99"}
+
+func (v *timerVal) KeySlice() []string {
+	return timerKeys
+}
+
 func (v *timerVal) Value(key string) interface{} {
 	switch key {
 	case "count":
@@ -279,8 +317,9 @@ func (v *timerVal) Values() map[string]interface{} {
 }
 
 func collectValuesByKey(mv MetricVal) map[string]interface{} {
-	values := make(map[string]interface{})
-	for key := range mv.Keys() {
+	keys := mv.KeySlice()
+	values := make(map[string]interface{}, len(keys))
+	for _, key := range keys {
 		values[key] = mv.Value(key)
 	}
 	return values

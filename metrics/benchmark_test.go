@@ -153,6 +153,19 @@ func BenchmarkEach(b *testing.B) {
 				})
 			}
 		})
+
+		b.Run("value.KeySlice()", func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				reg.Each(func(name string, tags Tags, value MetricVal) {
+					metricType := value.Type()
+					_ = metricType
+					for _, key := range value.KeySlice() {
+						_ = key
+					}
+				})
+			}
+		})
 	})
 
 	b.Run("with values", func(b *testing.B) {
