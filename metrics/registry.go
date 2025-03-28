@@ -147,22 +147,24 @@ func CaptureRuntimeMemStatsWithContext(ctx context.Context, registry RootRegistr
 	return true
 }
 
-// CaptureRuntimeMemStatsOnce captures the runtime memory statistics once and registers them in the provided registry.
+// CaptureRuntimeMemStatsFunc initializes the runtime metric gauges and returns a function that captures the runtime
+// memory statistics once and registers them in the provided registry.
 // This function only supports RootRegistry implementations that implement the metricsRegistryProvider interface --
 // if the provided RootRegistry does not satisfy this interface, this function is a no-op. This function returns true
 // if it starts the runtime metric collection goroutine, false otherwise.
 //
 // The gauges/metrics etc. used to track runtime statistics are shared globally and the values are reset every time this
 // function is called (if it is not a no-op).
-func CaptureRuntimeMemStatsOnce(registry RootRegistry) bool {
+func CaptureRuntimeMemStatsFunc(registry RootRegistry) (func(), bool) {
 	mRegProvider, ok := registry.(metricsRegistryProvider)
 	if !ok {
-		return false
+		return nil, false
 	}
 	goRegistry := metrics.NewPrefixedChildRegistry(mRegProvider.Registry(), "go.")
 	metrics.RegisterRuntimeMemStats(goRegistry)
-	metrics.CaptureRuntimeMemStatsOnce(goRegistry)
-	return true
+	return func() {
+		metrics.CaptureRuntimeMemStatsOnce(goRegistry)
+	}, true
 }
 
 type rootRegistry struct {
