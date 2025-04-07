@@ -147,8 +147,7 @@ func CaptureRuntimeMemStatsWithContext(ctx context.Context, registry RootRegistr
 	return true
 }
 
-// CaptureRuntimeMemStatsFunc initializes the runtime metric gauges and returns a function that captures the runtime
-// memory statistics once and registers them in the provided registry.
+// CaptureRuntimeMemStatsFunc initializes the runtime metric gauges and registers them in the provided registry and returns a function that captures the runtime statistics when called.
 // This function only supports RootRegistry implementations that implement the metricsRegistryProvider interface --
 // if the provided RootRegistry does not satisfy this interface, this function is a no-op. This function returns true
 // if it starts the runtime metric collection goroutine, false otherwise.
