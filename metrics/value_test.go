@@ -21,7 +21,9 @@ func TestCounter(t *testing.T) {
 	mv := metrics.ToMetricVal(val)
 
 	assert.Equal(t, "counter", mv.Type())
-	assert.Equal(t, map[string]interface{}{"count": int64(13)}, mv.Values())
+	assertValuesEqualValueMap(t, mv, objmatcher.MapMatcher{
+		"count": objmatcher.NewEqualsMatcher(int64(13)),
+	})
 }
 
 func TestGauge(t *testing.T) {
@@ -31,7 +33,9 @@ func TestGauge(t *testing.T) {
 	mv := metrics.ToMetricVal(val)
 
 	assert.Equal(t, "gauge", mv.Type())
-	assert.Equal(t, map[string]interface{}{"value": int64(13)}, mv.Values())
+	assertValuesEqualValueMap(t, mv, objmatcher.MapMatcher{
+		"value": objmatcher.NewEqualsMatcher(int64(13)),
+	})
 }
 
 func TestGaugeFloat64(t *testing.T) {
@@ -41,7 +45,9 @@ func TestGaugeFloat64(t *testing.T) {
 	mv := metrics.ToMetricVal(val)
 
 	assert.Equal(t, "gauge", mv.Type())
-	assert.Equal(t, map[string]interface{}{"value": float64(13.13)}, mv.Values())
+	assertValuesEqualValueMap(t, mv, objmatcher.MapMatcher{
+		"value": objmatcher.NewEqualsMatcher(float64(13.13)),
+	})
 }
 
 func TestHistogram(t *testing.T) {
@@ -53,16 +59,16 @@ func TestHistogram(t *testing.T) {
 	mv := metrics.ToMetricVal(val)
 
 	assert.Equal(t, "histogram", mv.Type())
-	assert.Equal(t, map[string]interface{}{
-		"count":  int64(3),
-		"min":    int64(1),
-		"max":    int64(100),
-		"mean":   float64(38),
-		"stddev": float64(44.11349000022555),
-		"p50":    float64(13),
-		"p95":    float64(100),
-		"p99":    float64(100),
-	}, mv.Values())
+	assertValuesEqualValueMap(t, mv, objmatcher.MapMatcher{
+		"count":  objmatcher.NewEqualsMatcher(int64(3)),
+		"min":    objmatcher.NewEqualsMatcher(int64(1)),
+		"max":    objmatcher.NewEqualsMatcher(int64(100)),
+		"mean":   objmatcher.NewEqualsMatcher(float64(38)),
+		"stddev": objmatcher.NewEqualsMatcher(float64(44.11349000022555)),
+		"p50":    objmatcher.NewEqualsMatcher(float64(13)),
+		"p95":    objmatcher.NewEqualsMatcher(float64(100)),
+		"p99":    objmatcher.NewEqualsMatcher(float64(100)),
+	})
 }
 
 func TestMeter(t *testing.T) {
@@ -72,13 +78,13 @@ func TestMeter(t *testing.T) {
 	mv := metrics.ToMetricVal(val)
 
 	assert.Equal(t, "meter", mv.Type())
-	assert.NoError(t, objmatcher.MapMatcher(map[string]objmatcher.Matcher{
+	assertValuesEqualValueMap(t, mv, objmatcher.MapMatcher{
 		"count": objmatcher.NewEqualsMatcher(int64(13)),
 		"1m":    objmatcher.NewEqualsMatcher(float64(0)),
 		"5m":    objmatcher.NewEqualsMatcher(float64(0)),
 		"15m":   objmatcher.NewEqualsMatcher(float64(0)),
 		"mean":  objmatcher.NewAnyMatcher(),
-	}).Matches(mv.Values()))
+	})
 }
 
 func TestTimer(t *testing.T) {
@@ -89,7 +95,7 @@ func TestTimer(t *testing.T) {
 	mv := metrics.ToMetricVal(val)
 
 	assert.Equal(t, "timer", mv.Type())
-	assert.NoError(t, objmatcher.MapMatcher(map[string]objmatcher.Matcher{
+	assertValuesEqualValueMap(t, mv, objmatcher.MapMatcher{
 		"count":    objmatcher.NewEqualsMatcher(int64(2)),
 		"min":      objmatcher.NewEqualsMatcher(int64(1000000000)),
 		"max":      objmatcher.NewEqualsMatcher(int64(120000000000)),
@@ -102,5 +108,16 @@ func TestTimer(t *testing.T) {
 		"p50":      objmatcher.NewEqualsMatcher(float64(6.05e+10)),
 		"p95":      objmatcher.NewEqualsMatcher(float64(1.2e+11)),
 		"p99":      objmatcher.NewEqualsMatcher(float64(1.2e+11)),
-	}).Matches(mv.Values()))
+	})
+}
+
+func assertValuesEqualValueMap(t *testing.T, mv metrics.MetricVal, expected objmatcher.MapMatcher) {
+	vals := map[string]interface{}{}
+	for key := range mv.Keys() {
+		vals[key] = mv.Value(key)
+	}
+	if assert.NoError(t, expected.Matches(vals)) {
+		// assert that deprecated Values() method returns equivalent results
+		assert.NoError(t, expected.Matches(mv.Values()), "Values() did not match expected")
+	}
 }
