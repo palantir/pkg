@@ -98,7 +98,7 @@ var runtimeMemStats sync.Once
 // a goroutine which collects them every collectionFreq. This function can only be called once per lifetime of the
 // process and only records metrics if the provided RootRegistry is a *rootRegistry.
 //
-// Deprecated: use CaptureRuntimeMemStatsWithCancel instead. CaptureRuntimeMemStatsWithCancel has the following
+// Deprecated: use CaptureRuntimeMemStatsWithContext instead. CaptureRuntimeMemStatsWithContext has the following
 // advantages over this function:
 //   - Does not make assumptions about the concrete struct implementing of RootRegistry
 //   - Does not restrict the function to being called only once globally
@@ -145,6 +145,25 @@ func CaptureRuntimeMemStatsWithContext(ctx context.Context, registry RootRegistr
 		}
 	}()
 	return true
+}
+
+// CaptureRuntimeMemStatsFunc initializes the runtime metric gauges and registers them in the provided registry and returns a function that captures the runtime statistics when called.
+// This function only supports RootRegistry implementations that implement the metricsRegistryProvider interface --
+// if the provided RootRegistry does not satisfy this interface, this function is a no-op. This function returns true
+// if it starts the runtime metric collection goroutine, false otherwise.
+//
+// The gauges/metrics etc. used to track runtime statistics are shared globally and the values are reset every time this
+// function is called (if it is not a no-op).
+func CaptureRuntimeMemStatsFunc(registry RootRegistry) (func(), bool) {
+	mRegProvider, ok := registry.(metricsRegistryProvider)
+	if !ok {
+		return nil, false
+	}
+	goRegistry := metrics.NewPrefixedChildRegistry(mRegProvider.Registry(), "go.")
+	metrics.RegisterRuntimeMemStats(goRegistry)
+	return func() {
+		metrics.CaptureRuntimeMemStatsOnce(goRegistry)
+	}, true
 }
 
 type rootRegistry struct {
