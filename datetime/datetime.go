@@ -19,7 +19,7 @@ func (d DateTime) String() string {
 
 // MarshalText implements encoding.TextMarshaler (used by encoding/json and others).
 func (d DateTime) MarshalText() ([]byte, error) {
-	return []byte(d.String()), nil
+	return time.Time(d).AppendFormat(nil, time.RFC3339Nano), nil
 }
 
 // UnmarshalText implements encoding.TextUnmarshaler (used by encoding/json and others).
