@@ -52,7 +52,7 @@ func (s SafeLong) MarshalJSON() ([]byte, error) {
 	if err := validate(int64(s)); err != nil {
 		return nil, err
 	}
-	return json.Marshal(int64(s))
+	return strconv.AppendInt(nil, int64(s), 10), nil
 }
 
 func validate(val int64) error {
