@@ -15,6 +15,10 @@ func ToV2[T any](v1 Refreshable) refreshablev2.Refreshable[T] {
 	v1.Subscribe(func(i interface{}) {
 		v2.Update(i.(T))
 	})
+	// If v1 is updated before the subscription above is registered,
+	// the new v1 would have not propagated to v2.
+	// Here we enforce v2 has the latest v1.
+	v2.Update(v1.Current().(T))
 	return v2
 }
 
