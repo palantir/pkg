@@ -83,24 +83,30 @@ func (r *StandardRegistry) Get(name string) interface{} {
 // The interface can be the metric to register if not found in registry,
 // or a function returning the metric for lazy instantiation.
 func (r *StandardRegistry) GetOrRegister(name string, i interface{}) interface{} {
+	fmt.Println("Entering GetOrRegister", name)
 	// access the read lock first which should be re-entrant
 	r.mutex.RLock()
 	metric, ok := r.metrics[name]
 	r.mutex.RUnlock()
 	if ok {
+		fmt.Println("Found metric -- Round 1", name, metric)
 		return metric
 	}
-
+	fmt.Println("Did not find metric -- Round 1", name)
 	// only take the write lock if we'll be modifying the metrics map
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	if metric, ok := r.metrics[name]; ok {
+		fmt.Println("Found metric -- Round 2", name, metric)
 		return metric
 	}
+	fmt.Println("Did not find metric -- Round 2", name)
 	if v := reflect.ValueOf(i); v.Kind() == reflect.Func {
+		fmt.Println("Calling function", name)
 		i = v.Call(nil)[0].Interface()
 	}
 	r.register(name, i)
+	fmt.Println("Finished registering metric", name, i)
 	return i
 }
 
@@ -203,11 +209,14 @@ func (r *StandardRegistry) UnregisterAll() {
 }
 
 func (r *StandardRegistry) register(name string, i interface{}) error {
+	fmt.Println("Registering metric", name)
 	if _, ok := r.metrics[name]; ok {
+		fmt.Println("Duplicate metric error", name)
 		return DuplicateMetric(name)
 	}
 	switch i.(type) {
 	case Counter, Gauge, GaugeFloat64, Healthcheck, Histogram, Meter, Timer:
+		fmt.Println("Adding metric to map", name, i)
 		r.metrics[name] = i
 	}
 	return nil

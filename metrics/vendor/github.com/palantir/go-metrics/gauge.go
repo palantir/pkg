@@ -1,6 +1,9 @@
 package metrics
 
-import "sync/atomic"
+import (
+	"fmt"
+	"sync/atomic"
+)
 
 // Gauges hold an int64 value that can be set arbitrarily.
 type Gauge interface {
@@ -12,7 +15,9 @@ type Gauge interface {
 // GetOrRegisterGauge returns an existing Gauge or constructs and registers a
 // new StandardGauge.
 func GetOrRegisterGauge(name string, r Registry) Gauge {
+	fmt.Println("Entering GetOrRegisterGauge", name)
 	if nil == r {
+		fmt.Println("Nil registry, setting to default")
 		r = DefaultRegistry
 	}
 	return r.GetOrRegister(name, NewGauge).(Gauge)
@@ -93,6 +98,7 @@ func (g *StandardGauge) Snapshot() Gauge {
 
 // Update updates the gauge's value.
 func (g *StandardGauge) Update(v int64) {
+	fmt.Println("StandardGauge.Update", v)
 	atomic.StoreInt64(&g.value, v)
 }
 
