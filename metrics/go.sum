@@ -1,7 +1,7 @@
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/palantir/go-metrics v1.1.2-0.20250702215411-7f7b9887114b h1:tTw1Xt0X3nbJxxdZF2JVXeABJnaYXak8w1LEMCZJUTU=
-github.com/palantir/go-metrics v1.1.2-0.20250702215411-7f7b9887114b/go.mod h1:fRkuipBnsI4nD8Vd9UNcrUJvD8Y0wOJMSbicygcBrGs=
+github.com/palantir/go-metrics v1.1.2-0.20250702225129-c6f3e150f585 h1:zMElUPb/81H1n/iCWohy8FJ74O6rNe7o5r9OYz8Lqnc=
+github.com/palantir/go-metrics v1.1.2-0.20250702225129-c6f3e150f585/go.mod h1:fRkuipBnsI4nD8Vd9UNcrUJvD8Y0wOJMSbicygcBrGs=
 github.com/palantir/pkg v1.1.0 h1:0EhrSUP8oeeh3MUvk7V/UU7WmsN1UiJNTvNj0sN9Cpo=
 github.com/palantir/pkg v1.1.0/go.mod h1:KC9srP/9ssWRxBxFCIqhUGC4Jt7OJkWRz0Iqehup1/c=
 github.com/palantir/pkg/objmatcher v1.1.0 h1:bh/Set1mIL3sEJKIBbNr3afPg0PrvhPKY6deyGwGhZs=

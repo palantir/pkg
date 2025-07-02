@@ -1,7 +1,7 @@
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
 github.com/davecgh/go-spew/spew
-# github.com/palantir/go-metrics v1.1.2-0.20250702215411-7f7b9887114b
+# github.com/palantir/go-metrics v1.1.2-0.20250702225129-c6f3e150f585
 ## explicit; go 1.13
 github.com/palantir/go-metrics
 # github.com/palantir/pkg v1.1.0

@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"fmt"
+	"strings"
 	"sync/atomic"
 )
 
@@ -15,7 +16,9 @@ type Gauge interface {
 // GetOrRegisterGauge returns an existing Gauge or constructs and registers a
 // new StandardGauge.
 func GetOrRegisterGauge(name string, r Registry) Gauge {
-	fmt.Println("Entering GetOrRegisterGauge", name)
+	if strings.Contains(name, "signals.expected-state.beta.healthstatus.node.value.status") && strings.Contains(name, "rubix-node-agent") {
+		fmt.Println("Entering GetOrRegisterGauge", name)
+	}
 	if nil == r {
 		fmt.Println("Nil registry, setting to default")
 		r = DefaultRegistry
@@ -98,7 +101,6 @@ func (g *StandardGauge) Snapshot() Gauge {
 
 // Update updates the gauge's value.
 func (g *StandardGauge) Update(v int64) {
-	fmt.Println("StandardGauge.Update", v)
 	atomic.StoreInt64(&g.value, v)
 }
 

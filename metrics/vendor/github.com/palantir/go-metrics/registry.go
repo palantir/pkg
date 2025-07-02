@@ -83,30 +83,44 @@ func (r *StandardRegistry) Get(name string) interface{} {
 // The interface can be the metric to register if not found in registry,
 // or a function returning the metric for lazy instantiation.
 func (r *StandardRegistry) GetOrRegister(name string, i interface{}) interface{} {
-	fmt.Println("Entering GetOrRegister", name)
+	if strings.Contains(name, "signals.expected-state.beta.healthstatus.node.value.status") && strings.Contains(name, "rubix-node-agent") {
+		fmt.Println("Entering GetOrRegister", name)
+	}
 	// access the read lock first which should be re-entrant
 	r.mutex.RLock()
 	metric, ok := r.metrics[name]
 	r.mutex.RUnlock()
 	if ok {
-		fmt.Println("Found metric -- Round 1", name, metric)
+		if strings.Contains(name, "signals.expected-state.beta.healthstatus.node.value.status") && strings.Contains(name, "rubix-node-agent") {
+			fmt.Println("Found metric -- Round 1", name, metric)
+		}
 		return metric
 	}
-	fmt.Println("Did not find metric -- Round 1", name)
+	if strings.Contains(name, "signals.expected-state.beta.healthstatus.node.value.status") && strings.Contains(name, "rubix-node-agent") {
+		fmt.Println("Did not find metric -- Round 1", name)
+	}
 	// only take the write lock if we'll be modifying the metrics map
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	if metric, ok := r.metrics[name]; ok {
-		fmt.Println("Found metric -- Round 2", name, metric)
+		if strings.Contains(name, "signals.expected-state.beta.healthstatus.node.value.status") && strings.Contains(name, "rubix-node-agent") {
+			fmt.Println("Found metric -- Round 2", name, metric)
+		}
 		return metric
 	}
-	fmt.Println("Did not find metric -- Round 2", name)
+	if strings.Contains(name, "signals.expected-state.beta.healthstatus.node.value.status") && strings.Contains(name, "rubix-node-agent") {
+		fmt.Println("Did not find metric -- Round 2", name)
+	}
 	if v := reflect.ValueOf(i); v.Kind() == reflect.Func {
-		fmt.Println("Calling function", name)
+		if strings.Contains(name, "signals.expected-state.beta.healthstatus.node.value.status") && strings.Contains(name, "rubix-node-agent") {
+			fmt.Println("Calling function", name)
+		}
 		i = v.Call(nil)[0].Interface()
 	}
 	r.register(name, i)
-	fmt.Println("Finished registering metric", name, i)
+	if strings.Contains(name, "signals.expected-state.beta.healthstatus.node.value.status") && strings.Contains(name, "rubix-node-agent") {
+		fmt.Println("Finished registering metric", name, i)
+	}
 	return i
 }
 
@@ -192,12 +206,16 @@ func (r *StandardRegistry) GetAll() map[string]map[string]interface{} {
 
 // Unregister the metric with the given name.
 func (r *StandardRegistry) Unregister(name string) {
-	fmt.Println("Unregistering metric in StandardRegistry", name)
+	if strings.Contains(name, "signals.expected-state.beta.healthstatus.node.value.status") && strings.Contains(name, "rubix-node-agent") {
+		fmt.Println("Unregistering metric in StandardRegistry", name)
+	}
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	r.stop(name)
 	delete(r.metrics, name)
-	fmt.Println("Finished unregistering metric", name)
+	if strings.Contains(name, "signals.expected-state.beta.healthstatus.node.value.status") && strings.Contains(name, "rubix-node-agent") {
+		fmt.Println("Finished unregistering metric", name)
+	}
 }
 
 // Unregister all metrics.  (Mostly for testing.)
@@ -211,14 +229,20 @@ func (r *StandardRegistry) UnregisterAll() {
 }
 
 func (r *StandardRegistry) register(name string, i interface{}) error {
-	fmt.Println("Registering metric", name)
+	if strings.Contains(name, "signals.expected-state.beta.healthstatus.node.value.status") && strings.Contains(name, "rubix-node-agent") {
+		fmt.Println("Registering metric", name)
+	}
 	if _, ok := r.metrics[name]; ok {
-		fmt.Println("Duplicate metric error", name)
+		if strings.Contains(name, "signals.expected-state.beta.healthstatus.node.value.status") && strings.Contains(name, "rubix-node-agent") {
+			fmt.Println("Duplicate metric error", name)
+		}
 		return DuplicateMetric(name)
 	}
 	switch i.(type) {
 	case Counter, Gauge, GaugeFloat64, Healthcheck, Histogram, Meter, Timer:
-		fmt.Println("Adding metric to map", name, i)
+		if strings.Contains(name, "signals.expected-state.beta.healthstatus.node.value.status") && strings.Contains(name, "rubix-node-agent") {
+			fmt.Println("Adding metric to map", name, i)
+		}
 		r.metrics[name] = i
 	}
 	return nil
@@ -243,11 +267,17 @@ func (r *StandardRegistry) registered() []metricKV {
 }
 
 func (r *StandardRegistry) stop(name string) {
-	fmt.Println("Stopping metric", name)
+	if strings.Contains(name, "signals.expected-state.beta.healthstatus.node.value.status") && strings.Contains(name, "rubix-node-agent") {
+		fmt.Println("Stopping metric", name)
+	}
 	if i, ok := r.metrics[name]; ok {
-		fmt.Println("Found metric to stop", name, i)
+		if strings.Contains(name, "signals.expected-state.beta.healthstatus.node.value.status") && strings.Contains(name, "rubix-node-agent") {
+			fmt.Println("Found metric to stop", name, i)
+		}
 		if s, ok := i.(Stoppable); ok {
-			fmt.Println("Metric is stoppable. Going to stop", name)
+			if strings.Contains(name, "signals.expected-state.beta.healthstatus.node.value.status") && strings.Contains(name, "rubix-node-agent") {
+				fmt.Println("Metric is stoppable. Going to stop", name)
+			}
 			s.Stop()
 		}
 	}
