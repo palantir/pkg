@@ -192,10 +192,12 @@ func (r *StandardRegistry) GetAll() map[string]map[string]interface{} {
 
 // Unregister the metric with the given name.
 func (r *StandardRegistry) Unregister(name string) {
+	fmt.Println("Unregistering metric in StandardRegistry", name)
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	r.stop(name)
 	delete(r.metrics, name)
+	fmt.Println("Finished unregistering metric", name)
 }
 
 // Unregister all metrics.  (Mostly for testing.)
@@ -241,8 +243,11 @@ func (r *StandardRegistry) registered() []metricKV {
 }
 
 func (r *StandardRegistry) stop(name string) {
+	fmt.Println("Stopping metric", name)
 	if i, ok := r.metrics[name]; ok {
+		fmt.Println("Found metric to stop", name, i)
 		if s, ok := i.(Stoppable); ok {
+			fmt.Println("Metric is stoppable. Going to stop", name)
 			s.Stop()
 		}
 	}

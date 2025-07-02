@@ -262,6 +262,7 @@ func (r *childRegistry) Each(f MetricVisitor) {
 }
 
 func (r *childRegistry) Unregister(name string, tags ...Tag) {
+	fmt.Println("Unregistering Metric...", name, tags)
 	r.root.Unregister(r.prefix+name, append(r.tags, tags...)...)
 }
 
@@ -325,6 +326,7 @@ func (r *rootRegistry) Unregister(name string, tags ...Tag) {
 
 	// This must happen after the registry Unregister() above to preserve the correctness guarantees in Each()
 	r.idToMetricMutex.Lock()
+	fmt.Println("Unregistering Metric from idToMetricWithTags...", name, tags, metricID)
 	delete(r.idToMetricWithTags, metricID)
 	r.idToMetricMutex.Unlock()
 }
