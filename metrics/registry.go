@@ -6,6 +6,7 @@ package metrics
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -333,6 +334,7 @@ func (r *rootRegistry) Counter(name string, tags ...Tag) metrics.Counter {
 }
 
 func (r *rootRegistry) Gauge(name string, tags ...Tag) metrics.Gauge {
+	fmt.Println("Registering Gauge...", name, tags)
 	return metrics.GetOrRegisterGauge(r.registerMetric(name, tags), r.registry)
 }
 
@@ -374,6 +376,7 @@ func getOrRegisterHistogram(name string, r metrics.Registry) metrics.Histogram {
 }
 
 func (r *rootRegistry) registerMetric(name string, tags Tags) string {
+	fmt.Println("Registering Metric...", name, tags)
 	sortedTags := newSortedTags(tags)
 	metricID := toMetricTagsID(name, sortedTags)
 	r.idToMetricMutex.Lock()
@@ -382,6 +385,7 @@ func (r *rootRegistry) registerMetric(name string, tags Tags) string {
 		tags: sortedTags,
 	}
 	r.idToMetricMutex.Unlock()
+	fmt.Println("Metric registered...", name, tags, metricID)
 	return string(metricID)
 }
 
