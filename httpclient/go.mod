@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/palantir/pkg v1.1.0
-	golang.org/x/net v0.41.0
+	golang.org/x/net v0.42.0
 )
 
-require golang.org/x/text v0.26.0 // indirect
+require golang.org/x/text v0.27.0 // indirect
