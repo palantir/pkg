@@ -1,6 +1,10 @@
 package metrics
 
-import "sync/atomic"
+import (
+	"fmt"
+	"strings"
+	"sync/atomic"
+)
 
 // Gauges hold an int64 value that can be set arbitrarily.
 type Gauge interface {
@@ -12,7 +16,11 @@ type Gauge interface {
 // GetOrRegisterGauge returns an existing Gauge or constructs and registers a
 // new StandardGauge.
 func GetOrRegisterGauge(name string, r Registry) Gauge {
+	if strings.Contains(name, "signals.expected-state.beta.healthstatus.node.value.status") && strings.Contains(name, "rubix-node-agent") {
+		fmt.Println("Entering GetOrRegisterGauge", name)
+	}
 	if nil == r {
+		fmt.Println("Nil registry, setting to default")
 		r = DefaultRegistry
 	}
 	return r.GetOrRegister(name, NewGauge).(Gauge)
