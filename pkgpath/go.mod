@@ -4,10 +4,10 @@ go 1.25.0
 
 require (
 	github.com/palantir/pkg v1.1.0
-	github.com/palantir/pkg/matcher v1.2.0
-	github.com/stretchr/testify v1.10.0
-	golang.org/x/mod v0.26.0
-	golang.org/x/tools v0.35.0
+	github.com/palantir/pkg/matcher v1.3.0
+	github.com/stretchr/testify v1.11.1
+	golang.org/x/mod v0.27.0
+	golang.org/x/tools v0.36.0
 )
 
 require (
