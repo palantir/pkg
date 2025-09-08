@@ -6,6 +6,7 @@ package metrics
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -261,6 +262,9 @@ func (r *childRegistry) Each(f MetricVisitor) {
 }
 
 func (r *childRegistry) Unregister(name string, tags ...Tag) {
+	if strings.Contains(name, "signals.expected-state.beta.healthstatus.node.value.status") && strings.Contains(name, "rubix-node-agent") {
+		fmt.Println("Unregistering Metric...", name, tags)
+	}
 	r.root.Unregister(r.prefix+name, append(r.tags, tags...)...)
 }
 
@@ -324,6 +328,9 @@ func (r *rootRegistry) Unregister(name string, tags ...Tag) {
 
 	// This must happen after the registry Unregister() above to preserve the correctness guarantees in Each()
 	r.idToMetricMutex.Lock()
+	if strings.Contains(name, "signals.expected-state.beta.healthstatus.node.value.status") && strings.Contains(name, "rubix-node-agent") {
+		fmt.Println("Unregistering Metric from idToMetricWithTags...", name, tags, metricID)
+	}
 	delete(r.idToMetricWithTags, metricID)
 	r.idToMetricMutex.Unlock()
 }
@@ -333,6 +340,9 @@ func (r *rootRegistry) Counter(name string, tags ...Tag) metrics.Counter {
 }
 
 func (r *rootRegistry) Gauge(name string, tags ...Tag) metrics.Gauge {
+	if strings.Contains(name, "signals.expected-state.beta.healthstatus.node.value.status") && strings.Contains(name, "rubix-node-agent") {
+		fmt.Println("Registering Gauge...", name, tags)
+	}
 	return metrics.GetOrRegisterGauge(r.registerMetric(name, tags), r.registry)
 }
 
@@ -374,6 +384,9 @@ func getOrRegisterHistogram(name string, r metrics.Registry) metrics.Histogram {
 }
 
 func (r *rootRegistry) registerMetric(name string, tags Tags) string {
+	if strings.Contains(name, "signals.expected-state.beta.healthstatus.node.value.status") && strings.Contains(name, "rubix-node-agent") {
+		fmt.Println("Registering Metric...", name, tags)
+	}
 	sortedTags := newSortedTags(tags)
 	metricID := toMetricTagsID(name, sortedTags)
 	r.idToMetricMutex.Lock()
@@ -382,6 +395,9 @@ func (r *rootRegistry) registerMetric(name string, tags Tags) string {
 		tags: sortedTags,
 	}
 	r.idToMetricMutex.Unlock()
+	if strings.Contains(name, "signals.expected-state.beta.healthstatus.node.value.status") && strings.Contains(name, "rubix-node-agent") {
+		fmt.Println("Metric registered...", name, tags, metricID)
+	}
 	return string(metricID)
 }
 
