@@ -23,18 +23,24 @@ func (v *validRefreshable[T]) Subscribe(consumer func(T)) UnsubscribeFunc {
 }
 
 // Validation returns the most recent upstream Refreshable and its validation result.
-// If nil, the validRefreshable is up-to-date with its original.
+// If the error is nil, the validRefreshable is up-to-date with its original and the value
+// is equal to that returned by Current().
 func (v *validRefreshable[T]) Validation() (T, error) {
 	c := v.r.Current()
 	return c.unvalidated, c.lastErr
 }
 
-func newValidRefreshable[T any, M any](original Refreshable[T], mappingFn func(T) (M, error)) (*validRefreshable[M], UnsubscribeFunc) {
-	valid := &validRefreshable[M]{r: newDefault(validRefreshableContainer[M]{})}
-	stop := original.Subscribe(func(valueT T) {
-		updateValidRefreshable(valid, valueT, mappingFn)
+func newValidRefreshable[M any]() *validRefreshable[M] {
+	valid := &validRefreshable[M]{
+		r: newDefault(validRefreshableContainer[M]{}),
+	}
+	return valid
+}
+
+func subscribeValidRefreshable[T, M any](v *validRefreshable[M], original Refreshable[T], mapFn func(T) (M, error)) UnsubscribeFunc {
+	return original.Subscribe(func(valueT T) {
+		updateValidRefreshable(v, valueT, mapFn)
 	})
-	return valid, stop
 }
 
 func updateValidRefreshable[T any, M any](valid *validRefreshable[M], value T, mapFn func(T) (M, error)) {
@@ -48,9 +54,4 @@ func updateValidRefreshable[T any, M any](valid *validRefreshable[M], value T, m
 		unvalidated: unvalidated,
 		lastErr:     err,
 	})
-}
-
-// identity is a validating map function that returns its input argument type.
-func identity[T any](validatingFn func(T) error) func(i T) (T, error) {
-	return func(i T) (T, error) { return i, validatingFn(i) }
 }

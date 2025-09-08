@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+	"time"
 
 	"github.com/palantir/pkg/refreshable/v2"
 )
@@ -99,6 +100,7 @@ func ExampleMapContext() {
 	r.Update(100)
 	fmt.Println(mapped.Current())
 	cancel()
+	time.Sleep(time.Millisecond)
 	runtime.Gosched()
 	r.Update(200)
 	fmt.Println(mapped.Current())
