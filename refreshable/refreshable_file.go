@@ -24,14 +24,13 @@ func NewFileRefreshable(ctx context.Context, filePath string) Validated[[]byte] 
 // The goroutine will terminate when the provided context is cancelled.
 func NewFileRefreshableWithTicker(ctx context.Context, filePath string, updateTicker <-chan time.Time) Validated[[]byte] {
 	v := newValidRefreshable[[]byte]()
+	updateValidRefreshable[string, []byte](v, filePath, os.ReadFile)
 	go func() {
 		for {
-			// Read file and update refreshable. If ReadFile fails, the error is present in v.Validation().
-			updateValidRefreshable[string, []byte](v, filePath, os.ReadFile)
-			// Wait for next tick.
 			select {
 			case <-updateTicker:
-				continue
+				// Read file and update refreshable. If ReadFile fails, the error is present in v.Validation().
+				updateValidRefreshable[string, []byte](v, filePath, os.ReadFile)
 			case <-ctx.Done():
 				return
 			}
