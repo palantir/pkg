@@ -7,8 +7,8 @@ github.com/palantir/go-metrics
 # github.com/palantir/pkg v1.1.0
 ## explicit; go 1.19
 github.com/palantir/pkg
-# github.com/palantir/pkg/objmatcher v1.1.0
-## explicit; go 1.19
+# github.com/palantir/pkg/objmatcher v1.2.0
+## explicit; go 1.25.0
 github.com/palantir/pkg/objmatcher
 # github.com/pkg/errors v0.8.1
 ## explicit
@@ -16,7 +16,7 @@ github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 ## explicit
 github.com/pmezard/go-difflib/difflib
-# github.com/stretchr/testify v1.10.0
+# github.com/stretchr/testify v1.11.1
 ## explicit; go 1.17
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/assert/yaml
