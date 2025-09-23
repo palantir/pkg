@@ -1,9 +1,0 @@
-checks:
-  golint:
-    filters:
-      - value: "should have comment or be unexported"
-      - value: "or a comment on this block"
-  ineffassign:
-    exclude:
-      paths:
-        - ghodss_yaml.go # Ignore safeyaml/ghodss_yaml.go:373:2: ineffectual assignment to count
