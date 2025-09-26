@@ -97,19 +97,3 @@ func TestValidatingRefreshable_SubscriptionRaceCondition(t *testing.T) {
 	assert.True(t, seen1, "expected to process 1 value")
 	assert.True(t, seen2, "expected to process 2 value")
 }
-
-// updateImmediatelyRefreshable is a mock implementation which updates to newValue immediately when Current() is called
-type updateImmediatelyRefreshable struct {
-	r        refreshable.Updatable[int]
-	newValue int
-}
-
-func (r *updateImmediatelyRefreshable) Current() int {
-	c := r.r.Current()
-	r.r.Update(r.newValue)
-	return c
-}
-
-func (r *updateImmediatelyRefreshable) Subscribe(f func(int)) refreshable.UnsubscribeFunc {
-	return r.r.Subscribe(f)
-}

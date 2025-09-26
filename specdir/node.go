@@ -96,15 +96,6 @@ func (p fileNodePath) getPath(templateValues map[string]string) string {
 	return path.Join(parts...)
 }
 
-// getTemplateNames returns the names of all of the templates in the given path
-func (p fileNodePath) getTemplateNames() []string {
-	var names []string
-	for _, currNode := range p {
-		names = append(names, getTemplateKeysFromName(currNode.name)...)
-	}
-	return names
-}
-
 func (n *fileNode) paths(parentPath string, templateValues map[string]string, includeOptional bool) []string {
 	var paths []string
 
