@@ -161,7 +161,3 @@ $`),
 		}()
 	}
 }
-
-func boolVar(b bool) *bool {
-	return &b
-}
