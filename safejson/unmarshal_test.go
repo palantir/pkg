@@ -69,3 +69,23 @@ func TestDecodeNumber(t *testing.T) {
 	assert.Equal(t, json.Number("34"), out.Second)
 	assert.Equal(t, json.Number("56"), out.Third)
 }
+
+func TestUnmarshalTrailingBytes(t *testing.T) {
+	// Test that safejson.Unmarshal does NOT error on trailing bytes,
+	// unlike encoding/json.Unmarshal which returns an error like
+	// "invalid character 'b' after top-level value"
+
+	data := []byte(`{"key":"value"}trailing bytes`)
+
+	var result map[string]string
+
+	// safejson.Unmarshal should succeed and unmarshal the first valid JSON value
+	err := safejson.Unmarshal(data, &result)
+	assert.NoError(t, err)
+	assert.Equal(t, "value", result["key"])
+
+	// For comparison: stdlib json.Unmarshal would error on this input
+	var stdResult map[string]string
+	stdErr := json.Unmarshal(data, &stdResult)
+	assert.Error(t, stdErr)
+}
