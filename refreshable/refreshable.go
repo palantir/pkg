@@ -110,7 +110,7 @@ func MapWithError[T any, M any](original Refreshable[T], mapFn func(T) (M, error
 // If the upstream value results in an error, it is reported by Validation().
 // An error is returned if the current original value is invalid.
 func Validate[T any](original Refreshable[T], validatingFn func(T) error) (Validated[T], UnsubscribeFunc, error) {
-	return MapWithError(original, func(t T) (T, error) { return t, validatingFn(t) })
+	return MapWithError(original, identity(validatingFn))
 }
 
 // Merge returns a new Refreshable that combines the latest values of two Refreshables of different types using the mergeFn.

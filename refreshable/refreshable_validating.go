@@ -55,3 +55,8 @@ func updateValidRefreshable[T any, M any](valid *validRefreshable[M], value T, m
 		lastErr:     err,
 	})
 }
+
+// identity is a validating map function that returns its input argument type.
+func identity[T any](validatingFn func(T) error) func(i T) (T, error) {
+	return func(i T) (T, error) { return i, validatingFn(i) }
+}

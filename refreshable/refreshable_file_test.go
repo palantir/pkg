@@ -5,7 +5,6 @@
 package refreshable
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -16,20 +15,18 @@ import (
 )
 
 func TestNewFileRefreshable(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	dir := t.TempDir()
 	filename := filepath.Join(dir, "file.txt")
 	ticker := make(chan time.Time, 1)
 	refreshableFile := NewFileRefreshableWithTicker(ctx, filename, ticker)
 	// Assert we start with IsNotExist error.
-	require.EventuallyWithT(t, func(t *assert.CollectT) {
-		curr, err := refreshableFile.Validation()
-		require.Error(t, err)
-		require.True(t, os.IsNotExist(err))
-		require.Empty(t, curr)
-	}, time.Second, 10*time.Millisecond)
+	curr, err := refreshableFile.Validation()
+	require.Error(t, err)
+	require.True(t, os.IsNotExist(err))
+	require.Empty(t, curr)
+	require.Empty(t, refreshableFile.Current())
 
 	// Create file.
 	require.NoError(t, os.WriteFile(filename, []byte("test"), 0644))

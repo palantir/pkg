@@ -14,14 +14,15 @@ const (
 	fileRefreshableSyncPeriod = time.Second
 )
 
-// NewFileRefreshable creates a NewFileRefreshableWithTicker with time.Tick(time.Second).
+// NewFileRefreshable creates a Validated refreshable that reads from a file every second.
+// It is equivalent to calling NewFileRefreshableWithTicker with time.Tick(time.Second).
 func NewFileRefreshable(ctx context.Context, filePath string) Validated[[]byte] {
 	return NewFileRefreshableWithTicker(ctx, filePath, time.Tick(fileRefreshableSyncPeriod))
 }
 
-// NewFileRefreshableWithTicker returns a new Refreshable whose current value is the bytes of the file at the provided path.
-// Calling this function starts a goroutine which re-reads the file on each tick.
-// The goroutine will terminate when the provided context is cancelled.
+// NewFileRefreshableWithTicker returns a Validated refreshable whose current value is the bytes of the file at the provided path.
+// This function reads the file once then starts a goroutine which re-reads the file on each tick until the provided context is cancelled.
+// If reading the file fails, the Current() value will be unchanged. The error is present in v.Validation().
 func NewFileRefreshableWithTicker(ctx context.Context, filePath string, updateTicker <-chan time.Time) Validated[[]byte] {
 	v := newValidRefreshable[[]byte]()
 	updateValidRefreshable[string, []byte](v, filePath, os.ReadFile)
