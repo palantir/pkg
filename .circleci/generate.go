@@ -18,7 +18,7 @@ const (
 	header = `version: 2.1
 
 orbs:
-  go-jobs: palantir/go-jobs@0.6.0
+  go-jobs: palantir/go-jobs@0.8.0
 
 image-version: &image-version "cimg/go:1.25.1-browsers"
 
