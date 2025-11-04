@@ -100,7 +100,8 @@ func MapContext[T any, M any](ctx context.Context, original Refreshable[T], mapF
 // of the input object in addition to returning an error. The returned validRefreshable will contain the mapped value.
 // An error is returned if the current original value fails to map.
 func MapWithError[T any, M any](original Refreshable[T], mapFn func(T) (M, error)) (Validated[M], UnsubscribeFunc, error) {
-	v, stop := newValidRefreshable(original, mapFn)
+	v := newValidRefreshable[M]()
+	stop := subscribeValidRefreshable(v, original, mapFn)
 	_, err := v.Validation()
 	return v, stop, err
 }
