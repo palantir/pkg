@@ -28,6 +28,7 @@ import (
 
 func main() {
 	app := cli.NewApp()
+	app.AllowRoot = true
 	app.Action = func(ctx cli.Context) error {
 		%v
 	}
