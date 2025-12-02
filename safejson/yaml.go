@@ -100,7 +100,7 @@ func fromMap(v reflect.Value, path string) (map[string]any, error) {
 	return m, nil
 }
 
-// fromMap takes the provided value (which must be known to be a slice or array type: []V) and returns a logically
+// fromSliceOrArray takes the provided value (which must be known to be a slice or array type: []V) and returns a logically
 // equivalent []any where, for any maps in the values (and in all maps contained in the values of such maps,
 // recursively) are the JSON string representation of the previous key value. Returns an error if any of the maps have a
 // key type that is not supported as a JSON object key type.
