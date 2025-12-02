@@ -145,7 +145,7 @@ func convertObjectKeyToString(k reflect.Value, path string) (string, error) {
 			if m, ok := k.Interface().(encoding.TextMarshaler); ok {
 				text, err := m.MarshalText()
 				if err != nil {
-					return "", fmt.Errorf("failed to marshal value %v at path %s as test using MarshalText: %w", k, path, err)
+					return "", fmt.Errorf("failed to marshal value %v at path %s as text using MarshalText: %w", k, path, err)
 				}
 				return string(text), nil
 			}
