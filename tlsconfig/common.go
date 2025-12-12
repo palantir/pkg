@@ -42,8 +42,11 @@ type CertPoolProvider func() (*x509.CertPool, error)
 type CertPoolOption func(certPool *x509.CertPool) error
 
 func CertPoolFromCertPoolOptions(certPoolOptions []CertPoolOption) CertPoolProvider {
+	return AugmentCertPoolWithCertPoolOptions(x509.NewCertPool(), certPoolOptions)
+}
+
+func AugmentCertPoolWithCertPoolOptions(certPool *x509.CertPool, certPoolOptions []CertPoolOption) CertPoolProvider {
 	return func() (*x509.CertPool, error) {
-		certPool := x509.NewCertPool()
 		for _, certPoolOption := range certPoolOptions {
 			err := certPoolOption(certPool)
 			if err != nil {
