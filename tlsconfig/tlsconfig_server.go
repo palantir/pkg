@@ -23,6 +23,17 @@ func (p serverParam) configureServer(cfg *tls.Config) error {
 // the provided parameters. The provided TLSCertProvider is used as the source for the private key and certificate that
 // the server presents to clients.
 func NewServerConfig(tlsCertProvider TLSCertProvider, params ...ServerParam) (*tls.Config, error) {
+	tlsCfg := &tls.Config{
+		MinVersion:               tls.VersionTLS12,
+		PreferServerCipherSuites: true,
+		CipherSuites:             defaultCipherSuites,
+		Renegotiation:            tls.RenegotiateNever,
+	}
+	return NewServerConfigWithBaseConfig(tlsCfg, tlsCertProvider, params...)
+}
+
+// NewServerConfigWithBaseConfig is identical to NewServerConfig however a base tls.Config is allowed to be specified
+func NewServerConfigWithBaseConfig(b *tls.Config, tlsCertProvider TLSCertProvider, params ...ServerParam) (*tls.Config, error) {
 	if tlsCertProvider == nil {
 		return nil, fmt.Errorf("tlsCertProvider provided to NewServerConfig was nil")
 	}
@@ -30,7 +41,7 @@ func NewServerConfig(tlsCertProvider TLSCertProvider, params ...ServerParam) (*t
 	for _, p := range params {
 		configurers = append(configurers, configurer(p.configureServer))
 	}
-	return configureTLSConfig(configurers...)
+	return configureTLSConfig(b, configurers...)
 }
 
 // ServerClientCAFiles configures the server with the CA certificates used to verify the certificates provided by

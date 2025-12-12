@@ -93,13 +93,7 @@ func cipherSuitesParam(cipherSuites ...uint16) configurer {
 	}
 }
 
-func configureTLSConfig(cfgs ...configurer) (*tls.Config, error) {
-	tlsCfg := &tls.Config{
-		MinVersion:               tls.VersionTLS12,
-		PreferServerCipherSuites: true,
-		CipherSuites:             defaultCipherSuites,
-		Renegotiation:            tls.RenegotiateNever,
-	}
+func configureTLSConfig(tlsCfg *tls.Config, cfgs ...configurer) (*tls.Config, error) {
 	for _, currCfg := range cfgs {
 		if err := currCfg(tlsCfg); err != nil {
 			return nil, err
