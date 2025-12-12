@@ -38,7 +38,7 @@ func TLSCertFromFiles(certFile, keyFile string) TLSCertProvider {
 // CertPoolProvider is a type alias for providing a *x509.CertPool
 type CertPoolProvider func() (*x509.CertPool, error)
 
-// CertPoolOption is a type alias in which a certPool is passed through to make additions to
+// CertPoolOption is a type alias for a function that modifies a *x509.CertPool in-place.
 type CertPoolOption func(certPool *x509.CertPool) error
 
 func CertPoolFromCertPoolOptions(certPoolOptions []CertPoolOption) CertPoolProvider {
