@@ -35,31 +35,73 @@ func TLSCertFromFiles(certFile, keyFile string) TLSCertProvider {
 	}
 }
 
+// CertPoolProvider is a type alias for providing a *x509.CertPool
 type CertPoolProvider func() (*x509.CertPool, error)
 
-func CertPoolFromCAFiles(caFiles ...string) CertPoolProvider {
+// CertPoolOption is a type alias in which a certPool is passed through to make additions to
+type CertPoolOption func(certPool *x509.CertPool) error
+
+func CertPoolFromCertPoolOptions(certPoolOptions []CertPoolOption) CertPoolProvider {
 	return func() (*x509.CertPool, error) {
 		certPool := x509.NewCertPool()
-		for _, caFile := range caFiles {
-			cert, err := os.ReadFile(caFile)
+		for _, certPoolOption := range certPoolOptions {
+			err := certPoolOption(certPool)
 			if err != nil {
-				return nil, fmt.Errorf("failed to load certificates from file %s: %v", caFile, err)
-			}
-			if ok := certPool.AppendCertsFromPEM(cert); !ok {
-				return nil, fmt.Errorf("no certificates detected in file %s", caFile)
+				return nil, err
 			}
 		}
 		return certPool, nil
 	}
 }
 
+func CertPoolFromCAFiles(caFiles ...string) CertPoolProvider {
+	return CertPoolFromCertPoolOptions([]CertPoolOption{
+		CertPoolOptionFromCAFiles(caFiles...),
+	})
+}
+
+func CertPoolOptionFromCAFiles(caFiles ...string) CertPoolOption {
+	return func(certPool *x509.CertPool) error {
+		for _, caFile := range caFiles {
+			cert, err := os.ReadFile(caFile)
+			if err != nil {
+				return fmt.Errorf("failed to load certificates from file %s: %v", caFile, err)
+			}
+			if ok := certPool.AppendCertsFromPEM(cert); !ok {
+				return fmt.Errorf("no certificates detected in file %s", caFile)
+			}
+		}
+		return nil
+	}
+}
+
+func CertPoolFromCABytes(cert []byte) CertPoolProvider {
+	return CertPoolFromCertPoolOptions([]CertPoolOption{
+		CertPoolOptionCABytes(cert),
+	})
+}
+
+func CertPoolOptionCABytes(cert []byte) CertPoolOption {
+	return func(certPool *x509.CertPool) error {
+		if ok := certPool.AppendCertsFromPEM(cert); !ok {
+			return fmt.Errorf("no certificates detected in file")
+		}
+		return nil
+	}
+}
+
 func CertPoolFromCerts(certs ...*x509.Certificate) CertPoolProvider {
-	return func() (*x509.CertPool, error) {
-		certPool := x509.NewCertPool()
+	return CertPoolFromCertPoolOptions([]CertPoolOption{
+		CertPoolOptionFromCerts(certs...),
+	})
+}
+
+func CertPoolOptionFromCerts(certs ...*x509.Certificate) CertPoolOption {
+	return func(certPool *x509.CertPool) error {
 		for _, cert := range certs {
 			certPool.AddCert(cert)
 		}
-		return certPool, nil
+		return nil
 	}
 }
 
