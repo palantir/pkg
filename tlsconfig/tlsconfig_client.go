@@ -15,11 +15,22 @@ type TLSCertProvider func() (tls.Certificate, error)
 // NewClientConfig returns a tls.Config that is suitable to use by a client in 2-way TLS connections configured with
 // the provided parameters.
 func NewClientConfig(params ...ClientParam) (*tls.Config, error) {
+	tlsCfg := &tls.Config{
+		MinVersion:               tls.VersionTLS12,
+		PreferServerCipherSuites: true,
+		CipherSuites:             defaultCipherSuites,
+		Renegotiation:            tls.RenegotiateNever,
+	}
+	return NewClientConfigWithBaseConfig(tlsCfg, params...)
+}
+
+// NewClientConfigWithBaseConfig is identical to NewClientConfig however a base tls.Config is allowed to be specified
+func NewClientConfigWithBaseConfig(b *tls.Config, params ...ClientParam) (*tls.Config, error) {
 	configurers := make([]configurer, len(params))
 	for i, p := range params {
 		configurers[i] = configurer(p.configureClient)
 	}
-	return configureTLSConfig(configurers...)
+	return configureTLSConfig(b, configurers...)
 }
 
 type ClientParam interface {

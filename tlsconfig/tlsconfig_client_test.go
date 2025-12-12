@@ -96,3 +96,21 @@ func TestNewClientConfigErrors(t *testing.T) {
 		assert.Nil(t, cfg, "Case %d: %s", currCaseNum, currCase.name)
 	}
 }
+
+func TestClientRootCAFiles(t *testing.T) {
+	cfg, err := tlsconfig.NewClientConfig(
+		tlsconfig.ClientRootCAFiles(caCertFile),
+	)
+	require.NoError(t, err)
+	assert.NotNil(t, cfg)
+	assert.NotNil(t, cfg.RootCAs)
+}
+
+func TestClientRootCAsNilProvider(t *testing.T) {
+	cfg, err := tlsconfig.NewClientConfig(
+		tlsconfig.ClientRootCAs(nil),
+	)
+	require.Error(t, err)
+	assert.Nil(t, cfg)
+	assert.EqualError(t, err, "certPoolProvider provided to ClientRootCAs was nil")
+}
