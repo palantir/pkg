@@ -39,3 +39,21 @@ func TestCertPoolFromCAFilesNonExistentFile(t *testing.T) {
 	assert.Nil(t, pool)
 	assert.Contains(t, err.Error(), "failed to load certificates from file testdata/nonexistent.pem")
 }
+
+func TestCertPoolFromCABytes(t *testing.T) {
+	certPEM, err := os.ReadFile(caCertFile)
+	require.NoError(t, err)
+
+	provider := tlsconfig.CertPoolFromCABytes(certPEM)
+	pool, err := provider()
+	require.NoError(t, err)
+	assert.NotNil(t, pool)
+}
+
+func TestCertPoolFromCABytesInvalidPEM(t *testing.T) {
+	provider := tlsconfig.CertPoolFromCABytes([]byte("not a valid certificate"))
+	pool, err := provider()
+	require.Error(t, err)
+	assert.Nil(t, pool)
+	assert.Contains(t, err.Error(), "no certificates detected in file")
+}
