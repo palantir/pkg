@@ -39,3 +39,17 @@ func NewFileRefreshableWithTicker(ctx context.Context, filePath string, updateTi
 	}()
 	return v
 }
+
+// NewMultiFileRefreshable creates a Validated Refreshable that tracks the contents of multiple files.
+// The input is a Refreshable of a set of file paths (map keys). The output is a Validated Refreshable
+// of a map from file path to file contents. When files are added to or removed from the input set,
+// the corresponding file watchers are created or destroyed. Each file is read periodically
+// using NewFileRefreshable.
+//
+// Current() returns a map containing only successfully read files.
+// Validation() returns the map and a joined error of all file read failures.
+func NewMultiFileRefreshable(ctx context.Context, paths Refreshable[map[string]struct{}]) Validated[map[string][]byte] {
+	return TransitiveMapper(ctx, paths, func(ctx context.Context, path string, _ struct{}) Validated[[]byte] {
+		return NewFileRefreshable(ctx, path)
+	})
+}

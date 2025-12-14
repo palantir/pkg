@@ -5,8 +5,11 @@
 package refreshable
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"syscall"
 	"testing"
 	"time"
 
@@ -68,4 +71,125 @@ func TestNewFileRefreshable(t *testing.T) {
 		require.Equal(t, "test3", string(curr))
 		require.Equal(t, "test3", string(refreshableFile.Current()))
 	}, time.Second, 10*time.Millisecond)
+}
+
+func TestNewMultiFileRefreshable(t *testing.T) {
+	ctx := t.Context()
+	dir := t.TempDir()
+
+	file1 := filepath.Join(dir, "file1.txt")
+	file2 := filepath.Join(dir, "file2.txt")
+	file3 := filepath.Join(dir, "file3.txt")
+
+	require.NoError(t, os.WriteFile(file1, []byte("content1"), 0644))
+	require.NoError(t, os.WriteFile(file2, []byte("content2"), 0644))
+	require.NoError(t, os.WriteFile(file3, []byte("content3"), 0644))
+
+	paths := New(map[string]struct{}{
+		file1: {},
+		file2: {},
+	})
+
+	multiFile := NewMultiFileRefreshable(ctx, paths)
+
+	// Verify initial contents
+	require.EventuallyWithT(t, func(t *assert.CollectT) {
+		current := multiFile.Current()
+		assert.Equal(t, []byte("content1"), current[file1])
+		assert.Equal(t, []byte("content2"), current[file2])
+		assert.Len(t, current, 2)
+	}, 2*time.Second, 10*time.Millisecond)
+
+	// Add a new file to the set
+	paths.Update(map[string]struct{}{
+		file1: {},
+		file2: {},
+		file3: {},
+	})
+
+	require.EventuallyWithT(t, func(t *assert.CollectT) {
+		current := multiFile.Current()
+		assert.Equal(t, []byte("content3"), current[file3])
+		assert.Len(t, current, 3)
+	}, 2*time.Second, 10*time.Millisecond)
+
+	// Remove a file from the set
+	paths.Update(map[string]struct{}{
+		file1: {},
+	})
+
+	require.EventuallyWithT(t, func(t *assert.CollectT) {
+		current := multiFile.Current()
+		assert.Equal(t, []byte("content1"), current[file1])
+		assert.Len(t, current, 1)
+	}, 2*time.Second, 10*time.Millisecond)
+
+	// Update file contents and verify refresh picks it up
+	require.NoError(t, os.WriteFile(file1, []byte("updated1"), 0644))
+
+	require.EventuallyWithT(t, func(t *assert.CollectT) {
+		current := multiFile.Current()
+		assert.Equal(t, []byte("updated1"), current[file1])
+	}, 2*time.Second, 10*time.Millisecond)
+}
+
+func TestNewMultiFileRefreshableValidationError(t *testing.T) {
+	ctx := t.Context()
+	dir := t.TempDir()
+
+	nonExistentFile := filepath.Join(dir, "does_not_exist.txt")
+
+	paths := New(map[string]struct{}{
+		nonExistentFile: {},
+	})
+
+	multiFile := NewMultiFileRefreshable(ctx, paths)
+
+	// Validation should return an error for non-existent file
+	_, err := multiFile.Validation()
+	require.Error(t, err)
+	require.True(t, errors.Is(err, os.ErrNotExist) || errors.Is(err, syscall.ENOENT))
+
+	// Current should return empty map (no successfully read files)
+	current := multiFile.Current()
+	require.Empty(t, current)
+}
+
+func TestNewMultiFileRefreshableCanMap(t *testing.T) {
+	ctx := t.Context()
+	dir := t.TempDir()
+
+	file1 := filepath.Join(dir, "file1.txt")
+	file2 := filepath.Join(dir, "file2.txt")
+
+	require.NoError(t, os.WriteFile(file1, []byte("content1"), 0644))
+	require.NoError(t, os.WriteFile(file2, []byte("content2"), 0644))
+
+	paths := New(map[string]struct{}{
+		file1: {},
+		file2: {},
+	})
+
+	multiFile := NewMultiFileRefreshable(ctx, paths)
+	vvv, _ := Map(multiFile, func(t map[string][]byte) [][]byte {
+		var byteSlices [][]byte
+		for _, v := range t {
+			byteSlices = append(byteSlices, v)
+		}
+		return byteSlices
+	})
+	additionalByteSlice := New([]byte("additional"))
+	done, _ := Merge(vvv, additionalByteSlice, func(t1 [][]byte, t2 []byte) [][]byte {
+		all := [][]byte{}
+		for _, v := range t1 {
+			all = append(all, v)
+		}
+		all = append(all, t2)
+		return all
+	})
+	// TODO
+	for _, v := range done.Current() {
+		fmt.Println(string(v))
+	}
+
 }
