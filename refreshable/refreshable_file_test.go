@@ -6,7 +6,6 @@ package refreshable
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -158,20 +157,15 @@ func TestNewMultiFileRefreshableValidationError(t *testing.T) {
 func TestNewMultiFileRefreshableCanMap(t *testing.T) {
 	ctx := t.Context()
 	dir := t.TempDir()
-
 	file1 := filepath.Join(dir, "file1.txt")
 	file2 := filepath.Join(dir, "file2.txt")
-
 	require.NoError(t, os.WriteFile(file1, []byte("content1"), 0644))
 	require.NoError(t, os.WriteFile(file2, []byte("content2"), 0644))
-
 	paths := New(map[string]struct{}{
 		file1: {},
 		file2: {},
 	})
-
-	multiFile := NewMultiFileRefreshable(ctx, paths)
-	vvv, _ := Map(multiFile, func(t map[string][]byte) [][]byte {
+	aggregateToList, _ := Map(NewMultiFileRefreshable(ctx, paths), func(t map[string][]byte) [][]byte {
 		var byteSlices [][]byte
 		for _, v := range t {
 			byteSlices = append(byteSlices, v)
@@ -179,17 +173,13 @@ func TestNewMultiFileRefreshableCanMap(t *testing.T) {
 		return byteSlices
 	})
 	additionalByteSlice := New([]byte("additional"))
-	done, _ := Merge(vvv, additionalByteSlice, func(t1 [][]byte, t2 []byte) [][]byte {
-		all := [][]byte{}
-		for _, v := range t1 {
-			all = append(all, v)
-		}
-		all = append(all, t2)
-		return all
+	merged, _ := Merge(aggregateToList, additionalByteSlice, func(t1 [][]byte, t2 []byte) [][]byte {
+		t1 = append(t1, t2)
+		return t1
 	})
-	// TODO
-	for _, v := range done.Current() {
-		fmt.Println(string(v))
-	}
-
+	current := merged.Current()
+	require.Equal(t, 3, len(current))
+	assert.Equal(t, "content1", string(current[0]))
+	assert.Equal(t, "content2", string(current[1]))
+	assert.Equal(t, "additional", string(current[2]))
 }
