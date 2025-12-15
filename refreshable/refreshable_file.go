@@ -49,7 +49,7 @@ func NewFileRefreshableWithTicker(ctx context.Context, filePath string, updateTi
 // Current() returns a map containing only successfully read files.
 // Validation() returns the map and a joined error of all file read failures.
 func NewMultiFileRefreshable(ctx context.Context, paths Refreshable[map[string]struct{}]) Validated[map[string][]byte] {
-	return TransitiveMapper(ctx, paths, func(ctx context.Context, path string, _ struct{}) Validated[[]byte] {
+	return MapValues(ctx, paths, func(ctx context.Context, path string, _ struct{}) Validated[[]byte] {
 		return NewFileRefreshable(ctx, path)
 	})
 }
