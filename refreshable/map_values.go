@@ -7,7 +7,6 @@ package refreshable
 import (
 	"context"
 	"errors"
-	"fmt"
 )
 
 // MapValues creates a Validated Refreshable by applying a mapper function to each entry in a map.
@@ -20,6 +19,8 @@ import (
 //
 // Current() returns a map containing only keys whose mapped refreshables are valid.
 // Validation() returns the map and a joined error of all validation failures.
+//
+// This should be used instead of just calling Map on a map[K]V when you need to interject an additional refreshable that can be updated independently
 func MapValues[K comparable, V, R any](
 	ctx context.Context,
 	refreshableMap Refreshable[map[K]V],
@@ -30,7 +31,6 @@ func MapValues[K comparable, V, R any](
 	unsubscribers := make(map[K]UnsubscribeFunc)
 
 	updateOutput := func() {
-		fmt.Println("updateOutput")
 		result := make(map[K]R)
 		var errs []error
 		for key, refreshable := range mappedRefreshables {
