@@ -128,10 +128,7 @@ func TestNewMultiFileRefreshableCanMap(t *testing.T) {
 	file2 := filepath.Join(dir, "file2.txt")
 	require.NoError(t, os.WriteFile(file1, []byte("content1"), 0644))
 	require.NoError(t, os.WriteFile(file2, []byte("content2"), 0644))
-	paths := New(map[string]struct{}{
-		file1: {},
-		file2: {},
-	})
+	paths := New(map[string]struct{}{file1: {}, file2: {}})
 	aggregateToList, _ := Map(NewMultiFileRefreshable(ctx, paths), func(t map[string][]byte) [][]byte {
 		var byteSlices [][]byte
 		for _, v := range t {
@@ -141,12 +138,16 @@ func TestNewMultiFileRefreshableCanMap(t *testing.T) {
 	})
 	additionalByteSlice := New([]byte("additional"))
 	merged, _ := Merge(aggregateToList, additionalByteSlice, func(t1 [][]byte, t2 []byte) [][]byte {
-		t1 = append(t1, t2)
-		return t1
+		return append(t1, t2)
 	})
 	current := merged.Current()
 	require.Equal(t, 3, len(current))
-	assert.Equal(t, "content1", string(current[0]))
-	assert.Equal(t, "content2", string(current[1]))
-	assert.Equal(t, "additional", string(current[2]))
+	// Map iteration order is non-deterministic, so check contents without assuming order
+	contents := make(map[string]bool)
+	for _, v := range current {
+		contents[string(v)] = true
+	}
+	assert.True(t, contents["content1"])
+	assert.True(t, contents["content2"])
+	assert.True(t, contents["additional"])
 }
