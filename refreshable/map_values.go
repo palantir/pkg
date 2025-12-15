@@ -7,6 +7,7 @@ package refreshable
 import (
 	"context"
 	"errors"
+	"fmt"
 )
 
 // MapValues creates a Validated Refreshable by applying a mapper function to each entry in a map.
@@ -29,6 +30,7 @@ func MapValues[K comparable, V, R any](
 	unsubscribers := make(map[K]UnsubscribeFunc)
 
 	updateOutput := func() {
+		fmt.Println("updateOutput")
 		result := make(map[K]R)
 		var errs []error
 		for key, refreshable := range mappedRefreshables {
