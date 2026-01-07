@@ -6,10 +6,12 @@ package cobracli_test
 
 import (
 	"bytes"
+	"context"
 	"regexp"
 	"testing"
 
 	"github.com/palantir/pkg/cobracli"
+	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
@@ -44,7 +46,7 @@ func TestExecuteWithParams(t *testing.T) {
 		{
 			"version command prints version",
 			func(cmd *cobra.Command, args []string) error {
-				return errors.Errorf("hello-error")
+				return errors.New("hello-error")
 			},
 			nil,
 			[]string{"version"},
@@ -55,7 +57,7 @@ func TestExecuteWithParams(t *testing.T) {
 		{
 			"version command not present if not requested",
 			func(cmd *cobra.Command, args []string) error {
-				return errors.Errorf("hello-error")
+				return errors.New("hello-error")
 			},
 			nil,
 			[]string{"version"},
@@ -67,7 +69,7 @@ func TestExecuteWithParams(t *testing.T) {
 		{
 			"version flag prints version",
 			func(cmd *cobra.Command, args []string) error {
-				return errors.Errorf("hello-error")
+				return errors.New("hello-error")
 			},
 			nil,
 			[]string{"--version"},
@@ -78,7 +80,7 @@ func TestExecuteWithParams(t *testing.T) {
 		{
 			"version flag exists if version is set on root command",
 			func(cmd *cobra.Command, args []string) error {
-				return errors.Errorf("hello-error")
+				return errors.New("hello-error")
 			},
 			func(cmd *cobra.Command) {
 				cmd.Version = "1.0.0"
@@ -91,7 +93,7 @@ func TestExecuteWithParams(t *testing.T) {
 		{
 			"version flag not present if not requested",
 			func(cmd *cobra.Command, args []string) error {
-				return errors.Errorf("hello-error")
+				return errors.New("hello-error")
 			},
 			nil,
 			[]string{"--version"},
@@ -108,7 +110,7 @@ Flags:
 		{
 			"standard fail",
 			func(cmd *cobra.Command, args []string) error {
-				return errors.Errorf("custom failure")
+				return errors.New("custom failure")
 			},
 			nil,
 			nil,
@@ -119,7 +121,7 @@ Flags:
 		{
 			"standard fail with package debug variable prints stack trace",
 			func(cmd *cobra.Command, args []string) error {
-				return errors.Errorf("custom failure")
+				return errors.New("custom failure")
 			},
 			nil,
 			[]string{
@@ -160,4 +162,61 @@ $`),
 			}
 		}()
 	}
+}
+
+func TestPrintInfoLevelErrorAndParamsWithDebugTransformer(t *testing.T) {
+	t.Run("nil error produces no output", func(t *testing.T) {
+		var cmd cobra.Command
+		var out bytes.Buffer
+		cmd.SetErr(&out)
+		cobracli.PrintInfoLevelErrorAndParamsWithDebugTransformer(nil, nil)(&cmd, nil)
+		require.Equal(t, "", out.String())
+	})
+
+	t.Run("error without params prints only error message", func(t *testing.T) {
+		var cmd cobra.Command
+		var out bytes.Buffer
+		cmd.SetErr(&out)
+		cobracli.PrintInfoLevelErrorAndParamsWithDebugTransformer(nil, nil)(&cmd, errors.New("🥳"))
+		require.Equal(t, "Error: 🥳\n", out.String())
+	})
+
+	t.Run("error with params prints error and params", func(t *testing.T) {
+		var cmd cobra.Command
+		var out bytes.Buffer
+		cmd.SetErr(&out)
+		type jsonInvalidMapKey struct{}
+		cobracli.PrintInfoLevelErrorAndParamsWithDebugTransformer(nil, nil)(&cmd, werror.ErrorWithContextParams(
+			context.Background(),
+			"🥳",
+			werror.SafeParam("foo", "bar"),
+			werror.UnsafeParam("baz", 7),
+			werror.UnsafeParam("qux", map[jsonInvalidMapKey]string{{}: ""}),
+		))
+		require.Equal(t, `Error: 🥳
+Error params:
+  baz: 7
+  foo: "bar"
+  qux: error json marshalling parameter value: json: unsupported type: map[cobracli_test.jsonInvalidMapKey]string
+`, out.String())
+	})
+
+	t.Run("debug mode uses debug transformer", func(t *testing.T) {
+		var cmd cobra.Command
+		var out bytes.Buffer
+		cmd.SetErr(&out)
+		cobracli.PrintInfoLevelErrorAndParamsWithDebugTransformer(ptr(true), func(err error) string {
+			return "✅"
+		})(&cmd, werror.ErrorWithContextParams(
+			context.Background(),
+			"🥳",
+			werror.SafeParam("foo", "bar"),
+			werror.UnsafeParam("baz", "qux"),
+		))
+		require.Equal(t, "Error: ✅\n", out.String())
+	})
+}
+
+func ptr[T any](v T) *T {
+	return &v
 }
