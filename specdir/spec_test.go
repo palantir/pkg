@@ -6,7 +6,7 @@ package specdir_test
 
 import (
 	"os"
-	"path"
+	"path/filepath"
 	"regexp"
 	"testing"
 
@@ -116,7 +116,7 @@ func TestValidateSpec(t *testing.T) {
 		currCaseTmpDir := t.TempDir()
 
 		createDirectoryStructure(t, currCaseTmpDir, currCase.pathsToCreate)
-		err := currCase.spec.Validate(path.Join(currCaseTmpDir, currCase.dirToValidate), currCase.values)
+		err := currCase.spec.Validate(filepath.Join(currCaseTmpDir, currCase.dirToValidate), currCase.values)
 		if currCase.expectedError == "" {
 			assert.NoError(t, err, "Case %d", i)
 		} else {
@@ -217,7 +217,7 @@ func TestCreateDirectoryStructure(t *testing.T) {
 	} {
 		currCaseTmpDir := t.TempDir()
 
-		rootForCreation := path.Join(currCaseTmpDir, currCase.rootDirForCreation)
+		rootForCreation := filepath.Join(currCaseTmpDir, currCase.rootDirForCreation)
 		err := os.Mkdir(rootForCreation, 0755)
 		require.NoError(t, err)
 
@@ -228,13 +228,13 @@ func TestCreateDirectoryStructure(t *testing.T) {
 			assert.NoError(t, err, "Case %d", i)
 
 			for currPath, pathType := range currCase.expectedPaths {
-				info, err := os.Stat(path.Join(currCaseTmpDir, currPath))
+				info, err := os.Stat(filepath.Join(currCaseTmpDir, currPath))
 				assert.NoError(t, err, "Case %d", i)
 				assert.Equal(t, bool(pathType), !info.IsDir(), "Case %d", i)
 			}
 
 			for _, currPath := range currCase.unexpectedPaths {
-				_, err = os.Stat(path.Join(currCaseTmpDir, currPath))
+				_, err = os.Stat(filepath.Join(currCaseTmpDir, currPath))
 				assert.True(t, os.IsNotExist(err), "Case %d")
 			}
 		} else {
@@ -245,11 +245,11 @@ func TestCreateDirectoryStructure(t *testing.T) {
 
 func createDirectoryStructure(t *testing.T, tmpDir string, paths map[string]specdir.PathType) {
 	for currPath, pathType := range paths {
-		currPath = path.Join(tmpDir, currPath)
+		currPath = filepath.Join(tmpDir, currPath)
 
 		dirToCreate := currPath
 		if pathType == specdir.FilePath {
-			dirToCreate = path.Dir(currPath)
+			dirToCreate = filepath.Dir(currPath)
 		}
 		err := os.MkdirAll(dirToCreate, 0755)
 		require.NoError(t, err)
