@@ -147,17 +147,17 @@ type AddFunc[T any] func(Refreshable[T])
 // The unsubscribe function removes subscriptions from all Refreshables in the collection.
 func CollectMutable[T any](list ...Refreshable[T]) (Refreshable[[]T], AddFunc[T], UnsubscribeFunc) {
 	out := newZero[[]T]()
-	var mu sync.Mutex
+	var mu sync.RWMutex
 	refreshables := make([]Refreshable[T], len(list))
 	copy(refreshables, list)
 	stops := make([]UnsubscribeFunc, 0, len(list))
 	doUpdate := func() {
-		mu.Lock()
+		mu.RLock()
 		current := make([]T, len(refreshables))
 		for i := range refreshables {
 			current[i] = refreshables[i].Current()
 		}
-		mu.Unlock()
+		mu.RUnlock()
 		out.Update(current)
 	}
 	for _, r := range refreshables {
