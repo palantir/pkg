@@ -6,7 +6,7 @@ package specdir_test
 
 import (
 	"os"
-	"path"
+	"path/filepath"
 	"regexp"
 	"testing"
 
@@ -36,7 +36,7 @@ func TestSpecDirConstruction(t *testing.T) {
 		},
 	} {
 		currCaseTmpDir := t.TempDir()
-		rootForCreation := path.Join(currCaseTmpDir, currCase.rootDir)
+		rootForCreation := filepath.Join(currCaseTmpDir, currCase.rootDir)
 		err := os.Mkdir(rootForCreation, 0755)
 		require.NoError(t, err)
 
@@ -58,7 +58,7 @@ func TestSpecDirCreateMode(t *testing.T) {
 		specdir.Dir(specdir.LiteralName("root"), "",
 			specdir.Dir(specdir.LiteralName("child"), ""),
 		), true)
-	rootForCreation := path.Join(tmpDir, "root")
+	rootForCreation := filepath.Join(tmpDir, "root")
 	_, err := specdir.New(rootForCreation, spec, nil, specdir.Create)
 	require.NoError(t, err)
 
@@ -102,7 +102,7 @@ func TestSpecDirGetPath(t *testing.T) {
 	} {
 		currCaseTmpDir := t.TempDir()
 
-		rootForCreation := path.Join(currCaseTmpDir, currCase.rootDir)
+		rootForCreation := filepath.Join(currCaseTmpDir, currCase.rootDir)
 		err := os.Mkdir(rootForCreation, 0755)
 		require.NoError(t, err)
 
@@ -113,6 +113,6 @@ func TestSpecDirGetPath(t *testing.T) {
 
 		actualPath := specDir.Path("VeryInnerDir")
 
-		assert.Equal(t, path.Join(currCaseTmpDir, currCase.expectedPath), actualPath, "Case %d", i)
+		assert.Equal(t, filepath.Join(currCaseTmpDir, currCase.expectedPath), actualPath, "Case %d", i)
 	}
 }
