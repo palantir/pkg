@@ -5,9 +5,12 @@
 package refreshable_test
 
 import (
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/palantir/pkg/refreshable/v2"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -68,5 +71,44 @@ func TestDefaultRefreshable(t *testing.T) {
 		require.Equal(t, 7, rLen.Current())
 		require.Equal(t, 2, rLenUpdates)
 	})
+}
 
+func TestCollectMutable_RaceCondition(t *testing.T) {
+	r1 := refreshable.New(1)
+	r2 := refreshable.New(2)
+	collected, add, stop := refreshable.CollectMutable(r1, r2)
+	defer stop()
+
+	var wg sync.WaitGroup
+	// Concurrent adds
+	for i := range 10 {
+		wg.Add(1)
+		go func(val int) {
+			defer wg.Done()
+			add(refreshable.New(val))
+		}(i + 100)
+	}
+	// Concurrent updates to initial refreshables
+	for i := range 10 {
+		wg.Add(1)
+		go func(val int) {
+			defer wg.Done()
+			r1.Update(val)
+			r2.Update(val * 2)
+		}(i)
+	}
+	// Concurrent reads
+	for range 10 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_ = collected.Current()
+		}()
+	}
+	wg.Wait()
+
+	// Verify we have all 12 elements (2 initial + 10 added)
+	assert.Eventually(t, func() bool {
+		return len(collected.Current()) == 12
+	}, time.Second, time.Millisecond)
 }

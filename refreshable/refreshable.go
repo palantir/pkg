@@ -6,6 +6,7 @@ package refreshable
 
 import (
 	"context"
+	"sync"
 )
 
 // A Refreshable is a generic container type for a volatile underlying value.
@@ -133,19 +134,48 @@ func Merge[T1 any, T2 any, R any](original1 Refreshable[T1], original2 Refreshab
 // The returned Refreshable is updated whenever any of the original Refreshables updates.
 // The unsubscribe function removes subscriptions from all original Refreshables.
 func Collect[T any](list ...Refreshable[T]) (Refreshable[[]T], UnsubscribeFunc) {
+	out, _, unsub := CollectMutable(list...)
+	return out, unsub
+}
+
+// AddFunc is a function that adds a new Refreshable to a collection.
+type AddFunc[T any] func(Refreshable[T])
+
+// CollectMutable returns a new Refreshable that combines the latest values of multiple Refreshables into a slice.
+// The returned Refreshable is updated whenever any of the Refreshables updates.
+// The add function allows adding new Refreshables to the collection after creation.
+// The unsubscribe function removes subscriptions from all Refreshables in the collection.
+func CollectMutable[T any](list ...Refreshable[T]) (Refreshable[[]T], AddFunc[T], UnsubscribeFunc) {
 	out := newZero[[]T]()
+	var mu sync.RWMutex
+	refreshables := make([]Refreshable[T], len(list))
+	copy(refreshables, list)
+	stops := make([]UnsubscribeFunc, 0, len(list))
 	doUpdate := func() {
-		current := make([]T, len(list))
-		for i := range list {
-			current[i] = list[i].Current()
+		mu.RLock()
+		current := make([]T, len(refreshables))
+		for i := range refreshables {
+			current[i] = refreshables[i].Current()
 		}
+		mu.RUnlock()
 		out.Update(current)
 	}
-	stops := make([]UnsubscribeFunc, len(list))
-	for i := range list {
-		stops[i] = list[i].Subscribe(func(T) { doUpdate() })
+	for _, r := range refreshables {
+		stops = append(stops, r.Subscribe(func(T) { doUpdate() }))
 	}
-	return out.readOnly(), func() {
+	add := func(r Refreshable[T]) {
+		mu.Lock()
+		refreshables = append(refreshables, r)
+		mu.Unlock()
+		// Subscribe outside of lock since it immediately invokes the callback
+		stop := r.Subscribe(func(T) { doUpdate() })
+		mu.Lock()
+		stops = append(stops, stop)
+		mu.Unlock()
+	}
+	return out.readOnly(), add, func() {
+		mu.Lock()
+		defer mu.Unlock()
 		for _, stop := range stops {
 			stop()
 		}

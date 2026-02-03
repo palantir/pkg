@@ -213,3 +213,41 @@ func ExampleCollect() {
 	// Collected values: [15 25 35]
 	// Collected values: [15 25 35]
 }
+
+func ExampleCollectMutable() {
+	r1 := refreshable.New(10)
+	r2 := refreshable.New(20)
+
+	collected, add, stop := refreshable.CollectMutable(r1, r2)
+
+	printCollected := func() {
+		values := collected.Current()
+		fmt.Printf("Collected values: %v\n", values)
+	}
+
+	printCollected() // Initial values
+
+	// Dynamically add a new refreshable
+	r3 := refreshable.New(30)
+	add(r3)
+	printCollected() // After adding r3
+
+	// Updates propagate from all refreshables
+	r1.Update(15)
+	printCollected() // After updating r1
+
+	r3.Update(35)
+	printCollected() // After updating r3
+
+	stop() // Stop collecting updates
+
+	r1.Update(40)
+	printCollected() // No change after stopping
+
+	// Output:
+	// Collected values: [10 20]
+	// Collected values: [10 20 30]
+	// Collected values: [15 20 30]
+	// Collected values: [15 20 35]
+	// Collected values: [15 20 35]
+}
