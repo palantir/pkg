@@ -1,7 +1,5 @@
 *.iml
 *.ipr
 *.iws
-.DS_Store
-.claude/
 .idea/
 /out/
