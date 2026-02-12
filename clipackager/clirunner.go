@@ -133,11 +133,14 @@ func (r *packgedCLIRunner) cliPath() (string, error) {
 // the CLI package name that locks across different processes/executables. Returns an error if the CLI does not exist at
 // the expected location and it was not possible to extract it.
 func (r *packgedCLIRunner) ensureCLIExists() error {
+	if err := os.MkdirAll(r.pkgWorkDir, 0755); err != nil {
+		return fmt.Errorf("os.MkdirAll failed for package work directory %s: %v", r.pkgWorkDir, err)
+	}
 	installPkgLockFilePath := filepath.Join(r.pkgWorkDir, fmt.Sprintf("install-%s.lock", r.cliPkgName))
 	installMutex := lockedfile.MutexAt(installPkgLockFilePath)
 	unlockFn, err := installMutex.Lock()
 	if err != nil {
-		return fmt.Errorf("failed to lock mutex for installing CLI: %w", err)
+		return fmt.Errorf("failed to lock file for installing CLI: %w", err)
 	}
 	defer unlockFn()
 
