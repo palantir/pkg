@@ -18,14 +18,15 @@ import (
 	"github.com/rogpeppe/go-internal/lockedfile"
 )
 
-// RunPackagedCLI is a convenience function that runs the CLI executable provided by packgedCLIRunner using the provided arguments and
-// returns the combined output of stdout and stderr.
-func RunPackagedCLI(cliRunner PackagedCLIRunner, args ...string) ([]byte, error) {
+// RunPackagedCLI is a convenience function that runs the CLI executable provided by packgedCLIRunner using the provided
+// arguments. Returns the path to the executable and the combined output of stdout and stderr.
+func RunPackagedCLI(cliRunner PackagedCLIRunner, args ...string) (string, []byte, error) {
 	executablePath, err := cliRunner.EnsureCLIExistsAndReturnPath()
 	if err != nil {
-		return nil, err
+		return executablePath, nil, err
 	}
-	return exec.Command(executablePath, args...).CombinedOutput()
+	output, err := exec.Command(executablePath, args...).CombinedOutput()
+	return executablePath, output, err
 }
 
 type PackagedCLIRunner interface {
