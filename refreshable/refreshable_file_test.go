@@ -72,6 +72,69 @@ func TestNewFileRefreshable(t *testing.T) {
 	}, time.Second, 10*time.Millisecond)
 }
 
+func TestNewFileRefreshableWithReaderFunc(t *testing.T) {
+	ctx := t.Context()
+
+	dir := t.TempDir()
+	filename := filepath.Join(dir, "file.txt")
+	ticker := make(chan time.Time, 1)
+
+	// Custom reader that uppercases the content
+	uppercaseReader := func(path string) ([]byte, error) {
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return nil, err
+		}
+		// Convert to uppercase
+		for i := range content {
+			if content[i] >= 'a' && content[i] <= 'z' {
+				content[i] = content[i] - 'a' + 'A'
+			}
+		}
+		return content, nil
+	}
+
+	refreshableFile := NewFileRefreshableWithReaderFunc(ctx, filename, ticker, uppercaseReader)
+
+	// Assert we start with IsNotExist error.
+	curr, err := refreshableFile.Validation()
+	require.Error(t, err)
+	require.True(t, os.IsNotExist(err))
+	require.Empty(t, curr)
+	require.Empty(t, refreshableFile.Current())
+
+	// Create file with lowercase content.
+	require.NoError(t, os.WriteFile(filename, []byte("test"), 0644))
+	ticker <- time.Now()
+	require.EventuallyWithT(t, func(t *assert.CollectT) {
+		curr, err := refreshableFile.Validation()
+		require.NoError(t, err)
+		require.Equal(t, "TEST", string(curr)) // Should be uppercased
+		require.Equal(t, "TEST", string(refreshableFile.Current()))
+	}, time.Second, 10*time.Millisecond)
+
+	// Update file.
+	require.NoError(t, os.WriteFile(filename, []byte("hello world"), 0644))
+	ticker <- time.Now()
+	require.EventuallyWithT(t, func(t *assert.CollectT) {
+		curr, err := refreshableFile.Validation()
+		require.NoError(t, err)
+		require.Equal(t, "HELLO WORLD", string(curr)) // Should be uppercased
+		require.Equal(t, "HELLO WORLD", string(refreshableFile.Current()))
+	}, time.Second, 10*time.Millisecond)
+
+	// Delete file - Current() should retain last valid value.
+	require.NoError(t, os.Remove(filename))
+	ticker <- time.Now()
+	require.EventuallyWithT(t, func(t *assert.CollectT) {
+		curr, err := refreshableFile.Validation()
+		require.Error(t, err)
+		require.True(t, os.IsNotExist(err))
+		require.Empty(t, curr)
+		require.Equal(t, "HELLO WORLD", string(refreshableFile.Current()))
+	}, time.Second, 10*time.Millisecond)
+}
+
 func TestNewMultiFileRefreshable(t *testing.T) {
 	ctx := t.Context()
 	dir := t.TempDir()
