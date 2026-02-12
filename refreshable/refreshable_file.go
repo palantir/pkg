@@ -23,15 +23,27 @@ func NewFileRefreshable(ctx context.Context, filePath string) Validated[[]byte] 
 // NewFileRefreshableWithTicker returns a Validated refreshable whose current value is the bytes of the file at the provided path.
 // This function reads the file once then starts a goroutine which re-reads the file on each tick until the provided context is cancelled.
 // If reading the file fails, the Current() value will be unchanged. The error is present in v.Validation().
+// It is equivalent to calling NewFileRefreshableWithReaderFunc with os.ReadFile.
 func NewFileRefreshableWithTicker(ctx context.Context, filePath string, updateTicker <-chan time.Time) Validated[[]byte] {
+	return NewFileRefreshableWithReaderFunc(ctx, filePath, updateTicker, os.ReadFile)
+}
+
+// NewFileRefreshableWithReaderFunc returns a [Validated] refreshable whose current value is the bytes read using the provided readerFunc.
+// This function is similar to [NewFileRefreshableWithTicker] but allows callers to provide a custom file reading function
+// instead of using os.ReadFile directly. This is useful for scenarios where custom file processing is needed
+// (e.g., decompression, decryption, or other transformations).
+//
+// The readerFunc is called once initially and then on each tick until the context is cancelled.
+// If reading fails, the Current() value will be unchanged. The error is present in v.Validation().
+func NewFileRefreshableWithReaderFunc(ctx context.Context, filePath string, updateTicker <-chan time.Time, readerFunc func(string) ([]byte, error)) Validated[[]byte] {
 	v := newValidRefreshable[[]byte]()
-	updateValidRefreshable[string, []byte](v, filePath, os.ReadFile)
+	updateValidRefreshable(v, filePath, readerFunc)
 	go func() {
 		for {
 			select {
 			case <-updateTicker:
-				// Read file and update refreshable. If ReadFile fails, the error is present in v.Validation().
-				updateValidRefreshable[string, []byte](v, filePath, os.ReadFile)
+				// Read file and update refreshable. If readerFunc fails, the error is present in v.Validation().
+				updateValidRefreshable(v, filePath, readerFunc)
 			case <-ctx.Done():
 				return
 			}
