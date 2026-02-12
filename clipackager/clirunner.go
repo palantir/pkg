@@ -19,6 +19,35 @@ import (
 	"github.com/rogpeppe/go-internal/lockedfile"
 )
 
+// NewDefaultPackagedCLIRunner returns a PackagedCLIRunner that uses opinionated defaults. cliName and cliVersion are
+// the name and version of the CLI. The archiveBytes are bytes for the archive and archiveExtension is the file
+// extension that represents the format of the archive.
+//
+// Assumes that the archive contains a top-level directory named "{cliName}-{cliVersion}", and that the CLI executable
+// is at {cliName}-{cliVersion}/bin/{cliName}, with windowsExecutableExtension appended if the GOOS is windows. The
+// directory filepath.Join(os.TempDir(), "_"+cliName) is used as the package working directory.
+func NewDefaultPackagedCLIRunner(
+	cliName,
+	cliVersion string,
+	archiveBytes []byte,
+	archiveExtension,
+	windowsExecutableExtension string,
+) PackagedCLIRunner {
+	cliDirName := fmt.Sprintf("%s-%s", cliName, cliVersion)
+	return NewPackagedCLIRunner(
+		cliDirName,
+		filepath.Join(os.TempDir(), "_"+cliName),
+		NewArchivePackagedCLIProviderFromBytes(
+			archiveBytes,
+			archiveExtension,
+			AddExtensionForWindowsPathProvider(
+				filepath.Join(cliDirName, "bin", cliName),
+				windowsExecutableExtension,
+			),
+		),
+	)
+}
+
 // RunPackagedCLI is a convenience function that runs the CLI executable provided by packgedCLIRunner using the provided
 // arguments. Returns the path to the executable and the combined output of stdout and stderr.
 func RunPackagedCLI(cliRunner PackagedCLIRunner, args ...string) (string, []byte, error) {
@@ -37,10 +66,10 @@ type PackagedCLIRunner interface {
 }
 
 // NewPackagedCLIRunner returns a new PackagedCLIRunner that uses the provided parameters.
-func NewPackagedCLIRunner(name, workdir string, cliProvider PackagedCLIProvider) PackagedCLIRunner {
+func NewPackagedCLIRunner(name, pkgWorkDir string, cliProvider PackagedCLIProvider) PackagedCLIRunner {
 	return &packgedCLIRunner{
 		cliPkgName:  name,
-		workDir:     workdir,
+		pkgWorkDir:  pkgWorkDir,
 		cliProvider: cliProvider,
 	}
 }
@@ -62,12 +91,12 @@ type packgedCLIRunner struct {
 	// should be unique per package. Typically, the value is something like "{name}-{version}" (for example, "conjure-4.35.0").
 	cliPkgName string
 
-	// workDir is the base directory in which all operations should occur. This directory may be used for things like
-	// lock files and as a parent directory within which archives may be downloaded or unpacked, so it should generally
-	// be assumed that the runner has full control over the directory. However, it may also make sense to have this be
-	// somewhat stable (rather than fully random) so that CLIs that have been set up can be reused across runs. For
-	// example, a value such as filepath.Join(os.TempDir(), "_conjureircli") is an example of such usage.
-	workDir string
+	// pkgWorkDir is the directory in which all package-related operations should occur. This directory may be used for
+	// things like lock files and as a parent directory within which archives may be written or extracted, so it should
+	// generally be assumed that the runner has full control over the directory. However, it may also make sense to have
+	// this be somewhat stable (rather than fully random) so that CLIs that have been set up can be reused across runs.
+	// For example, a value such as filepath.Join(os.TempDir(), "_conjureircli") is an example of such usage.
+	pkgWorkDir string
 
 	// cliProvider is the provider that extracts and writes the CLI if it does not exist.
 	cliProvider PackagedCLIProvider
@@ -87,7 +116,7 @@ func (r *packgedCLIRunner) EnsureCLIExistsAndReturnPath() (string, error) {
 }
 
 func (r *packgedCLIRunner) cliExtractDirPath() string {
-	return filepath.Join(r.workDir, r.cliPkgName+"-extract-dir")
+	return filepath.Join(r.pkgWorkDir, r.cliPkgName+"-extract-dir")
 }
 
 func (r *packgedCLIRunner) cliPath() (string, error) {
@@ -104,7 +133,7 @@ func (r *packgedCLIRunner) cliPath() (string, error) {
 // the CLI package name that locks across different processes/executables. Returns an error if the CLI does not exist at
 // the expected location and it was not possible to extract it.
 func (r *packgedCLIRunner) ensureCLIExists() error {
-	installPkgLockFilePath := filepath.Join(r.workDir, fmt.Sprintf("install-%s.lock", r.cliPkgName))
+	installPkgLockFilePath := filepath.Join(r.pkgWorkDir, fmt.Sprintf("install-%s.lock", r.cliPkgName))
 	installMutex := lockedfile.MutexAt(installPkgLockFilePath)
 	unlockFn, err := installMutex.Lock()
 	if err != nil {
