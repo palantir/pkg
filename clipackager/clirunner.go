@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 
 	"github.com/mholt/archives"
 	"github.com/pkg/errors"
@@ -45,7 +46,7 @@ func NewPackagedCLIRunner(name, workdir string, cliProvider PackagedCLIProvider)
 }
 
 // NewArchivePackagedCLIProviderFromBytes returns a PackagedCLIProvider that uses the provided bytes as the archive that contains the CLI.
-func NewArchivePackagedCLIProviderFromBytes(archiveBytes []byte, archiveExtension string, pathToExecutableInArchive string) PackagedCLIProvider {
+func NewArchivePackagedCLIProviderFromBytes(archiveBytes []byte, archiveExtension string, pathToExecutableInArchive PathProviderFn) PackagedCLIProvider {
 	return &archiveCLIProvider{
 		archiveByteProvider:   func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(archiveBytes)), nil },
 		archiveExtension:      archiveExtension,
@@ -75,15 +76,26 @@ type packgedCLIRunner struct {
 var _ PackagedCLIRunner = (*packgedCLIRunner)(nil)
 
 func (r *packgedCLIRunner) EnsureCLIExistsAndReturnPath() (string, error) {
-	return r.cliPath(), r.ensureCLIExists()
+	cliPath, err := r.cliPath()
+	if err != nil {
+		return "", err
+	}
+	if err := r.ensureCLIExists(); err != nil {
+		return "", err
+	}
+	return cliPath, nil
 }
 
 func (r *packgedCLIRunner) cliExtractDirPath() string {
 	return filepath.Join(r.workDir, r.cliPkgName+"-extract-dir")
 }
 
-func (r *packgedCLIRunner) cliPath() string {
-	return filepath.Join(r.cliExtractDirPath(), r.cliProvider.PathInExtractDir())
+func (r *packgedCLIRunner) cliPath() (string, error) {
+	pathInExtractDir, err := r.cliProvider.PathInExtractDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(r.cliExtractDirPath(), pathInExtractDir), nil
 }
 
 // ensureCLIExists ensures that the CLI exists at the expected location. If the CLI exists at the expected location,
@@ -101,9 +113,13 @@ func (r *packgedCLIRunner) ensureCLIExists() error {
 	defer unlockFn()
 
 	// path to extracted CLI
-	cliPath := r.cliPath()
+	cliPath, err := r.cliPath()
+	if err != nil {
+		return err
+	}
+
+	// check if executable already exists: if so, return
 	if checkNonEmptyFileExists(cliPath) == nil {
-		// executable already exists
 		return nil
 	}
 
@@ -136,8 +152,10 @@ type PackagedCLIProvider interface {
 	ExtractCLI(destDir string) error
 
 	// PathInExtractDir returns the path to the CLI in the extraction directory. The CLI executable should exist at the
-	// path returned by this function within destDir if ExtractCLI was called successfully with destDir.
-	PathInExtractDir() string
+	// path returned by this function within destDir if ExtractCLI was called successfully with destDir. May return an
+	// error if it is not possible to provide a path in the extracted directory for the CLI (for example, if running on
+	// an OS/Architecture for which an executable does not exist).
+	PathInExtractDir() (string, error)
 }
 
 var _ PackagedCLIProvider = (*archiveCLIProvider)(nil)
@@ -151,12 +169,36 @@ type archiveCLIProvider struct {
 	// is attempted to be identified based on content).
 	archiveExtension string
 
-	// path in the expanded archive in which the CLI exists.
-	pathInExpandedArchive string
+	// returns the path to the CLI in the expanded archive.
+	pathInExpandedArchive PathProviderFn
 }
 
-func (p *archiveCLIProvider) PathInExtractDir() string {
-	return p.pathInExpandedArchive
+type PathProviderFn func() (string, error)
+
+// StaticPathProvider returns a PathProviderFn that always returns the provided path.
+func StaticPathProvider(fpath string) PathProviderFn {
+	return func() (string, error) {
+		return fpath, nil
+	}
+}
+
+// AddExtensionForWindowsPathProvider returns a PathProviderFn that returns the provided path if the GOOS is not
+// Windows; otherwise, returns the path with the provided extension appended. Example values for extension include
+// ".exe" and ".bat".
+func AddExtensionForWindowsPathProvider(fpath, extension string) PathProviderFn {
+	return func() (string, error) {
+		if runtime.GOOS == "windows" {
+			return fpath + extension, nil
+		}
+		return fpath, nil
+	}
+}
+
+func (p *archiveCLIProvider) PathInExtractDir() (string, error) {
+	if p.pathInExpandedArchive == nil {
+		return "", fmt.Errorf("pathInExpandedArchive function is nil")
+	}
+	return p.pathInExpandedArchive()
 }
 
 func (p *archiveCLIProvider) ExtractCLI(destDir string) error {

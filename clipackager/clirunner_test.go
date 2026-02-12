@@ -62,7 +62,7 @@ func TestRunCLI(t *testing.T) {
 			cliProvider := clipackager.NewArchivePackagedCLIProviderFromBytes(
 				tc.archiveBytes,
 				".tgz",
-				tc.pathToExecutableInArchive,
+				clipackager.StaticPathProvider(tc.pathToExecutableInArchive),
 			)
 
 			// Create a CLI runner with a unique work directory for this test
@@ -102,7 +102,7 @@ func TestRunCLIWithArgs(t *testing.T) {
 	cliProvider := clipackager.NewArchivePackagedCLIProviderFromBytes(
 		singleExecutableTgz,
 		".tgz",
-		"test-cli.sh",
+		clipackager.StaticPathProvider("test-cli.sh"),
 	)
 
 	runner := clipackager.NewPackagedCLIRunner(
@@ -126,7 +126,7 @@ func TestCLIExecutablePath(t *testing.T) {
 	cliProvider := clipackager.NewArchivePackagedCLIProviderFromBytes(
 		fullDirStructureTgz,
 		".tgz",
-		"hello-world-1.0.0/bin/test-cli.sh",
+		clipackager.StaticPathProvider("hello-world-1.0.0/bin/test-cli.sh"),
 	)
 
 	workDir := t.TempDir()
