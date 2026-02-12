@@ -15,21 +15,38 @@ import (
 	"os"
 )
 
-// EnsureFileWithSHA256ChecksumExists is a convenience function that wraps ensureFileWithChecksumExists. It uses SHA256
-// as the hasher and the bytes obtained by hex-decoding the provided wantChecksum as the expected checksum.
+// EnsureFileWithSHA256ChecksumExists is a convenience function that wraps ensureFileWithChecksumExists. If the provided
+// wantChecksum is non-empty, uses SHA256 as the hasher and the bytes obtained by hex-decoding the provided wantChecksum
+// as the expected checksum. If the provided wantChecksum is the empty string, does not perform checksum validation.
 func EnsureFileWithSHA256ChecksumExists(filepath, url, wantChecksum string) error {
-	wantChecksumBytes, err := hex.DecodeString(wantChecksum)
-	if err != nil {
-		return fmt.Errorf("could not decode checksum %s: %w", wantChecksum, err)
+	var verifier *ChecksumVerifier
+	if wantChecksum != "" {
+		var err error
+		wantChecksumBytes, err := hex.DecodeString(wantChecksum)
+		if err != nil {
+			return fmt.Errorf("could not decode checksum %s: %w", wantChecksum, err)
+		}
+		verifier = &ChecksumVerifier{
+			Hasher:       sha256.New(),
+			WantChecksum: wantChecksumBytes,
+		}
 	}
-	return ensureFileWithChecksumExists(filepath, url, sha256.New(), wantChecksumBytes)
+	return ensureFileWithChecksumExists(filepath, url, verifier)
 }
 
-// ensureFileWithChecksumExists ensures that a file exists at the provided filepath and that the hash computed for that
-// file using the provided hasher matches the provided wantChecksum. If such a file does not exist, downloads the file
-// from the provided url to filepath and verifies that the checksum matches.
-func ensureFileWithChecksumExists(filepath, url string, hasher hash.Hash, wantChecksum []byte) error {
-	if exists, err := fileWithChecksumExists(filepath, hasher, wantChecksum); err != nil {
+// ChecksumVerifier provides the information necessary to compute and verify a checksum.
+type ChecksumVerifier struct {
+	Hasher       hash.Hash
+	WantChecksum []byte
+}
+
+// ensureFileWithChecksumExists ensures that a file exists at the provided filepath and, if the provided
+// checksumVerifier is non-nil, verifies that the file's computed checksum matches the expected one. If a file with a
+// matching checksum does not exist at the path, downloads the file from the provided url to filepath and, if the
+// provided checksumVerifier is non-nil, verifies that the checksum matches. If checksumVerifier is nil, no checksum
+// computation or verification is performed.
+func ensureFileWithChecksumExists(filepath, url string, checksumVerifier *ChecksumVerifier) error {
+	if exists, err := fileWithChecksumExists(filepath, checksumVerifier); err != nil {
 		return err
 	} else if exists {
 		// file exists and checksum is valid
@@ -52,25 +69,34 @@ func ensureFileWithChecksumExists(filepath, url string, hasher hash.Hash, wantCh
 		_ = resp.Body.Close()
 	}()
 
-	hasher.Reset()
-	reader := io.TeeReader(resp.Body, hasher)
+	reader := io.Reader(resp.Body)
+	if checksumVerifier != nil {
+		checksumVerifier.Hasher.Reset()
+		reader = io.TeeReader(resp.Body, checksumVerifier.Hasher)
+	}
+
 	if _, err := io.Copy(out, reader); err != nil {
 		return err
 	}
 
-	if gotChecksum := hasher.Sum(nil); !bytes.Equal(wantChecksum, gotChecksum) {
-		return fmt.Errorf("file downloaded from %s had checksum %x, wanted %x", url, gotChecksum, wantChecksum)
+	if checksumVerifier != nil {
+		if gotChecksum := checksumVerifier.Hasher.Sum(nil); !bytes.Equal(checksumVerifier.WantChecksum, gotChecksum) {
+			return fmt.Errorf("file downloaded from %s had checksum %x, wanted %x", url, gotChecksum, checksumVerifier.WantChecksum)
+		}
 	}
 	return nil
 }
 
-func fileWithChecksumExists(filepath string, hasher hash.Hash, wantChecksum []byte) (bool, error) {
-	if hasher == nil {
-		return false, fmt.Errorf("hasher cannot be nil")
+func fileWithChecksumExists(filepath string, checksumVerifier *ChecksumVerifier) (bool, error) {
+	if fi, err := os.Stat(filepath); err != nil {
+		return false, nil
+	} else if mode := fi.Mode(); !mode.IsRegular() {
+		return false, fmt.Errorf("%s is not a regular file: has mode %s", filepath, mode)
 	}
 
-	if _, err := os.Stat(filepath); err != nil {
-		return false, nil
+	// if no verifier was provided, assume that existence of file is sufficient
+	if checksumVerifier == nil {
+		return true, nil
 	}
 
 	existing, err := os.OpenFile(filepath, os.O_RDONLY, 0)
@@ -81,13 +107,14 @@ func fileWithChecksumExists(filepath string, hasher hash.Hash, wantChecksum []by
 		_ = existing.Close()
 	}()
 
-	hasher.Reset()
-	if _, err := io.Copy(hasher, existing); err != nil {
+	checksumVerifier.Hasher.Reset()
+	if _, err := io.Copy(checksumVerifier.Hasher, existing); err != nil {
 		return false, err
 	}
-	if bytes.Equal(wantChecksum, hasher.Sum(nil)) {
+	if bytes.Equal(checksumVerifier.WantChecksum, checksumVerifier.Hasher.Sum(nil)) {
 		// file exists and checksum matches
 		return true, nil
 	}
+	// file exists, but checksum does not match
 	return false, nil
 }
