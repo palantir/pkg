@@ -67,14 +67,13 @@ func TestRunCLI(t *testing.T) {
 
 			// Create a CLI runner with a unique work directory for this test
 			runner := clipackager.NewPackagedCLIRunner(
-				"test-cli",
-				"1.0.0",
+				"test-cli-1.0.0",
 				t.TempDir(),
 				cliProvider,
 			)
 
 			// Run the CLI and verify output
-			output, err := clipackager.RunPackagedCLI(runner)
+			_, output, err := clipackager.RunPackagedCLI(runner)
 			if err != nil {
 				t.Fatalf("failed to run CLI: %v", err)
 			}
@@ -86,7 +85,7 @@ func TestRunCLI(t *testing.T) {
 			}
 
 			// Run the CLI a second time to verify caching works correctly
-			output2, err := clipackager.RunPackagedCLI(runner)
+			_, output2, err := clipackager.RunPackagedCLI(runner)
 			if err != nil {
 				t.Fatalf("failed to run CLI on second invocation: %v", err)
 			}
@@ -107,14 +106,13 @@ func TestRunCLIWithArgs(t *testing.T) {
 	)
 
 	runner := clipackager.NewPackagedCLIRunner(
-		"test-cli",
-		"1.0.0",
+		"test-cli-1.0.0",
 		t.TempDir(),
 		cliProvider,
 	)
 
 	// Run with arguments (the test-cli.sh ignores them but this verifies args are passed)
-	output, err := clipackager.RunPackagedCLI(runner, "arg1", "arg2", "arg3")
+	_, output, err := clipackager.RunPackagedCLI(runner, "arg1", "arg2", "arg3")
 	if err != nil {
 		t.Fatalf("failed to run CLI with args: %v", err)
 	}
@@ -133,8 +131,7 @@ func TestCLIExecutablePath(t *testing.T) {
 
 	workDir := t.TempDir()
 	runner := clipackager.NewPackagedCLIRunner(
-		"test-cli",
-		"1.0.0",
+		"test-cli-1.0.0",
 		workDir,
 		cliProvider,
 	)

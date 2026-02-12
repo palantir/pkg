@@ -36,10 +36,9 @@ type PackagedCLIRunner interface {
 }
 
 // NewPackagedCLIRunner returns a new PackagedCLIRunner that uses the provided parameters.
-func NewPackagedCLIRunner(name, version, workdir string, cliProvider PackagedCLIProvider) PackagedCLIRunner {
+func NewPackagedCLIRunner(name, workdir string, cliProvider PackagedCLIProvider) PackagedCLIRunner {
 	return &packgedCLIRunner{
-		cliName:     name,
-		cliVersion:  version,
+		cliPkgName:  name,
 		workDir:     workdir,
 		cliProvider: cliProvider,
 	}
@@ -58,11 +57,9 @@ func NewArchivePackagedCLIProviderFromBytes(archiveBytes []byte, archiveExtensio
 // expected location, the runner runs it; otherwise, it extracts the CLI to the expected destination using the
 // PackagedCLIProvider and then runs it.
 type packgedCLIRunner struct {
-	// name of the CLI
-	cliName string
-
-	// version of the CLI
-	cliVersion string
+	// name of the packaged CLI. Used as part of the name for the directory into which the package is expanded, so it
+	// should be unique per package. Typically, the value is something like "{name}-{version}" (for example, "conjure-4.35.0").
+	cliPkgName string
 
 	// workDir is the base directory in which all operations should occur. This directory may be used for things like
 	// lock files and as a parent directory within which archives may be downloaded or unpacked, so it should generally
@@ -81,12 +78,8 @@ func (r *packgedCLIRunner) EnsureCLIExistsAndReturnPath() (string, error) {
 	return r.cliPath(), r.ensureCLIExists()
 }
 
-func (r *packgedCLIRunner) cliNameVersion() string {
-	return fmt.Sprintf("%s-%s", r.cliName, r.cliVersion)
-}
-
 func (r *packgedCLIRunner) cliExtractDirPath() string {
-	return filepath.Join(r.workDir, r.cliNameVersion())
+	return filepath.Join(r.workDir, r.cliPkgName+"-extract-dir")
 }
 
 func (r *packgedCLIRunner) cliPath() string {
@@ -96,10 +89,10 @@ func (r *packgedCLIRunner) cliPath() string {
 // ensureCLIExists ensures that the CLI exists at the expected location. If the CLI exists at the expected location,
 // returns nil without doing any work. If the CLI does not exist at the expected location, unarchives the CLI from the
 // provider to ensure that it does exist at the expected location. Obtains and holds a global file-based lock based on
-// the name and version of the CLI that locks across different processes/executables. Returns an error if the CLI does
-// not exist at the expected location and it was not possible to unarchive it.
+// the CLI package name that locks across different processes/executables. Returns an error if the CLI does not exist at
+// the expected location and it was not possible to extract it.
 func (r *packgedCLIRunner) ensureCLIExists() error {
-	installPkgLockFilePath := filepath.Join(r.workDir, fmt.Sprintf("install-%s.lock", r.cliNameVersion()))
+	installPkgLockFilePath := filepath.Join(r.workDir, fmt.Sprintf("install-%s.lock", r.cliPkgName))
 	installMutex := lockedfile.MutexAt(installPkgLockFilePath)
 	unlockFn, err := installMutex.Lock()
 	if err != nil {
