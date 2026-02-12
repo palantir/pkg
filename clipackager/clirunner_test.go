@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	clipackager "github.com/palantir/pkg/clipackager/clirunner"
+	"github.com/palantir/pkg/clipackager"
 )
 
 var (
@@ -26,7 +26,7 @@ var (
 	singleExecutableTgz []byte
 )
 
-// TestRunCLI verifies the functionality of the RunCLI function using various CLI providers.
+// TestRunCLI verifies the functionality of the RunPackagedCLI function using various CLI providers.
 // The test code was written by Claude with prompting and iteration.
 // The test cases (the TGZs being tested) were human-designed, although the code to generate them in create_archive.go
 // was written by Claude with prompting and iteration.
@@ -59,14 +59,14 @@ func TestRunCLI(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			// Create a CLI provider from the embedded archive bytes
-			cliProvider := clipackager.NewArchiveCLIProviderFromBytes(
+			cliProvider := clipackager.NewArchivePackagedCLIProviderFromBytes(
 				tc.archiveBytes,
 				".tgz",
 				tc.pathToExecutableInArchive,
 			)
 
 			// Create a CLI runner with a unique work directory for this test
-			runner := clipackager.NewCLIRunner(
+			runner := clipackager.NewPackagedCLIRunner(
 				"test-cli",
 				"1.0.0",
 				t.TempDir(),
@@ -74,7 +74,7 @@ func TestRunCLI(t *testing.T) {
 			)
 
 			// Run the CLI and verify output
-			output, err := clipackager.RunCLI(runner)
+			output, err := clipackager.RunPackagedCLI(runner)
 			if err != nil {
 				t.Fatalf("failed to run CLI: %v", err)
 			}
@@ -86,7 +86,7 @@ func TestRunCLI(t *testing.T) {
 			}
 
 			// Run the CLI a second time to verify caching works correctly
-			output2, err := clipackager.RunCLI(runner)
+			output2, err := clipackager.RunPackagedCLI(runner)
 			if err != nil {
 				t.Fatalf("failed to run CLI on second invocation: %v", err)
 			}
@@ -100,13 +100,13 @@ func TestRunCLI(t *testing.T) {
 }
 
 func TestRunCLIWithArgs(t *testing.T) {
-	cliProvider := clipackager.NewArchiveCLIProviderFromBytes(
+	cliProvider := clipackager.NewArchivePackagedCLIProviderFromBytes(
 		singleExecutableTgz,
 		".tgz",
 		"test-cli.sh",
 	)
 
-	runner := clipackager.NewCLIRunner(
+	runner := clipackager.NewPackagedCLIRunner(
 		"test-cli",
 		"1.0.0",
 		t.TempDir(),
@@ -114,7 +114,7 @@ func TestRunCLIWithArgs(t *testing.T) {
 	)
 
 	// Run with arguments (the test-cli.sh ignores them but this verifies args are passed)
-	output, err := clipackager.RunCLI(runner, "arg1", "arg2", "arg3")
+	output, err := clipackager.RunPackagedCLI(runner, "arg1", "arg2", "arg3")
 	if err != nil {
 		t.Fatalf("failed to run CLI with args: %v", err)
 	}
@@ -125,14 +125,14 @@ func TestRunCLIWithArgs(t *testing.T) {
 }
 
 func TestCLIExecutablePath(t *testing.T) {
-	cliProvider := clipackager.NewArchiveCLIProviderFromBytes(
+	cliProvider := clipackager.NewArchivePackagedCLIProviderFromBytes(
 		fullDirStructureTgz,
 		".tgz",
 		"hello-world-1.0.0/bin/test-cli.sh",
 	)
 
 	workDir := t.TempDir()
-	runner := clipackager.NewCLIRunner(
+	runner := clipackager.NewPackagedCLIRunner(
 		"test-cli",
 		"1.0.0",
 		workDir,

@@ -18,9 +18,9 @@ import (
 	"github.com/rogpeppe/go-internal/lockedfile"
 )
 
-// RunCLI is a convenience function that runs the CLI executable provided by cliRunner using the provided arguments and
+// RunPackagedCLI is a convenience function that runs the CLI executable provided by packgedCLIRunner using the provided arguments and
 // returns the combined output of stdout and stderr.
-func RunCLI(cliRunner CLIRunner, args ...string) ([]byte, error) {
+func RunPackagedCLI(cliRunner PackagedCLIRunner, args ...string) ([]byte, error) {
 	executablePath, err := cliRunner.EnsureCLIExistsAndReturnPath()
 	if err != nil {
 		return nil, err
@@ -28,15 +28,15 @@ func RunCLI(cliRunner CLIRunner, args ...string) ([]byte, error) {
 	return exec.Command(executablePath, args...).CombinedOutput()
 }
 
-type CLIRunner interface {
+type PackagedCLIRunner interface {
 	// EnsureCLIExistsAndReturnPath ensures the CLI exists at the expected path and returns the path to the executable
 	// for the CLI. Returns an error if the CLI does not exist or there is an error creating the CLI.
 	EnsureCLIExistsAndReturnPath() (string, error)
 }
 
-// NewCLIRunner returns a new CLIRunner that uses the provided parameters.
-func NewCLIRunner(name, version, workdir string, cliProvider CLIProvider) CLIRunner {
-	return &cliRunner{
+// NewPackagedCLIRunner returns a new PackagedCLIRunner that uses the provided parameters.
+func NewPackagedCLIRunner(name, version, workdir string, cliProvider PackagedCLIProvider) PackagedCLIRunner {
+	return &packgedCLIRunner{
 		cliName:     name,
 		cliVersion:  version,
 		workDir:     workdir,
@@ -44,8 +44,8 @@ func NewCLIRunner(name, version, workdir string, cliProvider CLIProvider) CLIRun
 	}
 }
 
-// NewArchiveCLIProviderFromBytes returns a CLIProvider that uses the provided bytes as the archive that contains the CLI.
-func NewArchiveCLIProviderFromBytes(archiveBytes []byte, archiveExtension string, pathToExecutableInArchive string) CLIProvider {
+// NewArchivePackagedCLIProviderFromBytes returns a PackagedCLIProvider that uses the provided bytes as the archive that contains the CLI.
+func NewArchivePackagedCLIProviderFromBytes(archiveBytes []byte, archiveExtension string, pathToExecutableInArchive string) PackagedCLIProvider {
 	return &archiveCLIProvider{
 		archiveByteProvider:   func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(archiveBytes)), nil },
 		archiveExtension:      archiveExtension,
@@ -53,10 +53,10 @@ func NewArchiveCLIProviderFromBytes(archiveBytes []byte, archiveExtension string
 	}
 }
 
-// cliRunner is a CLI runner that runs a CLI that is provided by a CLIProvider. If the CLI exists at the expected
-// location, the runner runs it; otherwise, it extracts the CLI to the expected destination using the CLIProvider and
-// then runs it.
-type cliRunner struct {
+// packgedCLIRunner is a CLI runner that runs a CLI that is provided by a PackagedCLIProvider. If the CLI exists at the
+// expected location, the runner runs it; otherwise, it extracts the CLI to the expected destination using the
+// PackagedCLIProvider and then runs it.
+type packgedCLIRunner struct {
 	// name of the CLI
 	cliName string
 
@@ -71,24 +71,24 @@ type cliRunner struct {
 	workDir string
 
 	// cliProvider is the provider that extracts and writes the CLI if it does not exist.
-	cliProvider CLIProvider
+	cliProvider PackagedCLIProvider
 }
 
-var _ CLIRunner = (*cliRunner)(nil)
+var _ PackagedCLIRunner = (*packgedCLIRunner)(nil)
 
-func (r *cliRunner) EnsureCLIExistsAndReturnPath() (string, error) {
+func (r *packgedCLIRunner) EnsureCLIExistsAndReturnPath() (string, error) {
 	return r.cliPath(), r.ensureCLIExists()
 }
 
-func (r *cliRunner) cliNameVersion() string {
+func (r *packgedCLIRunner) cliNameVersion() string {
 	return fmt.Sprintf("%s-%s", r.cliName, r.cliVersion)
 }
 
-func (r *cliRunner) cliExtractDirPath() string {
+func (r *packgedCLIRunner) cliExtractDirPath() string {
 	return filepath.Join(r.workDir, r.cliNameVersion())
 }
 
-func (r *cliRunner) cliPath() string {
+func (r *packgedCLIRunner) cliPath() string {
 	return filepath.Join(r.cliExtractDirPath(), r.cliProvider.PathInExtractDir())
 }
 
@@ -97,7 +97,7 @@ func (r *cliRunner) cliPath() string {
 // provider to ensure that it does exist at the expected location. Obtains and holds a global file-based lock based on
 // the name and version of the CLI that locks across different processes/executables. Returns an error if the CLI does
 // not exist at the expected location and it was not possible to unarchive it.
-func (r *cliRunner) ensureCLIExists() error {
+func (r *packgedCLIRunner) ensureCLIExists() error {
 	installPkgLockFilePath := filepath.Join(r.workDir, fmt.Sprintf("install-%s.lock", r.cliNameVersion()))
 	installMutex := lockedfile.MutexAt(installPkgLockFilePath)
 	unlockFn, err := installMutex.Lock()
@@ -135,9 +135,9 @@ func (r *cliRunner) ensureCLIExists() error {
 	return nil
 }
 
-// CLIProvider provides a CLI. Supports extracting a CLI into a destination directory and returning the path in that
+// PackagedCLIProvider provides a CLI. Supports extracting a CLI into a destination directory and returning the path in that
 // directory to the executable CLI.
-type CLIProvider interface {
+type PackagedCLIProvider interface {
 	// ExtractCLI extracts the CLI into the provided directory.
 	ExtractCLI(destDir string) error
 
@@ -146,7 +146,7 @@ type CLIProvider interface {
 	PathInExtractDir() string
 }
 
-var _ CLIProvider = (*archiveCLIProvider)(nil)
+var _ PackagedCLIProvider = (*archiveCLIProvider)(nil)
 
 type archiveCLIProvider struct {
 	// function that returns an io.ReadCloser that provides the bytes for the content of this runner.
@@ -180,7 +180,7 @@ func (p *archiveCLIProvider) ExtractCLI(destDir string) error {
 	return nil
 }
 
-// extractArchive extracts the archive stored in the cliRunner to the provided dstDir.
+// extractArchive extracts the archive stored in the packgedCLIRunner to the provided dstDir.
 func (p *archiveCLIProvider) extractArchive(dstDir string, archiveReader io.Reader) error {
 	extractor, archiveReader, err := p.getArchiveExtractor(archiveReader)
 	if err != nil {
