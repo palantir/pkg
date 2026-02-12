@@ -1,0 +1,118 @@
+# github.com/STARRY-S/zip v0.2.3
+## explicit; go 1.23
+github.com/STARRY-S/zip
+# github.com/andybalholm/brotli v1.2.0
+## explicit; go 1.22
+github.com/andybalholm/brotli
+github.com/andybalholm/brotli/matchfinder
+# github.com/bodgit/plumbing v1.3.0
+## explicit; go 1.13
+github.com/bodgit/plumbing
+# github.com/bodgit/sevenzip v1.6.1
+## explicit; go 1.21
+github.com/bodgit/sevenzip
+github.com/bodgit/sevenzip/internal/aes7z
+github.com/bodgit/sevenzip/internal/bcj2
+github.com/bodgit/sevenzip/internal/bra
+github.com/bodgit/sevenzip/internal/brotli
+github.com/bodgit/sevenzip/internal/bzip2
+github.com/bodgit/sevenzip/internal/deflate
+github.com/bodgit/sevenzip/internal/delta
+github.com/bodgit/sevenzip/internal/lz4
+github.com/bodgit/sevenzip/internal/lzma
+github.com/bodgit/sevenzip/internal/lzma2
+github.com/bodgit/sevenzip/internal/pool
+github.com/bodgit/sevenzip/internal/util
+github.com/bodgit/sevenzip/internal/zstd
+# github.com/bodgit/windows v1.0.1
+## explicit; go 1.13
+github.com/bodgit/windows
+# github.com/dsnet/compress v0.0.2-0.20230904184137-39efe44ab707
+## explicit; go 1.9
+github.com/dsnet/compress
+github.com/dsnet/compress/bzip2
+github.com/dsnet/compress/bzip2/internal/sais
+github.com/dsnet/compress/internal
+github.com/dsnet/compress/internal/errors
+github.com/dsnet/compress/internal/prefix
+# github.com/hashicorp/golang-lru/v2 v2.0.7
+## explicit; go 1.18
+github.com/hashicorp/golang-lru/v2
+github.com/hashicorp/golang-lru/v2/internal
+github.com/hashicorp/golang-lru/v2/simplelru
+# github.com/klauspost/compress v1.18.0
+## explicit; go 1.22
+github.com/klauspost/compress
+github.com/klauspost/compress/flate
+github.com/klauspost/compress/fse
+github.com/klauspost/compress/gzip
+github.com/klauspost/compress/huff0
+github.com/klauspost/compress/internal/cpuinfo
+github.com/klauspost/compress/internal/godebug
+github.com/klauspost/compress/internal/le
+github.com/klauspost/compress/internal/race
+github.com/klauspost/compress/internal/snapref
+github.com/klauspost/compress/s2
+github.com/klauspost/compress/zip
+github.com/klauspost/compress/zlib
+github.com/klauspost/compress/zstd
+github.com/klauspost/compress/zstd/internal/xxhash
+# github.com/klauspost/pgzip v1.2.6
+## explicit
+github.com/klauspost/pgzip
+# github.com/mholt/archives v0.1.5
+## explicit; go 1.24.0
+github.com/mholt/archives
+# github.com/mikelolasagasti/xz v1.0.1
+## explicit; go 1.15
+github.com/mikelolasagasti/xz
+# github.com/minio/minlz v1.0.1
+## explicit; go 1.21
+github.com/minio/minlz
+github.com/minio/minlz/internal/race
+# github.com/nwaples/rardecode/v2 v2.2.0
+## explicit; go 1.21
+github.com/nwaples/rardecode/v2
+# github.com/pierrec/lz4/v4 v4.1.22
+## explicit; go 1.14
+github.com/pierrec/lz4/v4
+github.com/pierrec/lz4/v4/internal/lz4block
+github.com/pierrec/lz4/v4/internal/lz4errors
+github.com/pierrec/lz4/v4/internal/lz4stream
+github.com/pierrec/lz4/v4/internal/xxh32
+# github.com/pkg/errors v0.9.1
+## explicit
+github.com/pkg/errors
+# github.com/rogpeppe/go-internal v1.14.1
+## explicit; go 1.23
+github.com/rogpeppe/go-internal/internal/syscall/windows
+github.com/rogpeppe/go-internal/internal/syscall/windows/sysdll
+github.com/rogpeppe/go-internal/lockedfile
+github.com/rogpeppe/go-internal/lockedfile/internal/filelock
+# github.com/sorairolake/lzip-go v0.3.8
+## explicit; go 1.22
+github.com/sorairolake/lzip-go
+# github.com/spf13/afero v1.15.0
+## explicit; go 1.23.0
+github.com/spf13/afero
+github.com/spf13/afero/internal/common
+github.com/spf13/afero/mem
+# github.com/ulikunitz/xz v0.5.15
+## explicit; go 1.12
+github.com/ulikunitz/xz
+github.com/ulikunitz/xz/internal/hash
+github.com/ulikunitz/xz/internal/xlog
+github.com/ulikunitz/xz/lzma
+# go4.org v0.0.0-20230225012048-214862532bf5
+## explicit; go 1.13
+go4.org/readerutil
+# golang.org/x/text v0.29.0
+## explicit; go 1.24.0
+golang.org/x/text/encoding
+golang.org/x/text/encoding/internal
+golang.org/x/text/encoding/internal/identifier
+golang.org/x/text/encoding/unicode
+golang.org/x/text/internal/utf8internal
+golang.org/x/text/runes
+golang.org/x/text/transform
+golang.org/x/text/unicode/norm
