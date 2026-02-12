@@ -24,14 +24,13 @@ import (
 // extension that represents the format of the archive.
 //
 // Assumes that the archive contains a top-level directory named "{cliName}-{cliVersion}", and that the CLI executable
-// is at {cliName}-{cliVersion}/bin/{cliName}, with windowsExecutableExtension appended if the GOOS is windows. The
-// directory filepath.Join(os.TempDir(), "_"+cliName) is used as the package working directory.
+// is at {cliName}-{cliVersion}/bin/{cliName}, with ".bat" appended if the GOOS is windows. The directory
+// filepath.Join(os.TempDir(), "_"+cliName) is used as the package working directory.
 func NewDefaultPackagedCLIRunner(
 	cliName,
 	cliVersion string,
 	archiveBytes []byte,
-	archiveExtension,
-	windowsExecutableExtension string,
+	archiveExtension string,
 ) PackagedCLIRunner {
 	cliDirName := fmt.Sprintf("%s-%s", cliName, cliVersion)
 	return NewPackagedCLIRunner(
@@ -42,7 +41,7 @@ func NewDefaultPackagedCLIRunner(
 			archiveExtension,
 			AddExtensionForWindowsPathProvider(
 				filepath.Join(cliDirName, "bin", cliName),
-				windowsExecutableExtension,
+				".bat",
 			),
 		),
 	)
