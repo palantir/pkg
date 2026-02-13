@@ -59,6 +59,13 @@ executors:
       GOTOOLCHAIN: local
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/cli
 
+  standard-executor-clipackager:
+    docker:
+      - image: *image-version
+    environment:
+      GOTOOLCHAIN: local
+    working_directory: /home/circleci/go/src/github.com/palantir/pkg/clipackager
+
   standard-executor-cobracli:
     docker:
       - image: *image-version
@@ -241,6 +248,7 @@ requires_jobs: &requires_jobs
   - boolean-verify
   - bytesbuffers-verify
   - cli-verify
+  - clipackager-verify
   - cobracli-verify
   - datetime-verify
   - gittest-verify
@@ -340,6 +348,17 @@ workflows:
       - go-jobs/godel_verify:
           name: cli-verify
           executor: standard-executor-cli
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      <<: *checkout-path
+          <<: *all-tags-filter
+
+      # clipackager
+      - go-jobs/godel_verify:
+          name: clipackager-verify
+          executor: standard-executor-clipackager
           setup_steps:
             - go-jobs/default_setup_steps:
                 checkout_steps:
