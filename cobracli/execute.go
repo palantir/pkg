@@ -5,10 +5,15 @@
 package cobracli
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
+	"sort"
 	"strings"
 
+	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/spf13/cobra"
 )
 
@@ -204,4 +209,65 @@ func FlagErrorsUsageErrorConfigurer(command *cobra.Command) {
 	command.SetFlagErrorFunc(func(c *cobra.Command, err error) error {
 		return fmt.Errorf("%s\n%s", err.Error(), strings.TrimSuffix(c.UsageString(), "\n"))
 	})
+}
+
+// PrintInfoLevelErrorAndParamsWithDebugTransformer provides a cobra error handler that will print the error message and params as standard.
+// If the debugVar resolves to be present and true, instead the debugErrTransform function will be called to present the error.
+// Commonly, the debugErrTransform will be used with the errorstringer.StackWithInterleavedMessages function to print a stacktrace.
+func PrintInfoLevelErrorAndParamsWithDebugTransformer(debugVar *bool, debugErrTransform func(error) string) func(command *cobra.Command, err error) {
+	return func(command *cobra.Command, err error) {
+		if err == nil || err.Error() == "" {
+			return
+		}
+
+		var buf bytes.Buffer
+		// always print contents of buffer no matter what return path from function
+		defer func() {
+			if _, err := buf.WriteTo(command.ErrOrStderr()); err != nil {
+				_, _ = fmt.Fprintln(os.Stdout, "Error copying error buffer to file:", err.Error())
+				_, _ = fmt.Fprintln(os.Stdout, "Buffer:", buf.String())
+			}
+		}()
+
+		if debugVar != nil && *debugVar && debugErrTransform != nil {
+			// err always nil for bytes.Buffer.WriteString
+			_, _ = fmt.Fprintln(&buf, "Error:", debugErrTransform(err))
+			return
+		}
+		// err always nil for bytes.Buffer.WriteString
+		_, _ = fmt.Fprintln(&buf, "Error:", err.Error())
+		safe, unsafe := werror.ParamsFromError(err)
+		if len(safe) == 0 && len(unsafe) == 0 {
+			return
+		}
+		var keys []string
+		for key := range safe {
+			keys = append(keys, key)
+		}
+		for key := range unsafe {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		// writes to bytes.Buffer always return nil error
+		_, _ = fmt.Fprintln(&buf, "Error params:")
+		for _, key := range keys {
+			if val, ok := safe[key]; ok {
+				// writes to bytes.Buffer always return nil error
+				_, _ = fmt.Fprintln(&buf, formattedParamLine(key, val))
+			}
+			if val, ok := unsafe[key]; ok {
+				// writes to bytes.Buffer always return nil error
+				_, _ = fmt.Fprintln(&buf, formattedParamLine(key, val))
+			}
+		}
+	}
+}
+
+func formattedParamLine(key string, val interface{}) string {
+	marshalled, err := json.Marshal(val)
+	formattedVal := string(marshalled)
+	if err != nil {
+		formattedVal = fmt.Sprintf("error json marshalling parameter value: %s", err.Error())
+	}
+	return fmt.Sprintf("  %s: %s", key, formattedVal)
 }
