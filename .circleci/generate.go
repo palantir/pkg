@@ -2,7 +2,7 @@
 // +build generate
 
 // This program prints the CircleCI configuration for the "pkg" repository. Standard way to run it is to run
-// "go run generate.go {{parentDir}} > config.yml".
+// "go run generate.go ../ > config.yml" from the directory that contains this file (corresponds to "go run generate.go {{parentDir}} > config.yml").
 package main
 
 import (
