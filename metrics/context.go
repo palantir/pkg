@@ -12,31 +12,37 @@ type mContextKey string
 
 const (
 	registryKey = mContextKey("metrics-registry")
-	tagsKey     = mContextKey("metrics-tags")
 )
 
 var DefaultMetricsRegistry = NewRootMetricsRegistry()
 
 func WithRegistry(ctx context.Context, registry Registry) context.Context {
-	return context.WithValue(ctx, registryKey, registry)
+	if container, ok := ctx.Value(registryKey).(*registryContainer); ok {
+		return context.WithValue(ctx, registryKey, &registryContainer{
+			Registry: registry,
+			Tags:     container.Tags,
+		})
+	}
+	return context.WithValue(ctx, registryKey, &registryContainer{
+		Registry: registry,
+	})
 }
 
 func FromContext(ctx context.Context) Registry {
-	registry, ok := ctx.Value(registryKey).(Registry)
+	prev, ok := ctx.Value(registryKey).(*registryContainer)
 	if !ok {
-		registry = DefaultMetricsRegistry
+		return DefaultMetricsRegistry
 	}
-	rootRegistry, ok := registry.(*rootRegistry)
+	registry, ok := prev.Registry.(*rootRegistry)
 	if !ok {
-		return registry
+		return prev.Registry
 	}
-	tagsContainer, ok := ctx.Value(tagsKey).(*tagsContainer)
-	if !ok {
+	if len(prev.Tags) == 0 {
 		return registry
 	}
 	return &childRegistry{
-		root: rootRegistry,
-		tags: tagsContainer.Tags,
+		root: registry,
+		tags: prev.Tags,
 	}
 }
 
@@ -48,26 +54,31 @@ func AddTags(ctx context.Context, tags ...Tag) context.Context {
 	if len(tags) == 0 {
 		return ctx
 	}
-	container, ok := ctx.Value(tagsKey).(*tagsContainer)
+	container, ok := ctx.Value(registryKey).(*registryContainer)
 	if !ok || container == nil {
-		container = &tagsContainer{}
+		return context.WithValue(ctx, registryKey, &registryContainer{
+			Registry: DefaultMetricsRegistry,
+			Tags:     container.Tags,
+		})
 	}
 	newTags := make(Tags, len(container.Tags)+len(tags))
 	copy(newTags, container.Tags)
 	copy(newTags[len(container.Tags):], tags)
-	return context.WithValue(ctx, tagsKey, &tagsContainer{
-		Tags: newTags,
+	return context.WithValue(ctx, registryKey, &registryContainer{
+		Registry: container.Registry,
+		Tags:     newTags,
 	})
 }
 
 // TagsFromContext returns the tags stored on the provided context. May be nil if no tags have been set on the context.
 func TagsFromContext(ctx context.Context) Tags {
-	if tagsContainer, ok := ctx.Value(tagsKey).(*tagsContainer); ok {
-		return tagsContainer.Tags
+	if container, ok := ctx.Value(registryKey).(*registryContainer); ok {
+		return container.Tags
 	}
 	return nil
 }
 
-type tagsContainer struct {
-	Tags Tags
+type registryContainer struct {
+	Registry Registry
+	Tags     Tags
 }
