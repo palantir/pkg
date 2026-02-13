@@ -4,7 +4,6 @@ go 1.25.0
 
 require (
 	github.com/mholt/archives v0.1.5
-	github.com/pkg/errors v0.9.1
 	github.com/rogpeppe/go-internal v1.14.1
 )
 
