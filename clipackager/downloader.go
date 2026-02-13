@@ -53,14 +53,7 @@ func ensureFileWithChecksumExists(filepath, url string, checksumVerifier *Checks
 		return nil
 	}
 
-	out, err := os.Create(filepath)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		_ = out.Close()
-	}()
-
+	// download file from URL
 	resp, err := http.Get(url)
 	if err != nil {
 		return err
@@ -68,12 +61,24 @@ func ensureFileWithChecksumExists(filepath, url string, checksumVerifier *Checks
 	defer func() {
 		_ = resp.Body.Close()
 	}()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("expected status %d from GET to URL %s, got %d", http.StatusOK, url, resp.StatusCode)
+	}
 
 	reader := io.Reader(resp.Body)
 	if checksumVerifier != nil {
 		checksumVerifier.Hasher.Reset()
 		reader = io.TeeReader(resp.Body, checksumVerifier.Hasher)
 	}
+
+	// create output file
+	out, err := os.Create(filepath)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = out.Close()
+	}()
 
 	if _, err := io.Copy(out, reader); err != nil {
 		return err

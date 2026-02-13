@@ -7,15 +7,16 @@ package clipackager
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 
 	"github.com/mholt/archives"
-	"github.com/pkg/errors"
 	"github.com/rogpeppe/go-internal/lockedfile"
 )
 
@@ -133,7 +134,7 @@ func (r *packgedCLIRunner) cliPath() (string, error) {
 // the expected location and it was not possible to extract it.
 func (r *packgedCLIRunner) ensureCLIExists() error {
 	if err := os.MkdirAll(r.pkgWorkDir, 0755); err != nil {
-		return fmt.Errorf("os.MkdirAll failed for package work directory %s: %v", r.pkgWorkDir, err)
+		return fmt.Errorf("os.MkdirAll failed for package work directory %s: %w", r.pkgWorkDir, err)
 	}
 	installPkgLockFilePath := filepath.Join(r.pkgWorkDir, fmt.Sprintf("install-%s.lock", r.cliPkgName))
 	installMutex := lockedfile.MutexAt(installPkgLockFilePath)
@@ -158,14 +159,14 @@ func (r *packgedCLIRunner) ensureCLIExists() error {
 	// create further nested directories.
 	cliExtractDir := r.cliExtractDirPath()
 
-	// remove the CLI dir just in case of a previous bad install
+	// remove the extraction directory in case of a previous bad install
 	if err := os.RemoveAll(cliExtractDir); err != nil {
 		return fmt.Errorf("failed to remove destination dir %s: %w", cliExtractDir, err)
 	}
 
 	// extract the CLI into the destination directory
 	if err := r.cliProvider.ExtractCLI(cliExtractDir); err != nil {
-		return fmt.Errorf("failed to extract CLI int %s: %w", cliExtractDir, err)
+		return fmt.Errorf("failed to extract CLI into %s: %w", cliExtractDir, err)
 	}
 
 	// check that we can now find the CLI
@@ -179,7 +180,9 @@ func (r *packgedCLIRunner) ensureCLIExists() error {
 // PackagedCLIProvider provides a CLI. Supports extracting a CLI into a destination directory and returning the path in that
 // directory to the executable CLI.
 type PackagedCLIProvider interface {
-	// ExtractCLI extracts the CLI into the provided directory.
+	// ExtractCLI extracts the CLI into the provided directory. No file or directory should exist at the destination
+	// path when this function is called, the path returned by filepath.Dir(destDir) must be valid and exist. The
+	// operation should be implemented such that it either fully succeeds or does not create the directory at all.
 	ExtractCLI(destDir string) error
 
 	// PathInExtractDir returns the path to the CLI in the extraction directory. The CLI executable should exist at the
@@ -233,6 +236,25 @@ func (p *archiveCLIProvider) PathInExtractDir() (string, error) {
 }
 
 func (p *archiveCLIProvider) ExtractCLI(destDir string) error {
+	// precondition of function is that destDir must not already exist
+	if _, err := os.Stat(destDir); err == nil {
+		return fmt.Errorf("%s already exists", destDir)
+	}
+
+	// precondition of function is that parent of destDir must exist
+	parentDir := filepath.Dir(destDir)
+	if _, err := os.Stat(parentDir); errors.Is(err, fs.ErrNotExist) {
+		return fmt.Errorf("parent directory %s does not exist", parentDir)
+	}
+
+	// Create a temporary directory into which archive is extracted.
+	// Create the directory in parentDir to ensure that it is in the same volume as the destination.
+	tmpExtractDir, err := os.MkdirTemp(parentDir, fmt.Sprintf("%s-tmp-*", filepath.Base(destDir)))
+	if err != nil {
+		return fmt.Errorf("failed to create temporary directory %s: %w", tmpExtractDir, err)
+	}
+
+	// extract archive into temporary extraction directory
 	archiveReader, err := p.archiveByteProvider()
 	if err != nil {
 		return fmt.Errorf("failed to create archive byte reader: %w", err)
@@ -240,10 +262,17 @@ func (p *archiveCLIProvider) ExtractCLI(destDir string) error {
 	defer func() {
 		_ = archiveReader.Close()
 	}()
-	// extract archive to destination
-	if err := p.extractArchive(destDir, archiveReader); err != nil {
-		return errors.Wrap(err, "failed to extract CLI archive")
+	if err := p.extractArchive(tmpExtractDir, archiveReader); err != nil {
+		return fmt.Errorf("failed to extract CLI archive: %w", err)
 	}
+
+	// rename temporary extraction directory to actual destination directory.
+	// Done so that this part of the operation is atomic and destination directory is either created with full archive
+	// content or not created at all.
+	if err := os.Rename(tmpExtractDir, destDir); err != nil {
+		return fmt.Errorf("failed to move temporary extraction directory %s to %s: %w", tmpExtractDir, destDir, err)
+	}
+
 	return nil
 }
 
@@ -302,7 +331,7 @@ func (p *archiveCLIProvider) extractArchive(dstDir string, archiveReader io.Read
 func (p *archiveCLIProvider) getArchiveExtractor(archiveReader io.Reader) (archives.Extractor, io.Reader, error) {
 	var filenameForID string
 	if p.archiveExtension != "" {
-		filenameForID = "archive-cli-provider." + p.archiveExtension
+		filenameForID = "archive-cli-provider" + p.archiveExtension
 	}
 
 	var (

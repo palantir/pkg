@@ -7,11 +7,11 @@ package clipackager
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -143,6 +143,12 @@ func TestEnsureFileWithSHA256ChecksumExists(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error when directory exists at file path, got nil")
 		}
+
+		// Verify exact error message
+		expectedErr := fmt.Sprintf("%s is not a regular file: has mode %s", testFile, os.ModeDir|0755)
+		if err.Error() != expectedErr {
+			t.Errorf("error message mismatch:\nwant: %q\ngot:  %q", expectedErr, err.Error())
+		}
 	})
 
 	t.Run("returns error when downloaded content has incorrect checksum", func(t *testing.T) {
@@ -162,9 +168,46 @@ func TestEnsureFileWithSHA256ChecksumExists(t *testing.T) {
 			t.Fatal("expected error when downloaded content has incorrect checksum, got nil")
 		}
 
-		// Verify error message mentions checksum mismatch
-		if !strings.Contains(err.Error(), "checksum") {
-			t.Errorf("expected error message to mention checksum, got: %v", err)
+		// Calculate actual checksum of bad content
+		badHasher := sha256.New()
+		badHasher.Write(badContent)
+		badChecksum := badHasher.Sum(nil)
+
+		// Decode expected checksum bytes
+		wantChecksumBytes, _ := hex.DecodeString(expectedChecksum)
+
+		// Verify exact error message
+		expectedErr := fmt.Sprintf("file downloaded from %s had checksum %x, wanted %x", badServer.URL, badChecksum, wantChecksumBytes)
+		if err.Error() != expectedErr {
+			t.Errorf("error message mismatch:\nwant: %q\ngot:  %q", expectedErr, err.Error())
+		}
+	})
+
+	t.Run("returns error when HTTP server responds with non-200 status", func(t *testing.T) {
+		tempDir := t.TempDir()
+		testFile := filepath.Join(tempDir, "test-http-error.bin")
+
+		// Create server that returns 404 Not Found
+		errorServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte("Not Found"))
+		}))
+		defer errorServer.Close()
+
+		err := EnsureFileWithSHA256ChecksumExists(testFile, errorServer.URL, expectedChecksum)
+		if err == nil {
+			t.Fatal("expected error when HTTP server responds with non-200 status, got nil")
+		}
+
+		// Verify exact error message
+		expectedErr := fmt.Sprintf("expected status %d from GET to URL %s, got %d", http.StatusOK, errorServer.URL, http.StatusNotFound)
+		if err.Error() != expectedErr {
+			t.Errorf("error message mismatch:\nwant: %q\ngot:  %q", expectedErr, err.Error())
+		}
+
+		// Verify file was not created
+		if _, err := os.Stat(testFile); err == nil {
+			t.Error("file should not exist after failed download")
 		}
 	})
 }
