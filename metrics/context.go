@@ -58,7 +58,7 @@ func AddTags(ctx context.Context, tags ...Tag) context.Context {
 	if !ok || container == nil {
 		return context.WithValue(ctx, registryKey, &registryContainer{
 			Registry: DefaultMetricsRegistry,
-			Tags:     container.Tags,
+			Tags:     tags,
 		})
 	}
 	newTags := make(Tags, len(container.Tags)+len(tags))
