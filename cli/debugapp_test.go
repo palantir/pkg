@@ -50,6 +50,7 @@ func TestNewDebugApp(t *testing.T) {
 		{err: testExitCoder{error: fmt.Errorf("foo"), exitCode: 2}, wantExitCode: 2, errorStringer: testErrorStringer, wantDebugFalse: "^foo\n$", wantDebugTrue: "^error-stringer\n$"},
 	} {
 		app := cli.NewApp(cli.DebugHandler(currCase.errorStringer))
+		app.AllowRoot = true
 		app.Action = func(ctx cli.Context) error {
 			return currCase.err
 		}
