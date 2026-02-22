@@ -200,8 +200,10 @@ func TestNewMultiFileRefreshableCanMap(t *testing.T) {
 		return byteSlices, nil
 	})
 	assert.NoError(t, err)
-	additionalByteSlice := New([]byte("additional"))
-	merged, _ := Merge(aggregateToList, additionalByteSlice, func(t1 [][]byte, t2 []byte) [][]byte {
+	additionalByteSlice, _, _ := MapWithError(New([]byte("additional")), func(a []byte) ([]byte, error) {
+		return a, nil
+	})
+	merged, _ := MergeValidated(aggregateToList, additionalByteSlice, func(t1 [][]byte, t2 []byte) [][]byte {
 		return append(t1, t2)
 	})
 	current := merged.Current()
