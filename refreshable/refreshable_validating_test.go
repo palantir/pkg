@@ -29,7 +29,7 @@ func TestValidatingRefreshable(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "value", v.Value)
 	require.Equal(t, "value", r.Current().Value)
-	require.Equal(t, "value", vr.Current().Value)
+	require.Equal(t, "value", vr.LastCurrent().Value)
 
 	// attempt bad update
 	r.Update(container{})
@@ -37,39 +37,43 @@ func TestValidatingRefreshable(t *testing.T) {
 	v, err = vr.Validation()
 	require.EqualError(t, err, "empty", "expected validation error")
 	require.Equal(t, "", v.Value, "expected invalid value from Validation")
-	require.Equal(t, vr.Current().Value, "value", "expected unchanged validating refreshable")
+	require.Equal(t, vr.LastCurrent().Value, "value", "expected unchanged validating refreshable")
 
 	// attempt good update
 	r.Update(container{Value: "value2"})
 	v, err = vr.Validation()
 	require.NoError(t, err)
 	require.Equal(t, "value2", v.Value)
-	require.Equal(t, "value2", vr.Current().Value)
+	require.Equal(t, "value2", vr.LastCurrent().Value)
 	require.Equal(t, "value2", r.Current().Value)
 }
 
 func TestMapValidatingRefreshable(t *testing.T) {
+	parsed, err := url.Parse("https://palantir.com:443")
+	require.NoError(t, err)
 	r := refreshable.New("https://palantir.com:443")
 	vr, _, err := refreshable.MapWithError[string, *url.URL](r, url.Parse)
 	require.NoError(t, err)
-	_, err = vr.Validation()
+	val, err := vr.Validation()
 	require.NoError(t, err)
 	require.Equal(t, r.Current(), "https://palantir.com:443")
-	require.Equal(t, vr.Current().Hostname(), "palantir.com")
+	require.Equal(t, val, parsed)
+	require.Equal(t, vr.LastCurrent().Hostname(), "palantir.com")
 
 	// attempt bad update
 	r.Update(":::error.com")
 	assert.Equal(t, r.Current(), ":::error.com")
-	_, err = vr.Validation()
+	val, err = vr.Validation()
+	assert.Nil(t, val)
 	require.EqualError(t, err, "parse \":::error.com\": missing protocol scheme", "expected err from validating refreshable")
-	assert.Equal(t, vr.Current().Hostname(), "palantir.com", "expected unchanged validating refreshable")
+	assert.Equal(t, vr.LastCurrent().Hostname(), "palantir.com", "expected unchanged validating refreshable")
 
 	// attempt good update
 	r.Update("https://example.com")
 	_, err = vr.Validation()
 	require.NoError(t, err)
 	require.Equal(t, r.Current(), "https://example.com")
-	require.Equal(t, vr.Current().Hostname(), "example.com")
+	require.Equal(t, vr.LastCurrent().Hostname(), "example.com")
 }
 
 // TestValidatingRefreshable_SubscriptionRaceCondition tests that the ValidatingRefreshable stays current
@@ -91,7 +95,7 @@ func TestValidatingRefreshable_SubscriptionRaceCondition(t *testing.T) {
 	require.NoError(t, err)
 	// If this returns 1, it is likely because the VR contains a stale value
 	assert.Eventually(t, func() bool {
-		return vr.Current() == 2
+		return vr.LastCurrent() == 2
 	}, time.Second, time.Millisecond)
 
 	assert.True(t, seen1, "expected to process 1 value")

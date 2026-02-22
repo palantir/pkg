@@ -14,7 +14,7 @@ type validRefreshableContainer[T any] struct {
 	lastErr     error
 }
 
-func (v *validRefreshable[T]) Current() T { return v.r.Current().validated }
+func (v *validRefreshable[T]) LastCurrent() T { return v.r.Current().validated }
 
 func (v *validRefreshable[T]) Subscribe(consumer func(T)) UnsubscribeFunc {
 	return v.r.Subscribe(func(val validRefreshableContainer[T]) {

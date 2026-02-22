@@ -28,7 +28,7 @@ func TestNewFileRefreshable(t *testing.T) {
 	require.Error(t, err)
 	require.True(t, os.IsNotExist(err))
 	require.Empty(t, curr)
-	require.Empty(t, refreshableFile.Current())
+	require.Empty(t, refreshableFile.LastCurrent())
 
 	// Create file.
 	require.NoError(t, os.WriteFile(filename, []byte("test"), 0644))
@@ -37,7 +37,7 @@ func TestNewFileRefreshable(t *testing.T) {
 		curr, err := refreshableFile.Validation()
 		require.NoError(t, err)
 		require.Equal(t, "test", string(curr))
-		require.Equal(t, "test", string(refreshableFile.Current()))
+		require.Equal(t, "test", string(refreshableFile.LastCurrent()))
 	}, time.Second, 10*time.Millisecond)
 
 	// Update file.
@@ -47,7 +47,7 @@ func TestNewFileRefreshable(t *testing.T) {
 		curr, err := refreshableFile.Validation()
 		require.NoError(t, err)
 		require.Equal(t, "test2", string(curr))
-		require.Equal(t, "test2", string(refreshableFile.Current()))
+		require.Equal(t, "test2", string(refreshableFile.LastCurrent()))
 	}, time.Second, 10*time.Millisecond)
 
 	// Delete file.
@@ -58,7 +58,7 @@ func TestNewFileRefreshable(t *testing.T) {
 		require.Error(t, err)
 		require.True(t, os.IsNotExist(err))
 		require.Empty(t, curr)
-		require.Equal(t, "test2", string(refreshableFile.Current()))
+		require.Equal(t, "test2", string(refreshableFile.LastCurrent()))
 	}, time.Second, 10*time.Millisecond)
 
 	// Create file.
@@ -68,7 +68,7 @@ func TestNewFileRefreshable(t *testing.T) {
 		curr, err := refreshableFile.Validation()
 		require.NoError(t, err)
 		require.Equal(t, "test3", string(curr))
-		require.Equal(t, "test3", string(refreshableFile.Current()))
+		require.Equal(t, "test3", string(refreshableFile.LastCurrent()))
 	}, time.Second, 10*time.Millisecond)
 }
 
@@ -101,7 +101,7 @@ func TestNewFileRefreshableWithReaderFunc(t *testing.T) {
 	require.Error(t, err)
 	require.True(t, os.IsNotExist(err))
 	require.Empty(t, curr)
-	require.Empty(t, refreshableFile.Current())
+	require.Empty(t, refreshableFile.LastCurrent())
 
 	// Create file with lowercase content.
 	require.NoError(t, os.WriteFile(filename, []byte("test"), 0644))
@@ -110,7 +110,7 @@ func TestNewFileRefreshableWithReaderFunc(t *testing.T) {
 		curr, err := refreshableFile.Validation()
 		require.NoError(t, err)
 		require.Equal(t, "TEST", string(curr)) // Should be uppercased
-		require.Equal(t, "TEST", string(refreshableFile.Current()))
+		require.Equal(t, "TEST", string(refreshableFile.LastCurrent()))
 	}, time.Second, 10*time.Millisecond)
 
 	// Update file.
@@ -120,7 +120,7 @@ func TestNewFileRefreshableWithReaderFunc(t *testing.T) {
 		curr, err := refreshableFile.Validation()
 		require.NoError(t, err)
 		require.Equal(t, "HELLO WORLD", string(curr)) // Should be uppercased
-		require.Equal(t, "HELLO WORLD", string(refreshableFile.Current()))
+		require.Equal(t, "HELLO WORLD", string(refreshableFile.LastCurrent()))
 	}, time.Second, 10*time.Millisecond)
 
 	// Delete file - Current() should retain last valid value.
@@ -131,7 +131,7 @@ func TestNewFileRefreshableWithReaderFunc(t *testing.T) {
 		require.Error(t, err)
 		require.True(t, os.IsNotExist(err))
 		require.Empty(t, curr)
-		require.Equal(t, "HELLO WORLD", string(refreshableFile.Current()))
+		require.Equal(t, "HELLO WORLD", string(refreshableFile.LastCurrent()))
 	}, time.Second, 10*time.Millisecond)
 }
 
@@ -147,26 +147,26 @@ func TestNewMultiFileRefreshable(t *testing.T) {
 	paths := New(map[string]struct{}{file1: {}, file2: {}})
 	multiFile := NewMultiFileRefreshable(ctx, paths)
 	require.EventuallyWithT(t, func(t *assert.CollectT) {
-		current := multiFile.Current()
+		current := multiFile.LastCurrent()
 		assert.Equal(t, []byte("content1"), current[file1])
 		assert.Equal(t, []byte("content2"), current[file2])
 		assert.Len(t, current, 2)
 	}, 2*time.Second, 10*time.Millisecond)
 	paths.Update(map[string]struct{}{file1: {}, file2: {}, file3: {}})
 	require.EventuallyWithT(t, func(t *assert.CollectT) {
-		current := multiFile.Current()
+		current := multiFile.LastCurrent()
 		assert.Equal(t, []byte("content3"), current[file3])
 		assert.Len(t, current, 3)
 	}, 2*time.Second, 10*time.Millisecond)
 	paths.Update(map[string]struct{}{file1: {}})
 	require.EventuallyWithT(t, func(t *assert.CollectT) {
-		current := multiFile.Current()
+		current := multiFile.LastCurrent()
 		assert.Equal(t, []byte("content1"), current[file1])
 		assert.Len(t, current, 1)
 	}, 2*time.Second, 10*time.Millisecond)
 	require.NoError(t, os.WriteFile(file1, []byte("updated1"), 0644))
 	require.EventuallyWithT(t, func(t *assert.CollectT) {
-		current := multiFile.Current()
+		current := multiFile.LastCurrent()
 		assert.Equal(t, []byte("updated1"), current[file1])
 	}, 2*time.Second, 10*time.Millisecond)
 }
@@ -180,7 +180,7 @@ func TestNewMultiFileRefreshableValidationError(t *testing.T) {
 	_, err := multiFile.Validation()
 	require.Error(t, err)
 	require.True(t, errors.Is(err, os.ErrNotExist) || errors.Is(err, syscall.ENOENT))
-	current := multiFile.Current()
+	current := multiFile.LastCurrent()
 	require.Empty(t, current)
 }
 
@@ -192,13 +192,14 @@ func TestNewMultiFileRefreshableCanMap(t *testing.T) {
 	require.NoError(t, os.WriteFile(file1, []byte("content1"), 0644))
 	require.NoError(t, os.WriteFile(file2, []byte("content2"), 0644))
 	paths := New(map[string]struct{}{file1: {}, file2: {}})
-	aggregateToList, _ := Map(NewMultiFileRefreshable(ctx, paths), func(t map[string][]byte) [][]byte {
+	aggregateToList, _, err := MapValidated(NewMultiFileRefreshable(ctx, paths), func(t map[string][]byte) ([][]byte, error) {
 		var byteSlices [][]byte
 		for _, v := range t {
 			byteSlices = append(byteSlices, v)
 		}
-		return byteSlices
+		return byteSlices, nil
 	})
+	assert.NoError(t, err)
 	additionalByteSlice := New([]byte("additional"))
 	merged, _ := Merge(aggregateToList, additionalByteSlice, func(t1 [][]byte, t2 []byte) [][]byte {
 		return append(t1, t2)
