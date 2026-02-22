@@ -36,20 +36,9 @@ func NewFileRefreshableWithTicker(ctx context.Context, filePath string, updateTi
 // The readerFunc is called once initially and then on each tick until the context is cancelled.
 // If reading fails, the Current() value will be unchanged. The error is present in v.Validation().
 func NewFileRefreshableWithReaderFunc(ctx context.Context, filePath string, updateTicker <-chan time.Time, readerFunc func(string) ([]byte, error)) Validated[[]byte] {
-	v := newValidRefreshable[[]byte]()
-	updateValidRefreshable(v, filePath, readerFunc)
-	go func() {
-		for {
-			select {
-			case <-updateTicker:
-				// Read file and update refreshable. If readerFunc fails, the error is present in v.Validation().
-				updateValidRefreshable(v, filePath, readerFunc)
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
-	return v
+	return NewRefreshableTicker(ctx, updateTicker, func() ([]byte, error) {
+		return readerFunc(filePath)
+	})
 }
 
 // NewMultiFileRefreshable creates a Validated Refreshable that tracks the contents of multiple files.
