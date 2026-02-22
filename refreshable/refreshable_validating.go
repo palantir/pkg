@@ -4,7 +4,9 @@
 
 package refreshable
 
-import "errors"
+import (
+	"errors"
+)
 
 type validRefreshable[T any] struct {
 	r Updatable[validRefreshableContainer[T]]
@@ -49,10 +51,10 @@ func updateValidRefreshable[T any, M any](valid *validRefreshable[M], value T, m
 	updateValidRefreshableWithParents(valid, value, nil, mapFn)
 }
 
-func updateValidRefreshableWithParents[T any, M any](valid *validRefreshable[M], value T, lastErr error, mapFn func(T) (M, error)) {
+func updateValidRefreshableWithParents[T any, M any](valid *validRefreshable[M], value T, validatedParentError error, mapFn func(T) (M, error)) {
 	validated := valid.r.Current().validated
-	unvalidated, err := mapFn(value)
-	err = errors.Join(lastErr, err)
+	unvalidated, mapperErr := mapFn(value)
+	err := getError(mapperErr, validatedParentError)
 	if err == nil {
 		validated = unvalidated
 	}
@@ -61,6 +63,19 @@ func updateValidRefreshableWithParents[T any, M any](valid *validRefreshable[M],
 		unvalidated: unvalidated,
 		lastErr:     err,
 	})
+}
+
+func getError(mapperErr, validatedParentError error) error {
+	if mapperErr == nil && validatedParentError == nil {
+		return nil
+	}
+	if mapperErr != nil && validatedParentError != nil {
+		return errors.Join(mapperErr, validatedParentError)
+	}
+	if mapperErr != nil {
+		return mapperErr
+	}
+	return validatedParentError
 }
 
 // identity is a validating map function that returns its input argument type.
