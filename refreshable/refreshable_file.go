@@ -85,13 +85,16 @@ func (d *statFileChangeDetector) ShouldUpdate(ctx context.Context, filePath stri
 	if err != nil {
 		return true
 	}
-	if resolvedPath == d.lastResolvedPath && info.ModTime().Equal(d.lastModTime) && info.Size() == d.lastSize {
-		return false
+	if resolvedPath != d.lastResolvedPath || !info.ModTime().Equal(d.lastModTime) || info.Size() != d.lastSize {
+		d.lastResolvedPath = resolvedPath
+		d.lastModTime = info.ModTime()
+		d.lastSize = info.Size()
+		return true
 	}
-	d.lastResolvedPath = resolvedPath
-	d.lastModTime = info.ModTime()
-	d.lastSize = info.Size()
-	return true
+	// Filesystem time granularity varies (e.g., some filesystems use second-level precision).
+	// If the file was modified recently, we cannot trust that the mod time distinguishes
+	// two distinct writes of the same size. Force a re-read until the mod time ages out.
+	return time.Since(info.ModTime()) < 2*time.Second
 }
 
 // NewMultiFileRefreshable creates a Validated Refreshable that tracks the contents of multiple files.
