@@ -6,6 +6,7 @@ package refreshable
 
 import (
 	"errors"
+	"sync"
 )
 
 type validRefreshable[T any] struct {
@@ -102,6 +103,67 @@ func MapValidated[T any, M any](original Validated[T], mapFn func(T) (M, error))
 	stop := subscribeValidRefreshable(v, original, mapFn)
 	_, err := v.Validation()
 	return v, stop, err
+}
+
+// ValidatedAddFunc is a function that adds a new Validated to a collection.
+type ValidatedAddFunc[T any] func(Validated[T])
+
+// CollectValidated returns a new Validated that combines the latest values of multiple Validated refreshables into a slice.
+// The returned Validated is updated whenever any of the original Validated refreshables updates.
+// The unsubscribe function removes subscriptions from all original Validated refreshables.
+func CollectValidated[T any](list ...Validated[T]) (Validated[[]T], UnsubscribeFunc) {
+	out, _, unsub := CollectValidatedMutable(list...)
+	return out, unsub
+}
+
+// CollectValidatedMutable returns a new Validated that combines the latest values of multiple Validated refreshables into a slice.
+// The returned Validated is updated whenever any of the Validated refreshables updates.
+// The add function allows adding new Validated refreshables to the collection after creation.
+// The unsubscribe function removes subscriptions from all Validated refreshables in the collection.
+func CollectValidatedMutable[T any](list ...Validated[T]) (Validated[[]T], ValidatedAddFunc[T], UnsubscribeFunc) {
+	out := newValidRefreshable[[]T]()
+	var mu sync.RWMutex
+	validateds := make([]Validated[T], len(list))
+	copy(validateds, list)
+	stops := make([]UnsubscribeFunc, 0, len(list))
+	doUpdate := func() {
+		mu.RLock()
+		current := make([]T, len(validateds))
+		var errs []error
+		for i := range validateds {
+			current[i] = validateds[i].LastCurrent()
+			if _, err := validateds[i].Validation(); err != nil {
+				errs = append(errs, err)
+			}
+		}
+		mu.RUnlock()
+		joined := errors.Join(errs...)
+		if joined == nil {
+			out.r.Update(validRefreshableContainer[[]T]{validated: current, unvalidated: current, lastErr: nil})
+		} else {
+			out.r.Update(validRefreshableContainer[[]T]{validated: out.r.Current().validated, unvalidated: current, lastErr: joined})
+		}
+	}
+	for _, r := range validateds {
+		stops = append(stops, r.SubscribeValidated(func(T, error) { doUpdate() }))
+	}
+	add := func(r Validated[T]) {
+		mu.Lock()
+		validateds = append(validateds, r)
+		mu.Unlock()
+		// Subscribe outside of lock since it immediately invokes the callback
+		stop := r.SubscribeValidated(func(T, error) { doUpdate() })
+		mu.Lock()
+		stops = append(stops, stop)
+		mu.Unlock()
+	}
+	return out, add, func() {
+		mu.Lock()
+		defer mu.Unlock()
+		for _, stop := range stops {
+			stop()
+		}
+	}
 }
 
 func MergeValidated[T1 any, T2 any, R any](original1 Validated[T1], original2 Validated[T2], mergeFn func(T1, T2) R) (Validated[R], UnsubscribeFunc) {
