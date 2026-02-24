@@ -7,8 +7,10 @@ package refreshable
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"syscall"
 	"testing"
 	"time"
@@ -305,6 +307,45 @@ func TestRefreshableFileCanFollowMovingSymLink(t *testing.T) {
 	assert.EventuallyWithT(t, func(t *assert.CollectT) {
 		assert.Equal(t, "renderConf2", string(r.Current()))
 	}, time.Second, 10*time.Millisecond)
+}
+
+func TestFileRefreshableTransientReadError(t *testing.T) {
+	ctx := t.Context()
+	dir := t.TempDir()
+	filename := filepath.Join(dir, "file.txt")
+	ticker := make(chan time.Time, 1)
+	var failRead atomic.Bool
+	readerFunc := func(path string) ([]byte, error) {
+		if failRead.Load() {
+			return nil, fmt.Errorf("transient read error")
+		}
+		return os.ReadFile(path)
+	}
+	// Write initial content and create the refreshable.
+	require.NoError(t, os.WriteFile(filename, []byte("initial"), 0644))
+	refreshableFile := NewFileRefreshableWithReaderFunc(ctx, filename, ticker, readerFunc)
+	curr, err := refreshableFile.Validation()
+	require.NoError(t, err)
+	require.Equal(t, "initial", string(curr))
+	// Update file content and arm reader to fail.
+	require.NoError(t, os.WriteFile(filename, []byte("updated"), 0644))
+	failRead.Store(true)
+	ticker <- time.Now()
+	require.EventuallyWithT(t, func(t *assert.CollectT) {
+		_, err := refreshableFile.Validation()
+		assert.Error(t, err)
+	}, time.Second, 10*time.Millisecond)
+	// Current() should still return old value.
+	require.Equal(t, "initial", string(refreshableFile.Current()))
+	// Disarm the failure and tick again — detector should retry since MarkUpdated was never called.
+	failRead.Store(false)
+	ticker <- time.Now()
+	require.EventuallyWithT(t, func(t *assert.CollectT) {
+		curr, err := refreshableFile.Validation()
+		assert.NoError(t, err)
+		assert.Equal(t, "updated", string(curr))
+	}, time.Second, 10*time.Millisecond)
+	require.Equal(t, "updated", string(refreshableFile.Current()))
 }
 
 func getStringFromRefreshable(t *testing.T, r Refreshable[[]byte]) string {
