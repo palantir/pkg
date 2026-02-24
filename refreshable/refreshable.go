@@ -108,27 +108,6 @@ func MapWithError[T any, M any](original Refreshable[T], mapFn func(T) (M, error
 	return v, stop, err
 }
 
-func ValidatedFromRefreshable[M any](original Refreshable[M]) Validated[M] {
-	valid := &validRefreshable[M]{
-		r: newDefault(validRefreshableContainer[M]{}),
-	}
-	original.Subscribe(func(m M) {
-		valid.r.Update(validRefreshableContainer[M]{
-			validated:   m,
-			unvalidated: m,
-			lastErr:     nil,
-		})
-	})
-	return valid
-}
-
-func MapValidated[T any, M any](original Validated[T], mapFn func(T) (M, error)) (Validated[M], UnsubscribeFunc, error) {
-	v := newValidRefreshable[M]()
-	stop := subscribeValidRefreshable(v, original, mapFn)
-	_, err := v.Validation()
-	return v, stop, err
-}
-
 // Validate returns a new Refreshable that returns the latest original value accepted by the validatingFn.
 // If the upstream value results in an error, it is reported by Validation().
 // An error is returned if the current original value is invalid.
@@ -146,19 +125,6 @@ func Merge[T1 any, T2 any, R any](original1 Refreshable[T1], original2 Refreshab
 	}
 	stop1 := original1.Subscribe(func(T1) { doUpdate() })
 	stop2 := original2.Subscribe(func(T2) { doUpdate() })
-	return out.readOnly(), func() {
-		stop1()
-		stop2()
-	}
-}
-
-func MergeValidated[T1 any, T2 any, R any](original1 Validated[T1], original2 Validated[T2], mergeFn func(T1, T2) R) (Refreshable[R], UnsubscribeFunc) {
-	out := newZero[R]()
-	doUpdate := func() {
-		out.Update(mergeFn(original1.LastCurrent(), original2.LastCurrent()))
-	}
-	stop1 := original1.SubscribeValidated(func(T1, error) { doUpdate() })
-	stop2 := original2.SubscribeValidated(func(T2, error) { doUpdate() })
 	return out.readOnly(), func() {
 		stop1()
 		stop2()

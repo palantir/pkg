@@ -206,7 +206,7 @@ func TestNewMultiFileRefreshableCanMap(t *testing.T) {
 	merged, _ := MergeValidated(aggregateToList, additionalByteSlice, func(t1 [][]byte, t2 []byte) [][]byte {
 		return append(t1, t2)
 	})
-	current := merged.Current()
+	current := merged.LastCurrent()
 	require.Equal(t, 3, len(current))
 	// Map iteration order is non-deterministic, so check contents without assuming order
 	contents := make(map[string]bool)

@@ -82,3 +82,45 @@ func getError(mapperErr, validatedParentError error) error {
 func identity[T any](validatingFn func(T) error) func(i T) (T, error) {
 	return func(i T) (T, error) { return i, validatingFn(i) }
 }
+
+func ValidatedFromRefreshable[M any](original Refreshable[M]) Validated[M] {
+	valid := &validRefreshable[M]{
+		r: newDefault(validRefreshableContainer[M]{}),
+	}
+	original.Subscribe(func(m M) {
+		valid.r.Update(validRefreshableContainer[M]{
+			validated:   m,
+			unvalidated: m,
+			lastErr:     nil,
+		})
+	})
+	return valid
+}
+
+func MapValidated[T any, M any](original Validated[T], mapFn func(T) (M, error)) (Validated[M], UnsubscribeFunc, error) {
+	v := newValidRefreshable[M]()
+	stop := subscribeValidRefreshable(v, original, mapFn)
+	_, err := v.Validation()
+	return v, stop, err
+}
+
+func MergeValidated[T1 any, T2 any, R any](original1 Validated[T1], original2 Validated[T2], mergeFn func(T1, T2) R) (Validated[R], UnsubscribeFunc) {
+	out := newValidRefreshable[R]()
+	doUpdate := func() {
+		merged := mergeFn(original1.LastCurrent(), original2.LastCurrent())
+		_, err1 := original1.Validation()
+		_, err2 := original2.Validation()
+		err := getError(err1, err2)
+		if err == nil {
+			out.r.Update(validRefreshableContainer[R]{validated: merged, unvalidated: merged, lastErr: nil})
+		} else {
+			out.r.Update(validRefreshableContainer[R]{validated: out.r.Current().validated, unvalidated: merged, lastErr: err})
+		}
+	}
+	stop1 := original1.SubscribeValidated(func(T1, error) { doUpdate() })
+	stop2 := original2.SubscribeValidated(func(T2, error) { doUpdate() })
+	return out, func() {
+		stop1()
+		stop2()
+	}
+}
