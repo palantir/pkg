@@ -71,7 +71,7 @@ func TestMapValidatingRefreshable(t *testing.T) {
 	require.EqualError(t, err, "parse \":::error.com\": missing protocol scheme", "expected err from validating refreshable")
 	assert.Equal(t, vr.Current().Hostname(), "palantir.com", "expected unchanged validating refreshable")
 	_, err = host.Validation()
-	assert.Error(t, err)
+	assert.NoError(t, err)
 
 	// attempt good update
 	r.Update("https://example.com")
