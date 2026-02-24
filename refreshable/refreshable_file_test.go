@@ -21,7 +21,6 @@ const (
 	testStr1              = "renderConf1"
 	testStr2              = "renderConf2"
 	refreshableSyncPeriod = time.Millisecond * 100
-	sleepPeriod           = time.Millisecond * 175
 )
 
 func TestNewFileRefreshable(t *testing.T) {
@@ -241,9 +240,9 @@ func TestRefreshableFileCanFollowSymLink(t *testing.T) {
 	assert.Equal(t, str, "renderConf1")
 	// Update the actual file
 	require.NoError(t, os.WriteFile(fileToWriteActual, []byte(testStr2), 0644))
-	time.Sleep(sleepPeriod)
-	str = getStringFromRefreshable(t, r)
-	assert.Equal(t, str, "renderConf2")
+	assert.EventuallyWithT(t, func(t *assert.CollectT) {
+		assert.Equal(t, "renderConf2", string(r.Current()))
+	}, time.Second, 10*time.Millisecond)
 }
 
 // Verifies that a RefreshableFile can follow a symlink to a symlink when the original file updates
@@ -268,9 +267,9 @@ func TestRefreshableFileCanFollowMultipleSymLinks(t *testing.T) {
 	assert.Equal(t, str, "renderConf1")
 	// Update the symlink file
 	require.NoError(t, os.WriteFile(fileToWriteActual, []byte(testStr2), 0644))
-	time.Sleep(sleepPeriod)
-	str = getStringFromRefreshable(t, r)
-	assert.Equal(t, str, "renderConf2")
+	assert.EventuallyWithT(t, func(t *assert.CollectT) {
+		assert.Equal(t, "renderConf2", string(r.Current()))
+	}, time.Second, 10*time.Millisecond)
 }
 
 // Verifies that a RefreshableFile can follow a symlink to a symlink when the symlink changes
@@ -302,10 +301,10 @@ func TestRefreshableFileCanFollowMovingSymLink(t *testing.T) {
 	err = os.Symlink(fileToWriteActualUpdated, fileToWritePointingAtActual)
 	assert.NoError(t, err)
 
-	// Update the symlink file
-	time.Sleep(sleepPeriod)
-	str = getStringFromRefreshable(t, r)
-	assert.Equal(t, str, "renderConf2")
+	// Verify the refreshable follows the updated symlink
+	assert.EventuallyWithT(t, func(t *assert.CollectT) {
+		assert.Equal(t, "renderConf2", string(r.Current()))
+	}, time.Second, 10*time.Millisecond)
 }
 
 func getStringFromRefreshable(t *testing.T, r Refreshable[[]byte]) string {
