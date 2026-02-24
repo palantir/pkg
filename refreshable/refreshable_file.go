@@ -98,9 +98,15 @@ func (d *statFileChangeDetector) ShouldUpdate(ctx context.Context, filePath stri
 	d.pendingResolvedPath = resolvedPath
 	d.pendingModTime = info.ModTime()
 	d.pendingSize = info.Size()
-	return resolvedPath != d.lastResolvedPath ||
+	if resolvedPath != d.lastResolvedPath ||
 		!info.ModTime().Equal(d.lastModTime) ||
-		info.Size() != d.lastSize
+		info.Size() != d.lastSize {
+		return true
+	}
+	// Filesystem time granularity varies (e.g., some filesystems use second-level precision).
+	// If the file was modified recently, we cannot trust that the mod time distinguishes
+	// two distinct writes of the same size. Force a re-read until the mod time ages out.
+	return time.Since(info.ModTime()) < 2*time.Second
 }
 
 func (d *statFileChangeDetector) MarkUpdated() {
