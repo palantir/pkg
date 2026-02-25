@@ -54,8 +54,15 @@ func TestMapValidatingRefreshable(t *testing.T) {
 	require.NoError(t, err)
 	_, err = vr.Validation()
 	require.NoError(t, err)
+	host, _, err := refreshable.MapWithError(vr, func(u *url.URL) (string, error) {
+		return u.Hostname(), nil
+	})
+	require.NoError(t, err)
+	_, err = host.Validation()
+	require.NoError(t, err)
 	require.Equal(t, r.Current(), "https://palantir.com:443")
 	require.Equal(t, vr.Current().Hostname(), "palantir.com")
+	require.Equal(t, host.Current(), "palantir.com")
 
 	// attempt bad update
 	r.Update(":::error.com")
@@ -63,6 +70,8 @@ func TestMapValidatingRefreshable(t *testing.T) {
 	_, err = vr.Validation()
 	require.EqualError(t, err, "parse \":::error.com\": missing protocol scheme", "expected err from validating refreshable")
 	assert.Equal(t, vr.Current().Hostname(), "palantir.com", "expected unchanged validating refreshable")
+	_, err = host.Validation()
+	assert.NoError(t, err)
 
 	// attempt good update
 	r.Update("https://example.com")
