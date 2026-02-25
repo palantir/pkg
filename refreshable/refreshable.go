@@ -36,7 +36,8 @@ type Updatable[T any] interface {
 // A Validated is a Refreshable capable of rejecting updates according to validation logic.
 // Its Current method returns the most recent value to pass validation.
 type Validated[T any] interface {
-	Refreshable[T]
+	SubscribeValidated(consumer func(T, error)) UnsubscribeFunc
+	LastCurrent() T
 	// Validation returns the result of the most recent validation.
 	// If the last value was valid, Validation returns the same value as Current and a nil error.
 	// If the last value was invalid, it and the error are returned. Current returns the most recent valid value.
@@ -102,7 +103,7 @@ func MapContext[T any, M any](ctx context.Context, original Refreshable[T], mapF
 // An error is returned if the current original value fails to map.
 func MapWithError[T any, M any](original Refreshable[T], mapFn func(T) (M, error)) (Validated[M], UnsubscribeFunc, error) {
 	v := newValidRefreshable[M]()
-	stop := subscribeValidRefreshable(v, original, mapFn)
+	stop := subscribeValidRefreshable(v, ValidatedFromRefreshable(original), mapFn)
 	_, err := v.Validation()
 	return v, stop, err
 }
