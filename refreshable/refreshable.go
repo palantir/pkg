@@ -40,7 +40,7 @@ type Validated[T any] interface {
 	LastCurrent() T
 	// Validation returns the result of the most recent validation.
 	// If the last value was valid, Validation returns the same value as Current and a nil error.
-	// If the last value was invalid, it and the error are returned. Current returns the most recent valid value.
+	// If the last value was invalid, it and the error are returned. LastCurrent returns the most recent valid value.
 	Validation() (T, error)
 }
 
