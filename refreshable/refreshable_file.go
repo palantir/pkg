@@ -7,6 +7,7 @@ package refreshable
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -38,18 +39,80 @@ func NewFileRefreshableWithTicker(ctx context.Context, filePath string, updateTi
 func NewFileRefreshableWithReaderFunc(ctx context.Context, filePath string, updateTicker <-chan time.Time, readerFunc func(string) ([]byte, error)) Validated[[]byte] {
 	v := newValidRefreshable[[]byte]()
 	updateValidRefreshable(v, filePath, readerFunc)
+	detector := newStatFileChangeDetector(ctx, filePath)
 	go func() {
 		for {
 			select {
 			case <-updateTicker:
-				// Read file and update refreshable. If readerFunc fails, the error is present in v.Validation().
+				if !detector.ShouldUpdate(ctx, filePath) {
+					continue
+				}
 				updateValidRefreshable(v, filePath, readerFunc)
+				if _, err := v.Validation(); err == nil {
+					detector.MarkUpdated()
+				}
 			case <-ctx.Done():
 				return
 			}
 		}
 	}()
 	return v
+}
+
+// FileChangeDetector determines whether a file has changed since the last check.
+// Implementations handle internal bookkeeping of previous state.
+type FileChangeDetector interface {
+	// ShouldUpdate returns true if the file at filePath appears to have changed
+	// since the last call to MarkUpdated, or if the change status cannot be determined.
+	ShouldUpdate(ctx context.Context, filePath string) bool
+	// MarkUpdated commits the pending state from the last ShouldUpdate call,
+	// so that subsequent ShouldUpdate calls compare against it.
+	MarkUpdated()
+}
+
+type statFileChangeDetector struct {
+	lastResolvedPath    string
+	lastModTime         time.Time
+	lastSize            int64
+	pendingResolvedPath string
+	pendingModTime      time.Time
+	pendingSize         int64
+}
+
+func newStatFileChangeDetector(ctx context.Context, filePath string) *statFileChangeDetector {
+	d := &statFileChangeDetector{}
+	d.ShouldUpdate(ctx, filePath)
+	d.MarkUpdated()
+	return d
+}
+
+func (d *statFileChangeDetector) ShouldUpdate(ctx context.Context, filePath string) bool {
+	resolvedPath, err := filepath.EvalSymlinks(filePath)
+	if err != nil {
+		return true
+	}
+	info, err := os.Stat(resolvedPath)
+	if err != nil {
+		return true
+	}
+	d.pendingResolvedPath = resolvedPath
+	d.pendingModTime = info.ModTime()
+	d.pendingSize = info.Size()
+	if resolvedPath != d.lastResolvedPath ||
+		!info.ModTime().Equal(d.lastModTime) ||
+		info.Size() != d.lastSize {
+		return true
+	}
+	// Filesystem time granularity varies (e.g., some filesystems use second-level precision).
+	// If the file was modified recently, we cannot trust that the mod time distinguishes
+	// two distinct writes of the same size. Force a re-read until the mod time ages out.
+	return time.Since(info.ModTime()) < 2*time.Second
+}
+
+func (d *statFileChangeDetector) MarkUpdated() {
+	d.lastResolvedPath = d.pendingResolvedPath
+	d.lastModTime = d.pendingModTime
+	d.lastSize = d.pendingSize
 }
 
 // NewMultiFileRefreshable creates a Validated Refreshable that tracks the contents of multiple files.
