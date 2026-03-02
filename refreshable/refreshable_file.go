@@ -36,41 +36,16 @@ func NewFileRefreshableWithTicker(ctx context.Context, filePath string, updateTi
 //
 // The readerFunc is called once initially and then on each tick until the context is cancelled.
 // If reading fails, the Current() value will be unchanged. The error is present in v.Validation().
-func NewFileRefreshableWithReaderFunc(ctx context.Context, filePath string, updateTicker <-chan time.Time, readerFunc func(string) ([]byte, error)) Validated[[]byte] {
-	v := newValidRefreshable[[]byte]()
-	updateValidRefreshable(v, filePath, readerFunc)
-	detector := newStatFileChangeDetector(ctx, filePath)
-	go func() {
-		for {
-			select {
-			case <-updateTicker:
-				if !detector.ShouldUpdate(ctx, filePath) {
-					continue
-				}
-				updateValidRefreshable(v, filePath, readerFunc)
-				if _, err := v.Validation(); err == nil {
-					detector.MarkUpdated()
-				}
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
-	return v
-}
-
-// FileChangeDetector determines whether a file has changed since the last check.
-// Implementations handle internal bookkeeping of previous state.
-type FileChangeDetector interface {
-	// ShouldUpdate returns true if the file at filePath appears to have changed
-	// since the last call to MarkUpdated, or if the change status cannot be determined.
-	ShouldUpdate(ctx context.Context, filePath string) bool
-	// MarkUpdated commits the pending state from the last ShouldUpdate call,
-	// so that subsequent ShouldUpdate calls compare against it.
-	MarkUpdated()
+func NewFileRefreshableWithReaderFunc(ctx context.Context, filePath string, updateTicker <-chan time.Time, readerFuncOld func(string) ([]byte, error)) Validated[[]byte] {
+	readerFunc := func() ([]byte, error) {
+		return readerFuncOld(filePath)
+	}
+	detector := newStatFileChangeDetector(filePath)
+	return NewRefreshableTicker(ctx, updateTicker, readerFunc, detector)
 }
 
 type statFileChangeDetector struct {
+	filePath            string
 	lastResolvedPath    string
 	lastModTime         time.Time
 	lastSize            int64
@@ -79,15 +54,12 @@ type statFileChangeDetector struct {
 	pendingSize         int64
 }
 
-func newStatFileChangeDetector(ctx context.Context, filePath string) *statFileChangeDetector {
-	d := &statFileChangeDetector{}
-	d.ShouldUpdate(ctx, filePath)
-	d.MarkUpdated()
-	return d
+func newStatFileChangeDetector(filePath string) *statFileChangeDetector {
+	return &statFileChangeDetector{filePath: filePath}
 }
 
-func (d *statFileChangeDetector) ShouldUpdate(ctx context.Context, filePath string) bool {
-	resolvedPath, err := filepath.EvalSymlinks(filePath)
+func (d *statFileChangeDetector) ShouldUpdate(ctx context.Context) bool {
+	resolvedPath, err := filepath.EvalSymlinks(d.filePath)
 	if err != nil {
 		return true
 	}

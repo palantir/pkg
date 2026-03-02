@@ -39,13 +39,15 @@ func newValidRefreshable[M any]() *validRefreshable[M] {
 
 func subscribeValidRefreshable[T, M any](v *validRefreshable[M], original Refreshable[T], mapFn func(T) (M, error)) UnsubscribeFunc {
 	return original.Subscribe(func(valueT T) {
-		updateValidRefreshable(v, valueT, mapFn)
+		updateValidRefreshable(v, func() (M, error) {
+			return mapFn(valueT)
+		})
 	})
 }
 
-func updateValidRefreshable[T any, M any](valid *validRefreshable[M], value T, mapFn func(T) (M, error)) {
+func updateValidRefreshable[M any](valid *validRefreshable[M], mapFn func() (M, error)) {
 	validated := valid.r.Current().validated
-	unvalidated, err := mapFn(value)
+	unvalidated, err := mapFn()
 	if err == nil {
 		validated = unvalidated
 	}
