@@ -5,20 +5,20 @@
 package refreshable
 
 type validRefreshable[T any] struct {
-	r Updatable[validRefreshableContainer[T]]
+	r Updatable[ValidRefreshableContainer[T]]
 }
 
-type validRefreshableContainer[T any] struct {
-	validated   T
-	unvalidated T
-	lastErr     error
+type ValidRefreshableContainer[T any] struct {
+	Validated   T
+	Unvalidated T
+	LastErr     error
 }
 
-func (v *validRefreshable[T]) Current() T { return v.r.Current().validated }
+func (v *validRefreshable[T]) Current() T { return v.r.Current().Validated }
 
 func (v *validRefreshable[T]) Subscribe(consumer func(T)) UnsubscribeFunc {
-	return v.r.Subscribe(func(val validRefreshableContainer[T]) {
-		consumer(val.validated)
+	return v.r.Subscribe(func(val ValidRefreshableContainer[T]) {
+		consumer(val.Validated)
 	})
 }
 
@@ -27,12 +27,12 @@ func (v *validRefreshable[T]) Subscribe(consumer func(T)) UnsubscribeFunc {
 // is equal to that returned by Current().
 func (v *validRefreshable[T]) Validation() (T, error) {
 	c := v.r.Current()
-	return c.unvalidated, c.lastErr
+	return c.Unvalidated, c.LastErr
 }
 
 func newValidRefreshable[M any]() *validRefreshable[M] {
 	valid := &validRefreshable[M]{
-		r: newDefault(validRefreshableContainer[M]{}),
+		r: newDefault(ValidRefreshableContainer[M]{}),
 	}
 	return valid
 }
@@ -46,15 +46,15 @@ func subscribeValidRefreshable[T, M any](v *validRefreshable[M], original Refres
 }
 
 func updateValidRefreshable[M any](valid *validRefreshable[M], mapFn func() (M, error)) {
-	validated := valid.r.Current().validated
+	validated := valid.r.Current().Validated
 	unvalidated, err := mapFn()
 	if err == nil {
 		validated = unvalidated
 	}
-	valid.r.Update(validRefreshableContainer[M]{
-		validated:   validated,
-		unvalidated: unvalidated,
-		lastErr:     err,
+	valid.r.Update(ValidRefreshableContainer[M]{
+		Validated:   validated,
+		Unvalidated: unvalidated,
+		LastErr:     err,
 	})
 }
 

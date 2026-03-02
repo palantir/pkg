@@ -18,7 +18,7 @@ func TestMapValues(t *testing.T) {
 	input := New(map[string]int{"a": 1, "b": 2})
 	mapped := MapValues(ctx, input, func(_ context.Context, key string, value int) Validated[int] {
 		v := newValidRefreshable[int]()
-		v.r.Update(validRefreshableContainer[int]{validated: value * 2, unvalidated: value * 2, lastErr: nil})
+		v.r.Update(ValidRefreshableContainer[int]{Validated: value * 2, Unvalidated: value * 2, LastErr: nil})
 		return v
 	})
 	current := mapped.Current()
@@ -34,7 +34,7 @@ func TestMapValuesAddKey(t *testing.T) {
 	input := New(map[string]int{"a": 1})
 	mapped := MapValues(ctx, input, func(_ context.Context, key string, value int) Validated[int] {
 		v := newValidRefreshable[int]()
-		v.r.Update(validRefreshableContainer[int]{validated: value * 2, unvalidated: value * 2, lastErr: nil})
+		v.r.Update(ValidRefreshableContainer[int]{Validated: value * 2, Unvalidated: value * 2, LastErr: nil})
 		return v
 	})
 	require.Len(t, mapped.Current(), 1)
@@ -50,7 +50,7 @@ func TestMapValuesRemoveKey(t *testing.T) {
 	input := New(map[string]int{"a": 1, "b": 2})
 	mapped := MapValues(ctx, input, func(_ context.Context, key string, value int) Validated[int] {
 		v := newValidRefreshable[int]()
-		v.r.Update(validRefreshableContainer[int]{validated: value * 2, unvalidated: value * 2, lastErr: nil})
+		v.r.Update(ValidRefreshableContainer[int]{Validated: value * 2, Unvalidated: value * 2, LastErr: nil})
 		return v
 	})
 	require.Len(t, mapped.Current(), 2)
@@ -69,9 +69,9 @@ func TestMapValuesValidationError(t *testing.T) {
 	mapped := MapValues(ctx, input, func(_ context.Context, key string, value int) Validated[int] {
 		v := newValidRefreshable[int]()
 		if key == "b" {
-			v.r.Update(validRefreshableContainer[int]{validated: 0, unvalidated: value * 2, lastErr: testErr})
+			v.r.Update(ValidRefreshableContainer[int]{Validated: 0, Unvalidated: value * 2, LastErr: testErr})
 		} else {
-			v.r.Update(validRefreshableContainer[int]{validated: value * 2, unvalidated: value * 2, lastErr: nil})
+			v.r.Update(ValidRefreshableContainer[int]{Validated: value * 2, Unvalidated: value * 2, LastErr: nil})
 		}
 		return v
 	})
@@ -91,9 +91,9 @@ func TestMapValuesMappedRefreshableUpdates(t *testing.T) {
 	var refreshToOutline *validRefreshable[string]
 	mapped := MapValues(ctx, input, func(_ context.Context, key string, value int) Validated[string] {
 		refreshToOutline = &validRefreshable[string]{
-			r: New[validRefreshableContainer[string]](validRefreshableContainer[string]{
-				validated:   "b",
-				unvalidated: "b",
+			r: New[ValidRefreshableContainer[string]](ValidRefreshableContainer[string]{
+				Validated:   "b",
+				Unvalidated: "b",
 			}),
 		}
 		return refreshToOutline
