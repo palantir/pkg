@@ -21,7 +21,7 @@ func TestMapValues(t *testing.T) {
 		v.r.Update(ValidRefreshableContainer[int]{Validated: value * 2, Unvalidated: value * 2, LastErr: nil})
 		return v
 	})
-	current := mapped.Current()
+	current := mapped.Current().Validated
 	assert.Equal(t, 2, current["a"])
 	assert.Equal(t, 4, current["b"])
 	assert.Len(t, current, 2)
@@ -37,9 +37,9 @@ func TestMapValuesAddKey(t *testing.T) {
 		v.r.Update(ValidRefreshableContainer[int]{Validated: value * 2, Unvalidated: value * 2, LastErr: nil})
 		return v
 	})
-	require.Len(t, mapped.Current(), 1)
+	require.Len(t, mapped.Current().Validated, 1)
 	input.Update(map[string]int{"a": 1, "b": 2})
-	current := mapped.Current()
+	current := mapped.Current().Validated
 	assert.Equal(t, 2, current["a"])
 	assert.Equal(t, 4, current["b"])
 	assert.Len(t, current, 2)
@@ -53,9 +53,9 @@ func TestMapValuesRemoveKey(t *testing.T) {
 		v.r.Update(ValidRefreshableContainer[int]{Validated: value * 2, Unvalidated: value * 2, LastErr: nil})
 		return v
 	})
-	require.Len(t, mapped.Current(), 2)
+	require.Len(t, mapped.Current().Validated, 2)
 	input.Update(map[string]int{"a": 1})
-	current := mapped.Current()
+	current := mapped.Current().Validated
 	assert.Equal(t, 2, current["a"])
 	_, exists := current["b"]
 	assert.False(t, exists)
@@ -75,7 +75,7 @@ func TestMapValuesValidationError(t *testing.T) {
 		}
 		return v
 	})
-	current := mapped.Current()
+	current := mapped.Current().Validated
 	assert.Equal(t, 2, current["a"])
 	_, exists := current["b"]
 	assert.False(t, exists)
@@ -98,11 +98,11 @@ func TestMapValuesMappedRefreshableUpdates(t *testing.T) {
 		}
 		return refreshToOutline
 	})
-	assert.Equal(t, map[string]string{"a": "b"}, mapped.Current())
+	assert.Equal(t, map[string]string{"a": "b"}, mapped.Current().Validated)
 	updateValidRefreshable[string](refreshToOutline, func() (string, error) {
 		return "c", nil
 	})
-	assert.Equal(t, map[string]string{"a": "c"}, mapped.Current())
+	assert.Equal(t, map[string]string{"a": "c"}, mapped.Current().Validated)
 	// require.Equal(t, 2, mapped.Current()["a"])
 	// assert.Equal(t, 100, mapped.Current()["a"])
 }

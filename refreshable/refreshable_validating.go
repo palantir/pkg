@@ -14,12 +14,10 @@ type ValidRefreshableContainer[T any] struct {
 	LastErr     error
 }
 
-func (v *validRefreshable[T]) Current() T { return v.r.Current().Validated }
+func (v *validRefreshable[T]) Current() ValidRefreshableContainer[T] { return v.r.Current() }
 
-func (v *validRefreshable[T]) Subscribe(consumer func(T)) UnsubscribeFunc {
-	return v.r.Subscribe(func(val ValidRefreshableContainer[T]) {
-		consumer(val.Validated)
-	})
+func (v *validRefreshable[T]) Subscribe(consumer func(ValidRefreshableContainer[T])) UnsubscribeFunc {
+	return v.r.Subscribe(consumer)
 }
 
 // Validation returns the most recent upstream Refreshable and its validation result.

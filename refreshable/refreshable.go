@@ -34,9 +34,10 @@ type Updatable[T any] interface {
 }
 
 // A Validated is a Refreshable capable of rejecting updates according to validation logic.
-// Its Current method returns the most recent value to pass validation.
+// Its Current method returns a ValidRefreshableContainer with the most recent valid value,
+// the most recent unvalidated value, and any validation error.
 type Validated[T any] interface {
-	Refreshable[T]
+	Refreshable[ValidRefreshableContainer[T]]
 	// Validation returns the result of the most recent validation.
 	// If the last value was valid, Validation returns the same value as Current and a nil error.
 	// If the last value was invalid, it and the error are returned. Current returns the most recent valid value.
