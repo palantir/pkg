@@ -103,7 +103,7 @@ func MapContext[T any, M any](ctx context.Context, original Refreshable[T], mapF
 // An error is returned if the current original value fails to map.
 func MapWithError[T any, M any](ctx context.Context, original Refreshable[T], mapFn func(context.Context, T) (M, error)) (Validated[M], UnsubscribeFunc, error) {
 	v := newValidRefreshable[M]()
-	stop := subscribeValidRefreshable(ctx, v, ValidatedFromRefreshable(original), mapFn)
+	stop := subscribeValidRefreshable(ctx, v, validatedFromRefreshable(original), mapFn)
 	_, err := v.Validation()
 	return v, stop, err
 }

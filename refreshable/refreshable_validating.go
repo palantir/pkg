@@ -87,7 +87,7 @@ func identity[T any](validatingFn func(context.Context, T) error) func(ctx conte
 	return func(ctx context.Context, i T) (T, error) { return i, validatingFn(ctx, i) }
 }
 
-func ValidatedFromRefreshable[M any](original Refreshable[M]) Validated[M] {
+func validatedFromRefreshable[M any](original Refreshable[M]) Validated[M] {
 	valid := &validRefreshable[M]{
 		r: newDefault(validRefreshableContainer[M]{}),
 	}

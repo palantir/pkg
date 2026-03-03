@@ -87,37 +87,6 @@ func TestMapValidatingRefreshable(t *testing.T) {
 	require.Equal(t, vr.LastCurrent().Hostname(), "example.com")
 }
 
-func TestValidatedFromRefreshable(t *testing.T) {
-	r := refreshable.New("hello")
-	v := refreshable.ValidatedFromRefreshable[string](r)
-	require.Equal(t, "hello", v.LastCurrent())
-	val, err := v.Validation()
-	require.NoError(t, err)
-	require.Equal(t, "hello", val)
-	// Update propagates
-	r.Update("world")
-	require.Equal(t, "world", v.LastCurrent())
-	val, err = v.Validation()
-	require.NoError(t, err)
-	require.Equal(t, "world", val)
-}
-
-func TestValidatedFromRefreshable_Subscribe(t *testing.T) {
-	r := refreshable.New(1)
-	v := refreshable.ValidatedFromRefreshable[int](r)
-	var received []int
-	var receivedErrs []error
-	v.SubscribeValidated(func(val int, err error) {
-		received = append(received, val)
-		receivedErrs = append(receivedErrs, err)
-	})
-	require.Equal(t, []int{1}, received)
-	require.Equal(t, []error{nil}, receivedErrs)
-	r.Update(2)
-	require.Equal(t, []int{1, 2}, received)
-	require.Equal(t, []error{nil, nil}, receivedErrs)
-}
-
 func TestMapValidated(t *testing.T) {
 	ctx := context.Background()
 	r := refreshable.New(10)
@@ -154,7 +123,9 @@ func TestMapValidated(t *testing.T) {
 func TestMapValidated_OwnError(t *testing.T) {
 	ctx := context.Background()
 	r := refreshable.New(10)
-	vr := refreshable.ValidatedFromRefreshable[int](r)
+	vr, vrStop, err := refreshable.Validate(ctx, r, func(_ context.Context, _ int) error { return nil })
+	require.NoError(t, err)
+	defer vrStop()
 	mapped, stop, err := refreshable.MapValidated(ctx, vr, func(_ context.Context, i int) (string, error) {
 		if i > 100 {
 			return "", errors.New("too large")
@@ -255,10 +226,15 @@ func TestMergeValidated_BothErrors(t *testing.T) {
 }
 
 func TestMergeValidated_Subscribe(t *testing.T) {
+	ctx := context.Background()
 	r1 := refreshable.New(1)
 	r2 := refreshable.New(2)
-	vr1 := refreshable.ValidatedFromRefreshable[int](r1)
-	vr2 := refreshable.ValidatedFromRefreshable[int](r2)
+	vr1, vr1Stop, err := refreshable.Validate(ctx, r1, func(_ context.Context, _ int) error { return nil })
+	require.NoError(t, err)
+	defer vr1Stop()
+	vr2, vr2Stop, err := refreshable.Validate(ctx, r2, func(_ context.Context, _ int) error { return nil })
+	require.NoError(t, err)
+	defer vr2Stop()
 	merged, stop := refreshable.MergeValidated(vr1, vr2, func(a, b int) int {
 		return a + b
 	})
@@ -318,16 +294,23 @@ func TestCollectValidated(t *testing.T) {
 }
 
 func TestCollectValidatedMutable(t *testing.T) {
+	ctx := context.Background()
 	r1 := refreshable.New(1)
 	r2 := refreshable.New(2)
-	vr1 := refreshable.ValidatedFromRefreshable[int](r1)
-	vr2 := refreshable.ValidatedFromRefreshable[int](r2)
+	vr1, vr1Stop, err := refreshable.Validate(ctx, r1, func(_ context.Context, _ int) error { return nil })
+	require.NoError(t, err)
+	defer vr1Stop()
+	vr2, vr2Stop, err := refreshable.Validate(ctx, r2, func(_ context.Context, _ int) error { return nil })
+	require.NoError(t, err)
+	defer vr2Stop()
 	collected, add, stop := refreshable.CollectValidatedMutable(vr1, vr2)
 	defer stop()
 	require.Equal(t, []int{1, 2}, collected.LastCurrent())
 	// Add a new element
 	r3 := refreshable.New(3)
-	vr3 := refreshable.ValidatedFromRefreshable[int](r3)
+	vr3, vr3Stop, err := refreshable.Validate(ctx, r3, func(_ context.Context, _ int) error { return nil })
+	require.NoError(t, err)
+	defer vr3Stop()
 	add(vr3)
 	require.Equal(t, []int{1, 2, 3}, collected.LastCurrent())
 	// Update propagates
@@ -349,7 +332,9 @@ func TestCollectValidatedMutable_ErrorPropagation(t *testing.T) {
 		return i, nil
 	})
 	require.NoError(t, err)
-	vr2 := refreshable.ValidatedFromRefreshable[int](r2)
+	vr2, vr2Stop, err := refreshable.Validate(ctx, r2, func(_ context.Context, _ int) error { return nil })
+	require.NoError(t, err)
+	defer vr2Stop()
 	collected, _, stop := refreshable.CollectValidatedMutable(vr1, vr2)
 	defer stop()
 	require.Equal(t, []int{1, 2}, collected.LastCurrent())
@@ -367,10 +352,15 @@ func TestCollectValidatedMutable_ErrorPropagation(t *testing.T) {
 }
 
 func TestCollectValidatedMutable_RaceCondition(t *testing.T) {
+	ctx := context.Background()
 	r1 := refreshable.New(1)
 	r2 := refreshable.New(2)
-	vr1 := refreshable.ValidatedFromRefreshable[int](r1)
-	vr2 := refreshable.ValidatedFromRefreshable[int](r2)
+	vr1, vr1Stop, err := refreshable.Validate(ctx, r1, func(_ context.Context, _ int) error { return nil })
+	require.NoError(t, err)
+	defer vr1Stop()
+	vr2, vr2Stop, err := refreshable.Validate(ctx, r2, func(_ context.Context, _ int) error { return nil })
+	require.NoError(t, err)
+	defer vr2Stop()
 	collected, add, stop := refreshable.CollectValidatedMutable(vr1, vr2)
 	defer stop()
 	var wg sync.WaitGroup
@@ -378,7 +368,8 @@ func TestCollectValidatedMutable_RaceCondition(t *testing.T) {
 		wg.Add(1)
 		go func(val int) {
 			defer wg.Done()
-			add(refreshable.ValidatedFromRefreshable[int](refreshable.New(val)))
+			v, _, _ := refreshable.Validate(ctx, refreshable.New(val), func(_ context.Context, _ int) error { return nil })
+			add(v)
 		}(i + 100)
 	}
 	for i := range 10 {
