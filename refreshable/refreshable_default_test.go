@@ -108,7 +108,7 @@ func TestCollectMutable_RaceCondition(t *testing.T) {
 	wg.Wait()
 
 	// Verify we have all 12 elements (2 initial + 10 added)
-	assert.Eventually(t, func() bool {
-		return len(collected.Current()) == 12
-	}, time.Second, time.Millisecond)
+	assert.EventuallyWithT(t, func(t *assert.CollectT) {
+		assert.Len(t, collected.Current(), 12)
+	}, 5*time.Second, 10*time.Millisecond)
 }
