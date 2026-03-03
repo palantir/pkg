@@ -145,7 +145,7 @@ func CollectValidatedMutable[T any](list ...Validated[T]) (Validated[[]T], Valid
 		if joined == nil {
 			out.r.Update(validRefreshableContainer[[]T]{validated: current, unvalidated: current, lastErr: nil})
 		} else {
-			out.r.Update(validRefreshableContainer[[]T]{validated: out.r.Current().validated, unvalidated: current, lastErr: joined})
+			out.r.Update(validRefreshableContainer[[]T]{validated: current, unvalidated: nil, lastErr: joined})
 		}
 	}
 	for _, r := range validateds {

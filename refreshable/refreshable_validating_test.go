@@ -9,6 +9,7 @@ import (
 	"errors"
 	"net/url"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -422,16 +423,17 @@ func TestValidatingRefreshable_SubscriptionRaceCondition(t *testing.T) {
 
 func TestValidatedPutTogetherErrors(t *testing.T) {
 	ctx := context.Background()
-	smallVal := 1
+	var smallVal atomic.Int64
+	smallVal.Store(1)
 	readerFunc := func(ctx context.Context) (int, error) {
-		return smallVal, nil
+		return int(smallVal.Load()), nil
 	}
 	readerFunc2 := func(ctx context.Context) (int, error) {
 		return 10, nil
 	}
-	fail := false
+	var fail atomic.Bool
 	readerFunc3 := func(ctx context.Context) (int, error) {
-		if fail {
+		if fail.Load() {
 			return 0, errors.New("fail")
 		}
 		return 100, nil
@@ -464,16 +466,50 @@ func TestValidatedPutTogetherErrors(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 111, validatedSum.LastCurrent())
 	// Now we fail one of the last one
-	fail = true
-	time.Sleep(time.Millisecond * 200)
+	fail.Store(true)
+	assert.Eventually(t, func() bool {
+		_, err := validatedThird.Validation()
+		return err != nil
+	}, time.Second, 10*time.Millisecond)
 	i, err = validatedThird.Validation()
 	assert.Equal(t, 0, i)
 	assert.Error(t, err)
 	assert.Equal(t, 100, validatedThird.LastCurrent())
 	// We see this propagate as well
+	assert.Eventually(t, func() bool {
+		_, err := fullyValidated.Validation()
+		return err != nil
+	}, time.Second, 10*time.Millisecond)
 	result, err = fullyValidated.Validation()
+	// LastCurrent reflects each child's last individually-valid value (healthy children still propagate)
 	assert.Equal(t, []int{1, 10, 100}, fullyValidated.LastCurrent())
-	assert.Equal(t, []int{1, 10, 100}, result)
+	// Validation returns nil and an error so callers can distinguish valid vs invalid state
+	assert.Nil(t, result)
 	assert.Error(t, err)
-
+	// Downstream MapValidated should still see last valid sum
+	assert.Equal(t, 111, validatedSum.LastCurrent())
+	// Now update a healthy child while the third is still failing
+	smallVal.Store(2)
+	assert.Eventually(t, func() bool {
+		return fullyValidated.LastCurrent()[0] == 2
+	}, time.Second, 10*time.Millisecond)
+	// LastCurrent propagates the healthy child's update even though third is failing
+	assert.Equal(t, []int{2, 10, 100}, fullyValidated.LastCurrent())
+	result, err = fullyValidated.Validation()
+	assert.Nil(t, result)
+	assert.Error(t, err)
+	// Downstream MapValidated holds back because parent has an error
+	assert.Equal(t, 111, validatedSum.LastCurrent())
+	// Recovery: fix the failing child
+	fail.Store(false)
+	assert.Eventually(t, func() bool {
+		_, err := fullyValidated.Validation()
+		return err == nil
+	}, time.Second, 10*time.Millisecond)
+	assert.Equal(t, []int{2, 10, 100}, fullyValidated.LastCurrent())
+	result, err = fullyValidated.Validation()
+	assert.Equal(t, []int{2, 10, 100}, result)
+	assert.NoError(t, err)
+	// After recovery, downstream sees the updated sum
+	assert.Equal(t, 112, validatedSum.LastCurrent())
 }
