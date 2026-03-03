@@ -61,6 +61,9 @@ func updateValidRefreshableWithParents[M any](ctx context.Context, valid *validR
 	err := getError(mapperErr, validatedParentError)
 	if err == nil {
 		validated = unvalidated
+	} else {
+		var zero M
+		unvalidated = zero
 	}
 	valid.r.Update(validRefreshableContainer[M]{
 		validated:   validated,
@@ -182,7 +185,8 @@ func MergeValidated[T1 any, T2 any, R any](original1 Validated[T1], original2 Va
 		if err == nil {
 			out.r.Update(validRefreshableContainer[R]{validated: merged, unvalidated: merged, lastErr: nil})
 		} else {
-			out.r.Update(validRefreshableContainer[R]{validated: out.r.Current().validated, unvalidated: merged, lastErr: err})
+			var zero R
+			out.r.Update(validRefreshableContainer[R]{validated: merged, unvalidated: zero, lastErr: err})
 		}
 	}
 	stop1 := original1.SubscribeValidated(func(T1, error) { doUpdate() })

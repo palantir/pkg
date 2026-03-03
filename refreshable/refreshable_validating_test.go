@@ -468,7 +468,7 @@ func TestValidatedPutTogetherErrors(t *testing.T) {
 	// Now we fail one of the last one
 	fail.Store(true)
 	assert.Eventually(t, func() bool {
-		_, err := validatedThird.Validation()
+		_, err := fullyValidated.Validation()
 		return err != nil
 	}, time.Second, 10*time.Millisecond)
 	i, err = validatedThird.Validation()
@@ -483,7 +483,7 @@ func TestValidatedPutTogetherErrors(t *testing.T) {
 	assert.Equal(t, 111, validatedSum.LastCurrent())
 	validatedSumResult, err := validatedSum.Validation()
 	assert.Error(t, err)
-	assert.Equal(t, 111, validatedSumResult)
+	assert.Equal(t, 0, validatedSumResult)
 
 	/*
 		// Update the smaller
