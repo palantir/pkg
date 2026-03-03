@@ -33,13 +33,16 @@ type Updatable[T any] interface {
 	Update(T)
 }
 
-// A Validated is a Refreshable capable of rejecting updates according to validation logic.
-// Its Current method returns the most recent value to pass validation.
+// A Validated is capable of rejecting updates according to validation logic.
+// Its LastCurrent method returns the most recent value to pass validation.
 type Validated[T any] interface {
+	// SubscribeValidated calls the consumer function when the validated value updates until stop is closed.
+	// The consumer receives the latest value and its validation error (nil if valid).
 	SubscribeValidated(consumer func(T, error)) UnsubscribeFunc
+	// LastCurrent returns the most recent value to pass validation.
 	LastCurrent() T
 	// Validation returns the result of the most recent validation.
-	// If the last value was valid, Validation returns the same value as Current and a nil error.
+	// If the last value was valid, Validation returns the same value as LastCurrent and a nil error.
 	// If the last value was invalid, it and the error are returned. LastCurrent returns the most recent valid value.
 	Validation() (T, error)
 }

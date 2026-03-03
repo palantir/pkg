@@ -132,7 +132,7 @@ func TestNewFileRefreshableWithReaderFunc(t *testing.T) {
 		require.Equal(t, "HELLO WORLD", string(refreshableFile.LastCurrent()))
 	}, time.Second, 10*time.Millisecond)
 
-	// Delete file - Current() should retain last valid value.
+	// Delete file - LastCurrent() should retain last valid value.
 	require.NoError(t, os.Remove(filename))
 	ticker <- time.Now()
 	require.EventuallyWithT(t, func(t *assert.CollectT) {
@@ -338,7 +338,7 @@ func TestFileRefreshableTransientReadError(t *testing.T) {
 		_, err := refreshableFile.Validation()
 		assert.Error(t, err)
 	}, time.Second, 10*time.Millisecond)
-	// Current() should still return old value.
+	// LastCurrent() should still return old value.
 	require.Equal(t, "initial", string(refreshableFile.LastCurrent()))
 	// Disarm the failure and tick again — detector should retry since MarkUpdated was never called.
 	failRead.Store(false)

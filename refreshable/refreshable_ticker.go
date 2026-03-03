@@ -37,7 +37,7 @@ func NewRefreshableTickerWithDuration[M any](ctx context.Context, a time.Duratio
 // The readerFunc is only called when the [ChangeDetector] indicates the data source has changed.
 // The detector's MarkUpdated is called after each successful read.
 // The readerFunc is called once initially and then on each tick (subject to the detector) until the context is cancelled.
-// If reading fails, the Current() value will be unchanged. The error is present in v.Validation().
+// If reading fails, the LastCurrent() value will be unchanged. The error is present in v.Validation().
 func NewRefreshableTicker[M any](ctx context.Context, updateTicker <-chan time.Time, readerFunc func(context.Context) (M, error), detector ChangeDetector) Validated[M] {
 	v := newValidRefreshable[M]()
 	updateValidRefreshable(ctx, v, readerFunc)

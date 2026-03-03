@@ -30,7 +30,7 @@ func (v *validRefreshable[T]) SubscribeValidated(consumer func(T, error)) Unsubs
 
 // Validation returns the most recent upstream Refreshable and its validation result.
 // If the error is nil, the validRefreshable is up-to-date with its original and the value
-// is equal to that returned by Current().
+// is equal to that returned by LastCurrent().
 func (v *validRefreshable[T]) Validation() (T, error) {
 	c := v.r.Current()
 	return c.unvalidated, c.lastErr
@@ -101,6 +101,7 @@ func validatedFromRefreshable[M any](original Refreshable[M]) Validated[M] {
 	return valid
 }
 
+// MapValidated returns a new Validated based on the current one that handles updates based on the current Validated.
 func MapValidated[T any, M any](ctx context.Context, original Validated[T], mapFn func(context.Context, T) (M, error)) (Validated[M], UnsubscribeFunc, error) {
 	v := newValidRefreshable[M]()
 	stop := subscribeValidRefreshable(ctx, v, original, mapFn)
@@ -169,6 +170,8 @@ func CollectValidatedMutable[T any](list ...Validated[T]) (Validated[[]T], Valid
 	}
 }
 
+// MergeValidated returns a new Validated that combines the latest values of two Validated refreshables using the mergeFn.
+// The returned Validated is updated whenever either of the original Validated refreshables updates.
 func MergeValidated[T1 any, T2 any, R any](original1 Validated[T1], original2 Validated[T2], mergeFn func(T1, T2) R) (Validated[R], UnsubscribeFunc) {
 	out := newValidRefreshable[R]()
 	doUpdate := func() {
