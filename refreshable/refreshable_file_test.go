@@ -246,7 +246,7 @@ func TestRefreshableFileCanFollowSymLink(t *testing.T) {
 	// Update the actual file
 	require.NoError(t, os.WriteFile(fileToWriteActual, []byte(testStr2), 0644))
 	assert.EventuallyWithT(t, func(t *assert.CollectT) {
-		assert.Equal(t, "renderConf2", string(r.Current()))
+		assert.Equal(t, "renderConf2", string(r.LastCurrent()))
 	}, time.Second, 10*time.Millisecond)
 }
 
@@ -273,7 +273,7 @@ func TestRefreshableFileCanFollowMultipleSymLinks(t *testing.T) {
 	// Update the symlink file
 	require.NoError(t, os.WriteFile(fileToWriteActual, []byte(testStr2), 0644))
 	assert.EventuallyWithT(t, func(t *assert.CollectT) {
-		assert.Equal(t, "renderConf2", string(r.Current()))
+		assert.Equal(t, "renderConf2", string(r.LastCurrent()))
 	}, time.Second, 10*time.Millisecond)
 }
 
@@ -308,7 +308,7 @@ func TestRefreshableFileCanFollowMovingSymLink(t *testing.T) {
 
 	// Verify the refreshable follows the updated symlink
 	assert.EventuallyWithT(t, func(t *assert.CollectT) {
-		assert.Equal(t, "renderConf2", string(r.Current()))
+		assert.Equal(t, "renderConf2", string(r.LastCurrent()))
 	}, time.Second, 10*time.Millisecond)
 }
 
@@ -339,7 +339,7 @@ func TestFileRefreshableTransientReadError(t *testing.T) {
 		assert.Error(t, err)
 	}, time.Second, 10*time.Millisecond)
 	// Current() should still return old value.
-	require.Equal(t, "initial", string(refreshableFile.Current()))
+	require.Equal(t, "initial", string(refreshableFile.LastCurrent()))
 	// Disarm the failure and tick again — detector should retry since MarkUpdated was never called.
 	failRead.Store(false)
 	ticker <- time.Now()
@@ -348,9 +348,9 @@ func TestFileRefreshableTransientReadError(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "updated", string(curr))
 	}, time.Second, 10*time.Millisecond)
-	require.Equal(t, "updated", string(refreshableFile.Current()))
+	require.Equal(t, "updated", string(refreshableFile.LastCurrent()))
 }
 
-func getStringFromRefreshable(t *testing.T, r Refreshable[[]byte]) string {
-	return string(r.Current())
+func getStringFromRefreshable(t *testing.T, r Validated[[]byte]) string {
+	return string(r.LastCurrent())
 }
