@@ -42,9 +42,11 @@ func newValidRefreshable[M any]() *validRefreshable[M] {
 	return valid
 }
 
-func subscribeValidRefreshable[T, M any](v *validRefreshable[M], original Validated[T], mapFn func() (M, error)) UnsubscribeFunc {
+func subscribeValidRefreshable[T, M any](v *validRefreshable[M], original Validated[T], mapFn func(T) (M, error)) UnsubscribeFunc {
 	return original.SubscribeValidated(func(valueT T, lastErr error) {
-		updateValidRefreshableWithParents(v, lastErr, mapFn)
+		updateValidRefreshableWithParents(v, lastErr, func() (M, error) {
+			return mapFn(valueT)
+		})
 	})
 }
 
@@ -98,7 +100,7 @@ func ValidatedFromRefreshable[M any](original Refreshable[M]) Validated[M] {
 	return valid
 }
 
-func MapValidated[T any, M any](original Validated[T], mapFn func() (M, error)) (Validated[M], UnsubscribeFunc, error) {
+func MapValidated[T any, M any](original Validated[T], mapFn func(T) (M, error)) (Validated[M], UnsubscribeFunc, error) {
 	v := newValidRefreshable[M]()
 	stop := subscribeValidRefreshable(v, original, mapFn)
 	_, err := v.Validation()
