@@ -419,3 +419,61 @@ func TestValidatingRefreshable_SubscriptionRaceCondition(t *testing.T) {
 	assert.True(t, seen1, "expected to process 1 value")
 	assert.True(t, seen2, "expected to process 2 value")
 }
+
+func TestValidatedPutTogetherErrors(t *testing.T) {
+	ctx := context.Background()
+	smallVal := 1
+	readerFunc := func(ctx context.Context) (int, error) {
+		return smallVal, nil
+	}
+	readerFunc2 := func(ctx context.Context) (int, error) {
+		return 10, nil
+	}
+	fail := false
+	readerFunc3 := func(ctx context.Context) (int, error) {
+		if fail {
+			return 0, errors.New("fail")
+		}
+		return 100, nil
+	}
+	validatedFirst := refreshable.NewRefreshableTickerWithDuration(ctx, time.Millisecond*100, readerFunc, refreshable.NewAlwaysCheckChangeDetector())
+	i, err := validatedFirst.Validation()
+	assert.Equal(t, 1, i)
+	assert.NoError(t, err)
+	validatedSecond := refreshable.NewRefreshableTickerWithDuration(ctx, time.Millisecond*100, readerFunc2, refreshable.NewAlwaysCheckChangeDetector())
+	i, err = validatedSecond.Validation()
+	assert.Equal(t, 10, i)
+	assert.NoError(t, err)
+	validatedThird := refreshable.NewRefreshableTickerWithDuration(ctx, time.Millisecond*100, readerFunc3, refreshable.NewAlwaysCheckChangeDetector())
+	i, err = validatedThird.Validation()
+	assert.Equal(t, 100, i)
+	assert.NoError(t, err)
+	fullyValidated, _ := refreshable.CollectValidated(validatedFirst, validatedSecond, validatedThird)
+	result, err := fullyValidated.Validation()
+	assert.Equal(t, []int{1, 10, 100}, fullyValidated.LastCurrent())
+	assert.Equal(t, []int{1, 10, 100}, result)
+	assert.NoError(t, err)
+
+	validatedSum, _, err := refreshable.MapValidated(ctx, fullyValidated, func(ctx context.Context, arg []int) (int, error) {
+		total := 0
+		for _, v := range arg {
+			total += v
+		}
+		return total, nil
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, 111, validatedSum.LastCurrent())
+	// Now we fail one of the last one
+	fail = true
+	time.Sleep(time.Millisecond * 200)
+	i, err = validatedThird.Validation()
+	assert.Equal(t, 0, i)
+	assert.Error(t, err)
+	assert.Equal(t, 100, validatedThird.LastCurrent())
+	// We see this propagate as well
+	result, err = fullyValidated.Validation()
+	assert.Equal(t, []int{1, 10, 100}, fullyValidated.LastCurrent())
+	assert.Equal(t, []int{1, 10, 100}, result)
+	assert.Error(t, err)
+
+}
