@@ -485,28 +485,26 @@ func TestValidatedPutTogetherErrors(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, 0, validatedSumResult)
 
-	/*
-		// Update the smaller
-		smallVal.Store(2)
-		// LastCurrent propagates the healthy child's update even though third is failing
-		assert.Equal(t, []int{2, 10, 100}, fullyValidated.LastCurrent())
-		result, err = fullyValidated.Validation()
-		assert.Nil(t, result)
-		assert.Error(t, err)
-		// Downstream MapValidated holds back because parent has an error
-		assert.Equal(t, 111, validatedSum.LastCurrent())
-		// Recovery: fix the failing child
-		fail.Store(false)
-		assert.Eventually(t, func() bool {
-			_, err := fullyValidated.Validation()
-			return err == nil
-		}, time.Second, 10*time.Millisecond)
-		assert.Equal(t, []int{2, 10, 100}, fullyValidated.LastCurrent())
-		result, err = fullyValidated.Validation()
-		assert.Equal(t, []int{2, 10, 100}, result)
-		assert.NoError(t, err)
-		// After recovery, downstream sees the updated sum
-		assert.Equal(t, 112, validatedSum.LastCurrent())
+	// Update the smaller
+	smallVal.Store(2)
+	assert.Eventually(t, func() bool {
+		return fullyValidated.LastCurrent()[0] == 2
+	}, time.Second, 10*time.Millisecond)
+	assert.Equal(t, []int{2, 10, 100}, fullyValidated.LastCurrent())
+	result, err = fullyValidated.Validation()
+	assert.Nil(t, result)
+	assert.Error(t, err)
+	assert.Equal(t, 111, validatedSum.LastCurrent())
+	fail.Store(false)
+	assert.Eventually(t, func() bool {
+		_, err := fullyValidated.Validation()
+		return err == nil
+	}, time.Second, 10*time.Millisecond)
+	assert.Equal(t, []int{2, 10, 100}, fullyValidated.LastCurrent())
+	result, err = fullyValidated.Validation()
+	assert.Equal(t, []int{2, 10, 100}, result)
+	assert.NoError(t, err)
+	// After recovery, downstream sees the updated sum
+	assert.Equal(t, 112, validatedSum.LastCurrent())
 
-	*/
 }
