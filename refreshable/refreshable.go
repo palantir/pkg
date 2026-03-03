@@ -101,9 +101,9 @@ func MapContext[T any, M any](ctx context.Context, original Refreshable[T], mapF
 // MapWithError is similar to Validate but allows for the function to return a mapping/mutation
 // of the input object in addition to returning an error. The returned validRefreshable will contain the mapped value.
 // An error is returned if the current original value fails to map.
-func MapWithError[T any, M any](original Refreshable[T], mapFn func(T) (M, error)) (Validated[M], UnsubscribeFunc, error) {
+func MapWithError[T any, M any](ctx context.Context, original Refreshable[T], mapFn func(context.Context, T) (M, error)) (Validated[M], UnsubscribeFunc, error) {
 	v := newValidRefreshable[M]()
-	stop := subscribeValidRefreshable(v, ValidatedFromRefreshable(original), mapFn)
+	stop := subscribeValidRefreshable(ctx, v, ValidatedFromRefreshable(original), mapFn)
 	_, err := v.Validation()
 	return v, stop, err
 }
@@ -111,8 +111,8 @@ func MapWithError[T any, M any](original Refreshable[T], mapFn func(T) (M, error
 // Validate returns a new Refreshable that returns the latest original value accepted by the validatingFn.
 // If the upstream value results in an error, it is reported by Validation().
 // An error is returned if the current original value is invalid.
-func Validate[T any](original Refreshable[T], validatingFn func(T) error) (Validated[T], UnsubscribeFunc, error) {
-	return MapWithError(original, identity(validatingFn))
+func Validate[T any](ctx context.Context, original Refreshable[T], validatingFn func(context.Context, T) error) (Validated[T], UnsubscribeFunc, error) {
+	return MapWithError(ctx, original, identity(validatingFn))
 }
 
 // Merge returns a new Refreshable that combines the latest values of two Refreshables of different types using the mergeFn.

@@ -5,6 +5,7 @@
 package refreshable
 
 import (
+	"context"
 	"errors"
 	"sync"
 )
@@ -42,21 +43,21 @@ func newValidRefreshable[M any]() *validRefreshable[M] {
 	return valid
 }
 
-func subscribeValidRefreshable[T, M any](v *validRefreshable[M], original Validated[T], mapFn func(T) (M, error)) UnsubscribeFunc {
+func subscribeValidRefreshable[T, M any](ctx context.Context, v *validRefreshable[M], original Validated[T], mapFn func(context.Context, T) (M, error)) UnsubscribeFunc {
 	return original.SubscribeValidated(func(valueT T, lastErr error) {
-		updateValidRefreshableWithParents(v, lastErr, func() (M, error) {
-			return mapFn(valueT)
+		updateValidRefreshableWithParents(ctx, v, lastErr, func(ctx context.Context) (M, error) {
+			return mapFn(ctx, valueT)
 		})
 	})
 }
 
-func updateValidRefreshable[M any](valid *validRefreshable[M], mapFn func() (M, error)) {
-	updateValidRefreshableWithParents(valid, nil, mapFn)
+func updateValidRefreshable[M any](ctx context.Context, valid *validRefreshable[M], mapFn func(context.Context) (M, error)) {
+	updateValidRefreshableWithParents(ctx, valid, nil, mapFn)
 }
 
-func updateValidRefreshableWithParents[M any](valid *validRefreshable[M], validatedParentError error, mapFn func() (M, error)) {
+func updateValidRefreshableWithParents[M any](ctx context.Context, valid *validRefreshable[M], validatedParentError error, mapFn func(context.Context) (M, error)) {
 	validated := valid.r.Current().validated
-	unvalidated, mapperErr := mapFn()
+	unvalidated, mapperErr := mapFn(ctx)
 	err := getError(mapperErr, validatedParentError)
 	if err == nil {
 		validated = unvalidated
@@ -82,8 +83,8 @@ func getError(mapperErr, validatedParentError error) error {
 }
 
 // identity is a validating map function that returns its input argument type.
-func identity[T any](validatingFn func(T) error) func(i T) (T, error) {
-	return func(i T) (T, error) { return i, validatingFn(i) }
+func identity[T any](validatingFn func(context.Context, T) error) func(ctx context.Context, i T) (T, error) {
+	return func(ctx context.Context, i T) (T, error) { return i, validatingFn(ctx, i) }
 }
 
 func ValidatedFromRefreshable[M any](original Refreshable[M]) Validated[M] {
@@ -100,9 +101,9 @@ func ValidatedFromRefreshable[M any](original Refreshable[M]) Validated[M] {
 	return valid
 }
 
-func MapValidated[T any, M any](original Validated[T], mapFn func(T) (M, error)) (Validated[M], UnsubscribeFunc, error) {
+func MapValidated[T any, M any](ctx context.Context, original Validated[T], mapFn func(context.Context, T) (M, error)) (Validated[M], UnsubscribeFunc, error) {
 	v := newValidRefreshable[M]()
-	stop := subscribeValidRefreshable(v, original, mapFn)
+	stop := subscribeValidRefreshable(ctx, v, original, mapFn)
 	_, err := v.Validation()
 	return v, stop, err
 }

@@ -201,7 +201,7 @@ func TestNewMultiFileRefreshableCanMap(t *testing.T) {
 	require.NoError(t, os.WriteFile(file1, []byte("content1"), 0644))
 	require.NoError(t, os.WriteFile(file2, []byte("content2"), 0644))
 	paths := New(map[string]struct{}{file1: {}, file2: {}})
-	aggregateToList, _, err := MapValidated(NewMultiFileRefreshable(ctx, paths), func(t map[string][]byte) ([][]byte, error) {
+	aggregateToList, _, err := MapValidated(ctx, NewMultiFileRefreshable(ctx, paths), func(_ context.Context, t map[string][]byte) ([][]byte, error) {
 		var byteSlices [][]byte
 		for _, v := range t {
 			byteSlices = append(byteSlices, v)
@@ -209,7 +209,7 @@ func TestNewMultiFileRefreshableCanMap(t *testing.T) {
 		return byteSlices, nil
 	})
 	assert.NoError(t, err)
-	additionalByteSlice, _, _ := MapWithError(New([]byte("additional")), func(a []byte) ([]byte, error) {
+	additionalByteSlice, _, _ := MapWithError(ctx, New([]byte("additional")), func(_ context.Context, a []byte) ([]byte, error) {
 		return a, nil
 	})
 	merged, _ := MergeValidated(aggregateToList, additionalByteSlice, func(t1 [][]byte, t2 []byte) [][]byte {

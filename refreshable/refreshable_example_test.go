@@ -110,8 +110,9 @@ func ExampleMapContext() {
 }
 
 func ExampleMapWithError() {
+	ctx := context.Background()
 	r := refreshable.New(42)
-	validated, stop, err := refreshable.MapWithError(r, func(val int) (string, error) {
+	validated, stop, err := refreshable.MapWithError(ctx, r, func(_ context.Context, val int) (string, error) {
 		if val < 50 {
 			return "", fmt.Errorf("invalid: %d", val)
 		}
@@ -136,8 +137,9 @@ func ExampleMapWithError() {
 }
 
 func ExampleValidate() {
+	ctx := context.Background()
 	r := refreshable.New(42)
-	validated, stop, err := refreshable.Validate(r, func(val int) error {
+	validated, stop, err := refreshable.Validate(ctx, r, func(_ context.Context, val int) error {
 		if val < 50 {
 			return errors.New("value too low")
 		}

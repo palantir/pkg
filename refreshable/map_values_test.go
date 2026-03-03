@@ -99,7 +99,7 @@ func TestMapValuesMappedRefreshableUpdates(t *testing.T) {
 		return refreshToOutline
 	})
 	assert.Equal(t, map[string]string{"a": "b"}, mapped.LastCurrent())
-	updateValidRefreshable[string](refreshToOutline, func() (string, error) {
+	updateValidRefreshable[string](ctx, refreshToOutline, func(_ context.Context) (string, error) {
 		return "c", nil
 	})
 	assert.Equal(t, map[string]string{"a": "c"}, mapped.LastCurrent())

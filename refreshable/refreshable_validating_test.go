@@ -5,6 +5,7 @@
 package refreshable_test
 
 import (
+	"context"
 	"errors"
 	"net/url"
 	"sync"
@@ -17,9 +18,10 @@ import (
 )
 
 func TestValidatingRefreshable(t *testing.T) {
+	ctx := context.Background()
 	type container struct{ Value string }
 	r := refreshable.New(container{Value: "value"})
-	vr, _, err := refreshable.Validate[container](r, func(i container) error {
+	vr, _, err := refreshable.Validate[container](ctx, r, func(ctx context.Context, i container) error {
 		if len(i.Value) == 0 {
 			return errors.New("empty")
 		}
@@ -50,14 +52,15 @@ func TestValidatingRefreshable(t *testing.T) {
 }
 
 func TestMapValidatingRefreshable(t *testing.T) {
+	ctx := context.Background()
 	parsed, err := url.Parse("https://palantir.com:443")
 	require.NoError(t, err)
 	r := refreshable.New("https://palantir.com:443")
-	vr, _, err := refreshable.MapWithError[string, *url.URL](r, url.Parse)
+	vr, _, err := refreshable.MapWithError[string, *url.URL](ctx, r, func(_ context.Context, s string) (*url.URL, error) { return url.Parse(s) })
 	require.NoError(t, err)
 	val, err := vr.Validation()
 	require.NoError(t, err)
-	validatedHost, _, _ := refreshable.MapValidated(vr, func(u *url.URL) (string, error) {
+	validatedHost, _, _ := refreshable.MapValidated(ctx, vr, func(ctx context.Context, u *url.URL) (string, error) {
 		return u.Hostname(), nil
 	})
 	require.Equal(t, r.Current(), "https://palantir.com:443")
@@ -116,15 +119,16 @@ func TestValidatedFromRefreshable_Subscribe(t *testing.T) {
 }
 
 func TestMapValidated(t *testing.T) {
+	ctx := context.Background()
 	r := refreshable.New(10)
-	vr, _, err := refreshable.Validate[int](r, func(i int) error {
+	vr, _, err := refreshable.Validate[int](ctx, r, func(_ context.Context, i int) error {
 		if i < 0 {
 			return errors.New("negative")
 		}
 		return nil
 	})
 	require.NoError(t, err)
-	doubled, stop, err := refreshable.MapValidated(vr, func(i int) (int, error) {
+	doubled, stop, err := refreshable.MapValidated(ctx, vr, func(_ context.Context, i int) (int, error) {
 		return i * 2, nil
 	})
 	defer stop()
@@ -148,9 +152,10 @@ func TestMapValidated(t *testing.T) {
 }
 
 func TestMapValidated_OwnError(t *testing.T) {
+	ctx := context.Background()
 	r := refreshable.New(10)
 	vr := refreshable.ValidatedFromRefreshable[int](r)
-	mapped, stop, err := refreshable.MapValidated(vr, func(i int) (string, error) {
+	mapped, stop, err := refreshable.MapValidated(ctx, vr, func(_ context.Context, i int) (string, error) {
 		if i > 100 {
 			return "", errors.New("too large")
 		}
@@ -171,16 +176,17 @@ func TestMapValidated_OwnError(t *testing.T) {
 }
 
 func TestMergeValidated(t *testing.T) {
+	ctx := context.Background()
 	r1 := refreshable.New("hello")
 	r2 := refreshable.New(2)
-	vr1, _, err := refreshable.MapWithError(r1, func(s string) (string, error) {
+	vr1, _, err := refreshable.MapWithError(ctx, r1, func(_ context.Context, s string) (string, error) {
 		if s == "" {
 			return "", errors.New("empty string")
 		}
 		return s, nil
 	})
 	require.NoError(t, err)
-	vr2, _, err := refreshable.MapWithError(r2, func(i int) (int, error) {
+	vr2, _, err := refreshable.MapWithError(ctx, r2, func(_ context.Context, i int) (int, error) {
 		if i < 0 {
 			return 0, errors.New("negative")
 		}
@@ -223,15 +229,16 @@ func TestMergeValidated(t *testing.T) {
 }
 
 func TestMergeValidated_BothErrors(t *testing.T) {
+	ctx := context.Background()
 	r1 := refreshable.New("")
 	r2 := refreshable.New(-1)
-	vr1, _, _ := refreshable.MapWithError(r1, func(s string) (string, error) {
+	vr1, _, _ := refreshable.MapWithError(ctx, r1, func(_ context.Context, s string) (string, error) {
 		if s == "" {
 			return "", errors.New("empty")
 		}
 		return s, nil
 	})
-	vr2, _, _ := refreshable.MapWithError(r2, func(i int) (int, error) {
+	vr2, _, _ := refreshable.MapWithError(ctx, r2, func(_ context.Context, i int) (int, error) {
 		if i < 0 {
 			return 0, errors.New("negative")
 		}
@@ -268,21 +275,22 @@ func TestMergeValidated_Subscribe(t *testing.T) {
 }
 
 func TestCollectValidated(t *testing.T) {
+	ctx := context.Background()
 	r1 := refreshable.New("a")
 	r2 := refreshable.New("b")
 	r3 := refreshable.New("c")
-	vr1, _, err := refreshable.MapWithError(r1, func(s string) (string, error) {
+	vr1, _, err := refreshable.MapWithError(ctx, r1, func(_ context.Context, s string) (string, error) {
 		if s == "" {
 			return "", errors.New("empty")
 		}
 		return s, nil
 	})
 	require.NoError(t, err)
-	vr2, _, err := refreshable.MapWithError(r2, func(s string) (string, error) {
+	vr2, _, err := refreshable.MapWithError(ctx, r2, func(_ context.Context, s string) (string, error) {
 		return s, nil
 	})
 	require.NoError(t, err)
-	vr3, _, err := refreshable.MapWithError(r3, func(s string) (string, error) {
+	vr3, _, err := refreshable.MapWithError(ctx, r3, func(_ context.Context, s string) (string, error) {
 		return s, nil
 	})
 	require.NoError(t, err)
@@ -331,9 +339,10 @@ func TestCollectValidatedMutable(t *testing.T) {
 }
 
 func TestCollectValidatedMutable_ErrorPropagation(t *testing.T) {
+	ctx := context.Background()
 	r1 := refreshable.New(1)
 	r2 := refreshable.New(2)
-	vr1, _, err := refreshable.MapWithError(r1, func(i int) (int, error) {
+	vr1, _, err := refreshable.MapWithError(ctx, r1, func(_ context.Context, i int) (int, error) {
 		if i < 0 {
 			return 0, errors.New("negative")
 		}
@@ -396,10 +405,11 @@ func TestCollectValidatedMutable_RaceCondition(t *testing.T) {
 // TestValidatingRefreshable_SubscriptionRaceCondition tests that the ValidatingRefreshable stays current
 // if the underlying refreshable updates during the creation process.
 func TestValidatingRefreshable_SubscriptionRaceCondition(t *testing.T) {
+	ctx := context.Background()
 	//r := &updateImmediatelyRefreshable{r: refreshable.New(1), newValue: 2}
 	r := refreshable.New(1)
 	var seen1, seen2 bool
-	vr, _, err := refreshable.Validate[int](r, func(i int) error {
+	vr, _, err := refreshable.Validate[int](ctx, r, func(_ context.Context, i int) error {
 		go r.Update(2)
 		switch i {
 		case 1:

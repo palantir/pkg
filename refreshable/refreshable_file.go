@@ -37,7 +37,7 @@ func NewFileRefreshableWithTicker(ctx context.Context, filePath string, updateTi
 // The readerFunc is called once initially and then on each tick until the context is cancelled.
 // If reading fails, the Current() value will be unchanged. The error is present in v.Validation().
 func NewFileRefreshableWithReaderFunc(ctx context.Context, filePath string, updateTicker <-chan time.Time, readerFuncOld func(string) ([]byte, error)) Validated[[]byte] {
-	readerFunc := func() ([]byte, error) {
+	readerFunc := func(ctx context.Context) ([]byte, error) {
 		return readerFuncOld(filePath)
 	}
 	detector := newStatFileChangeDetector(filePath)
