@@ -9,6 +9,11 @@ import (
 	"sync"
 )
 
+type Refreshable2[T1, T2 any] interface {
+	Current() (T1, T2)
+	Subscribe(consumer func(T1, T2)) UnsubscribeFunc
+}
+
 // A Refreshable is a generic container type for a volatile underlying value.
 // It supports atomic access and user-provided callback "subscriptions" on updates.
 type Refreshable[T any] interface {
@@ -31,6 +36,11 @@ type Updatable[T any] interface {
 	// Update updates the Refreshable with a new T.
 	// It blocks until all subscribers have completed.
 	Update(T)
+}
+
+type Updatable2[T1, T2 any] interface {
+	Refreshable2[T1, T2]
+	Update(T1, T2)
 }
 
 // A Validated is a Refreshable capable of rejecting updates according to validation logic.
@@ -69,6 +79,12 @@ func Cached[T any](original Refreshable[T]) (Refreshable[T], UnsubscribeFunc) {
 	return out.readOnly(), stop
 }
 
+func Cached2[T1, T2 any](original Refreshable2[T1, T2]) (Refreshable2[T1, T2], UnsubscribeFunc) {
+	out := newZero2[T1, T2]()
+	stop := original.Subscribe(out.Update)
+	return out.readOnly(), stop
+}
+
 // View returns a Refreshable implementation that converts the original Refreshable value to a new value using mapFn.
 // Current() and Subscribe() invoke mapFn as needed on the current value of the original Refreshable.
 // Subscription callbacks are invoked with the mapped value each time the original value changes
@@ -81,10 +97,48 @@ func View[T any, M any](original Refreshable[T], mapFn func(T) M) Refreshable[M]
 	}
 }
 
+// View returns a Refreshable implementation that converts the original Refreshable value to a new value using mapFn.
+// Current() and Subscribe() invoke mapFn as needed on the current value of the original Refreshable.
+// Subscription callbacks are invoked with the mapped value each time the original value changes
+// and the result is not cached nor compared for equality with the previous value, so functions
+// subscribing to View refreshables are more likely to receive duplicate updates.
+func View2[S1, S2, T1, T2 any](original Refreshable2[S1, S2], mapFn func(S1, S2) (T1, T2)) Refreshable2[T1, T2] {
+	return mapperRefreshable2[S1, S2, T1, T2]{
+		base:   original,
+		mapper: mapFn,
+	}
+}
+
+func ViewFrom2[S1, S2, T any](original Refreshable2[S1, S2], mapFn func(S1, S2) T) Refreshable[T] {
+	return mapperRefreshableFrom2[S1, S2, T]{
+		base:   original,
+		mapper: mapFn,
+	}
+}
+
+func ViewTo2[S, T1, T2 any](original Refreshable[S], mapFn func(S) (T1, T2)) Refreshable2[T1, T2] {
+	return mapperRefreshableTo2[S, T1, T2]{
+		base:   original,
+		mapper: mapFn,
+	}
+}
+
 // Map returns a new Refreshable based on the current one that handles updates based on the current Refreshable.
 // See Cached and View for more information.
 func Map[T any, M any](original Refreshable[T], mapFn func(T) M) (Refreshable[M], UnsubscribeFunc) {
 	return Cached(View(original, mapFn))
+}
+
+func Map2[S1, S2, T1, T2 any](original Refreshable2[S1, S2], mapFn func(S1, S2) (T1, T2)) (Refreshable2[T1, T2], UnsubscribeFunc) {
+	return Cached2(View2(original, mapFn))
+}
+
+func MapFrom2[S1, S2, T any](original Refreshable2[S1, S2], mapFn func(S1, S2) T) (Refreshable[T], UnsubscribeFunc) {
+	return Cached(ViewFrom2(original, mapFn))
+}
+
+func MapTo2[S, T1, T2 any](original Refreshable[S], mapFn func(S) (T1, T2)) (Refreshable2[T1, T2], UnsubscribeFunc) {
+	return Cached2(ViewTo2(original, mapFn))
 }
 
 // MapContext is like Map but unsubscribes when the context is cancelled.

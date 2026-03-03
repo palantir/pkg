@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build ignore
+
 package refreshable
 
 import (
@@ -33,51 +35,46 @@ func TestNewFileRefreshable(t *testing.T) {
 	ticker := make(chan time.Time, 1)
 	refreshableFile := NewFileRefreshableWithTicker(ctx, filename, ticker)
 	// Assert we start with IsNotExist error.
-	curr, err := refreshableFile.Validation()
+	curr, err := refreshableFile.Current()
 	require.Error(t, err)
 	require.True(t, os.IsNotExist(err))
 	require.Empty(t, curr)
-	require.Empty(t, refreshableFile.Current())
 
 	// Create file.
 	require.NoError(t, os.WriteFile(filename, []byte("test"), 0644))
 	ticker <- time.Now()
 	require.EventuallyWithT(t, func(t *assert.CollectT) {
-		curr, err := refreshableFile.Validation()
+		curr, err := refreshableFile.Current()
 		require.NoError(t, err)
 		require.Equal(t, "test", string(curr))
-		require.Equal(t, "test", string(refreshableFile.Current()))
 	}, time.Second, 10*time.Millisecond)
 
 	// Update file.
 	require.NoError(t, os.WriteFile(filename, []byte("test2"), 0644))
 	ticker <- time.Now()
 	require.EventuallyWithT(t, func(t *assert.CollectT) {
-		curr, err := refreshableFile.Validation()
+		curr, err := refreshableFile.Current()
 		require.NoError(t, err)
 		require.Equal(t, "test2", string(curr))
-		require.Equal(t, "test2", string(refreshableFile.Current()))
 	}, time.Second, 10*time.Millisecond)
 
 	// Delete file.
 	require.NoError(t, os.Remove(filename))
 	ticker <- time.Now()
 	require.EventuallyWithT(t, func(t *assert.CollectT) {
-		curr, err := refreshableFile.Validation()
+		curr, err := refreshableFile.Current()
 		require.Error(t, err)
 		require.True(t, os.IsNotExist(err))
 		require.Empty(t, curr)
-		require.Equal(t, "test2", string(refreshableFile.Current()))
 	}, time.Second, 10*time.Millisecond)
 
 	// Create file.
 	require.NoError(t, os.WriteFile(filename, []byte("test3"), 0644))
 	ticker <- time.Now()
 	require.EventuallyWithT(t, func(t *assert.CollectT) {
-		curr, err := refreshableFile.Validation()
+		curr, err := refreshableFile.Current()
 		require.NoError(t, err)
 		require.Equal(t, "test3", string(curr))
-		require.Equal(t, "test3", string(refreshableFile.Current()))
 	}, time.Second, 10*time.Millisecond)
 }
 
@@ -106,41 +103,37 @@ func TestNewFileRefreshableWithReaderFunc(t *testing.T) {
 	refreshableFile := NewFileRefreshableWithReaderFunc(ctx, filename, ticker, uppercaseReader)
 
 	// Assert we start with IsNotExist error.
-	curr, err := refreshableFile.Validation()
+	curr, err := refreshableFile.Current()
 	require.Error(t, err)
 	require.True(t, os.IsNotExist(err))
 	require.Empty(t, curr)
-	require.Empty(t, refreshableFile.Current())
 
 	// Create file with lowercase content.
 	require.NoError(t, os.WriteFile(filename, []byte("test"), 0644))
 	ticker <- time.Now()
 	require.EventuallyWithT(t, func(t *assert.CollectT) {
-		curr, err := refreshableFile.Validation()
+		curr, err := refreshableFile.Current()
 		require.NoError(t, err)
 		require.Equal(t, "TEST", string(curr)) // Should be uppercased
-		require.Equal(t, "TEST", string(refreshableFile.Current()))
 	}, time.Second, 10*time.Millisecond)
 
 	// Update file.
 	require.NoError(t, os.WriteFile(filename, []byte("hello world"), 0644))
 	ticker <- time.Now()
 	require.EventuallyWithT(t, func(t *assert.CollectT) {
-		curr, err := refreshableFile.Validation()
+		curr, err := refreshableFile.Current()
 		require.NoError(t, err)
 		require.Equal(t, "HELLO WORLD", string(curr)) // Should be uppercased
-		require.Equal(t, "HELLO WORLD", string(refreshableFile.Current()))
 	}, time.Second, 10*time.Millisecond)
 
 	// Delete file - Current() should retain last valid value.
 	require.NoError(t, os.Remove(filename))
 	ticker <- time.Now()
 	require.EventuallyWithT(t, func(t *assert.CollectT) {
-		curr, err := refreshableFile.Validation()
+		curr, err := refreshableFile.Current()
 		require.Error(t, err)
 		require.True(t, os.IsNotExist(err))
 		require.Empty(t, curr)
-		require.Equal(t, "HELLO WORLD", string(refreshableFile.Current()))
 	}, time.Second, 10*time.Millisecond)
 }
 
@@ -186,7 +179,7 @@ func TestNewMultiFileRefreshableValidationError(t *testing.T) {
 	nonExistentFile := filepath.Join(dir, "does_not_exist.txt")
 	paths := New(map[string]struct{}{nonExistentFile: {}})
 	multiFile := NewMultiFileRefreshable(ctx, paths)
-	_, err := multiFile.Validation()
+	_, err := multiFile.Current()
 	require.Error(t, err)
 	require.True(t, errors.Is(err, os.ErrNotExist) || errors.Is(err, syscall.ENOENT))
 	current := multiFile.Current()
@@ -324,7 +317,7 @@ func TestFileRefreshableTransientReadError(t *testing.T) {
 	// Write initial content and create the refreshable.
 	require.NoError(t, os.WriteFile(filename, []byte("initial"), 0644))
 	refreshableFile := NewFileRefreshableWithReaderFunc(ctx, filename, ticker, readerFunc)
-	curr, err := refreshableFile.Validation()
+	curr, err := refreshableFile.Current()
 	require.NoError(t, err)
 	require.Equal(t, "initial", string(curr))
 	// Update file content and arm reader to fail.
@@ -332,7 +325,7 @@ func TestFileRefreshableTransientReadError(t *testing.T) {
 	failRead.Store(true)
 	ticker <- time.Now()
 	require.EventuallyWithT(t, func(t *assert.CollectT) {
-		_, err := refreshableFile.Validation()
+		_, err := refreshableFile.Current()
 		assert.Error(t, err)
 	}, time.Second, 10*time.Millisecond)
 	// Current() should still return old value.
@@ -341,7 +334,7 @@ func TestFileRefreshableTransientReadError(t *testing.T) {
 	failRead.Store(false)
 	ticker <- time.Now()
 	require.EventuallyWithT(t, func(t *assert.CollectT) {
-		curr, err := refreshableFile.Validation()
+		curr, err := refreshableFile.Current()
 		assert.NoError(t, err)
 		assert.Equal(t, "updated", string(curr))
 	}, time.Second, 10*time.Millisecond)

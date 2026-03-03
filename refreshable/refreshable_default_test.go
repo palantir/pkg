@@ -5,6 +5,10 @@
 package refreshable_test
 
 import (
+	"context"
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
@@ -111,4 +115,76 @@ func TestCollectMutable_RaceCondition(t *testing.T) {
 	assert.EventuallyWithT(t, func(t *assert.CollectT) {
 		assert.Len(t, collected.Current(), 12)
 	}, 5*time.Second, 10*time.Millisecond)
+}
+
+func TestNewFileRefreshable_MapJSON(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	tmpdir := t.TempDir()
+	ticker := make(chan time.Time, 1)
+	ticker <- time.Now()
+	filename := filepath.Join(tmpdir, "file.json")
+	fileRefreshable := refreshable.NewFileRefreshableWithTicker(ctx, filename, ticker)
+
+	jsonRefreshable, _ := refreshable.Map2(fileRefreshable, func(in []byte, err error) (map[string]string, error) {
+		if err != nil {
+			return nil, err
+		}
+		var out map[string]string
+		err = json.Unmarshal(in, &out)
+		return out, err
+	})
+
+	currFile, err := fileRefreshable.Current()
+	require.Error(t, err)
+	require.True(t, os.IsNotExist(err))
+	require.Empty(t, currFile)
+
+	currJSON, err := jsonRefreshable.Current()
+	require.Error(t, err)
+	require.True(t, os.IsNotExist(err))
+	require.Empty(t, currJSON)
+
+	inMap := map[string]string{"foo": "bar"}
+	inRefreshable := refreshable.New(inMap)
+	inRefreshableBytes, _ := refreshable.MapTo2(inRefreshable, func(in map[string]string) ([]byte, error) { return json.Marshal(in) })
+	inWriteErr, _ := refreshable.MapFrom2(inRefreshableBytes, func(bytes []byte, err error) error {
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(filename, bytes, 0644)
+	})
+	require.NoError(t, inWriteErr.Current())
+
+	ticker <- time.Now()
+	require.EventuallyWithT(t, func(t *assert.CollectT) {
+		currFile, err := fileRefreshable.Current()
+		require.NoError(t, err)
+		require.Equal(t, `{"foo":"bar"}`, string(currFile))
+
+		currJSON, err := jsonRefreshable.Current()
+		require.NoError(t, err)
+		require.Equal(t, inMap, currJSON)
+	}, time.Second, time.Millisecond)
+
+	inRefreshable.Update(map[string]string{"baz": "qux"})
+	ticker <- time.Now()
+	require.EventuallyWithT(t, func(t *assert.CollectT) {
+		currFile, err := fileRefreshable.Current()
+		require.NoError(t, err)
+		require.Equal(t, `{"baz":"qux"}`, string(currFile))
+
+		currJSON, err := jsonRefreshable.Current()
+		require.NoError(t, err)
+		require.Equal(t, map[string]string{"baz": "qux"}, currJSON)
+	}, time.Second, time.Millisecond)
+
+	// Write bad JSON to file
+	require.NoError(t, os.WriteFile(filename, []byte(`"not a map"`), 0644))
+	ticker <- time.Now()
+	require.EventuallyWithT(t, func(t *assert.CollectT) {
+		currJSON, err := jsonRefreshable.Current()
+		require.Error(t, err)
+		require.Empty(t, currJSON)
+	}, time.Second, time.Millisecond)
 }
