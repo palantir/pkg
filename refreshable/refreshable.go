@@ -34,16 +34,16 @@ type Updatable[T any] interface {
 }
 
 // A Validated is capable of rejecting updates according to validation logic.
-// Its LastCurrent method returns the most recent value to pass validation.
+// Its Unvalidated method returns the most recent value to pass validation.
 type Validated[T any] interface {
 	// SubscribeValidated calls the consumer function when the validated value updates until stop is closed.
 	// The consumer receives the latest value and its validation error (nil if valid).
 	SubscribeValidated(consumer func(T, error)) UnsubscribeFunc
-	// LastCurrent returns the most recent value to pass validation.
-	LastCurrent() T
+	// Unvalidated returns the most recent value to pass validation.
+	Unvalidated() T
 	// Validation returns the result of the most recent validation.
-	// If the last value was valid, Validation returns the same value as LastCurrent and a nil error.
-	// If the last value was invalid, it and the error are returned. LastCurrent returns the most recent valid value.
+	// If the last value was valid, Validation returns the same value as Unvalidated and a nil error.
+	// If the last value was invalid, it and the error are returned. Unvalidated returns the most recent valid value.
 	Validation() (T, error)
 }
 

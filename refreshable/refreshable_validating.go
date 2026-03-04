@@ -20,7 +20,7 @@ type validRefreshableContainer[T any] struct {
 	lastErr     error
 }
 
-func (v *validRefreshable[T]) LastCurrent() T { return v.r.Current().validated }
+func (v *validRefreshable[T]) Unvalidated() T { return v.r.Current().validated }
 
 func (v *validRefreshable[T]) SubscribeValidated(consumer func(T, error)) UnsubscribeFunc {
 	return v.r.Subscribe(func(val validRefreshableContainer[T]) {
@@ -30,7 +30,7 @@ func (v *validRefreshable[T]) SubscribeValidated(consumer func(T, error)) Unsubs
 
 // Validation returns the most recent upstream Refreshable and its validation result.
 // If the error is nil, the validRefreshable is up-to-date with its original and the value
-// is equal to that returned by LastCurrent().
+// is equal to that returned by Unvalidated().
 func (v *validRefreshable[T]) Validation() (T, error) {
 	c := v.r.Current()
 	return c.unvalidated, c.lastErr
@@ -138,7 +138,7 @@ func CollectValidatedMutable[T any](list ...Validated[T]) (Validated[[]T], Valid
 		current := make([]T, len(validateds))
 		var errs []error
 		for i := range validateds {
-			current[i] = validateds[i].LastCurrent()
+			current[i] = validateds[i].Unvalidated()
 			if _, err := validateds[i].Validation(); err != nil {
 				errs = append(errs, err)
 			}
@@ -178,7 +178,7 @@ func CollectValidatedMutable[T any](list ...Validated[T]) (Validated[[]T], Valid
 func MergeValidated[T1 any, T2 any, R any](original1 Validated[T1], original2 Validated[T2], mergeFn func(T1, T2) R) (Validated[R], UnsubscribeFunc) {
 	out := newValidRefreshable[R]()
 	doUpdate := func() {
-		merged := mergeFn(original1.LastCurrent(), original2.LastCurrent())
+		merged := mergeFn(original1.Unvalidated(), original2.Unvalidated())
 		_, err1 := original1.Validation()
 		_, err2 := original2.Validation()
 		err := getError(err1, err2)

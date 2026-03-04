@@ -17,7 +17,7 @@ import (
 // When keys are removed, their corresponding refreshables are unsubscribed.
 // When any individual mapped refreshable updates, the output map is rebuilt.
 //
-// LastCurrent() returns a map containing only keys whose mapped refreshables are valid.
+// Unvalidated() returns a map containing only keys whose mapped refreshables are valid.
 // Validation() returns the map and a joined error of all validation failures.
 //
 // This should be used instead of just calling Map on a map[K]V when you need to interject an additional refreshable that can be updated independently
