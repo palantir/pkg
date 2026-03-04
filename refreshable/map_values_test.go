@@ -66,13 +66,13 @@ func TestMapValuesValidationError(t *testing.T) {
 	ctx := context.Background()
 	testErr := errors.New("validation failed")
 	input := New(map[string]int{"a": 1, "b": 2})
-	mapped := MapValues(ctx, input, func(_ context.Context, key string, value int) Validated[int] {
-		v := newValidRefreshable[int]()
-		if key == "b" {
-			v.r.Update(validRefreshableContainer[int]{validated: 0, unvalidated: value * 2, lastErr: testErr})
-		} else {
-			v.r.Update(validRefreshableContainer[int]{validated: value * 2, unvalidated: value * 2, lastErr: nil})
-		}
+	mapped := MapValues(ctx, input, func(ctx context.Context, key string, value int) Validated[int] {
+		v, _, _ := Validate(ctx, New(value*2), func(_ context.Context, _ int) error {
+			if key == "b" {
+				return testErr
+			}
+			return nil
+		})
 		return v
 	})
 	val, err := mapped.Validation()
