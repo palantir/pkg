@@ -22,9 +22,9 @@ type validRefreshableContainer[T any] struct {
 
 func (v *validRefreshable[T]) Unvalidated() T { return v.r.Current().unvalidated }
 
-func (v *validRefreshable[T]) SubscribeValidated(consumer func(T, error)) UnsubscribeFunc {
-	return v.r.Subscribe(func(val validRefreshableContainer[T]) {
-		consumer(val.unvalidated, val.lastErr)
+func (v *validRefreshable[T]) SubscribeValidated(consumer func(Validated[T])) UnsubscribeFunc {
+	return v.r.Subscribe(func(_ validRefreshableContainer[T]) {
+		consumer(v)
 	})
 }
 
@@ -44,7 +44,9 @@ func newValidRefreshable[M any]() *validRefreshable[M] {
 }
 
 func subscribeValidRefreshable[T, M any](ctx context.Context, v *validRefreshable[M], original Validated[T], mapFn func(context.Context, T) (M, error)) UnsubscribeFunc {
-	return original.SubscribeValidated(func(valueT T, lastErr error) {
+	return original.SubscribeValidated(func(val Validated[T]) {
+		_, lastErr := val.Validation()
+		valueT := val.Unvalidated()
 		updateValidRefreshableWithParents(ctx, v, lastErr, func(ctx context.Context) (M, error) {
 			return mapFn(ctx, valueT)
 		})
@@ -152,14 +154,14 @@ func CollectValidatedMutable[T any](list ...Validated[T]) (Validated[[]T], Valid
 		}
 	}
 	for _, r := range validateds {
-		stops = append(stops, r.SubscribeValidated(func(T, error) { doUpdate() }))
+		stops = append(stops, r.SubscribeValidated(func(Validated[T]) { doUpdate() }))
 	}
 	add := func(r Validated[T]) {
 		mu.Lock()
 		validateds = append(validateds, r)
 		mu.Unlock()
 		// Subscribe outside of lock since it immediately invokes the callback
-		stop := r.SubscribeValidated(func(T, error) { doUpdate() })
+		stop := r.SubscribeValidated(func(Validated[T]) { doUpdate() })
 		mu.Lock()
 		stops = append(stops, stop)
 		mu.Unlock()
@@ -189,8 +191,8 @@ func MergeValidated[T1 any, T2 any, R any](original1 Validated[T1], original2 Va
 			out.r.Update(validRefreshableContainer[R]{unvalidated: merged, validated: zero, lastErr: err})
 		}
 	}
-	stop1 := original1.SubscribeValidated(func(T1, error) { doUpdate() })
-	stop2 := original2.SubscribeValidated(func(T2, error) { doUpdate() })
+	stop1 := original1.SubscribeValidated(func(Validated[T1]) { doUpdate() })
+	stop2 := original2.SubscribeValidated(func(Validated[T2]) { doUpdate() })
 	return out, func() {
 		stop1()
 		stop2()

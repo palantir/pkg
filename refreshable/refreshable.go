@@ -38,7 +38,7 @@ type Updatable[T any] interface {
 type Validated[T any] interface {
 	// SubscribeValidated calls the consumer function when the validated value updates until stop is closed.
 	// The consumer receives the latest value and its validation error (nil if valid).
-	SubscribeValidated(consumer func(T, error)) UnsubscribeFunc
+	SubscribeValidated(consumer func(Validated[T])) UnsubscribeFunc
 	// Unvalidated returns the most recent value to pass validation.
 	Unvalidated() T
 	// Validation returns the result of the most recent validation.

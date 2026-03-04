@@ -61,7 +61,7 @@ func MapValues[K comparable, V, R any](
 			if _, exists := mappedRefreshables[key]; !exists {
 				mapped := mapperFn(ctx, key, value)
 				mappedRefreshables[key] = mapped
-				unsubscribers[key] = mapped.SubscribeValidated(func(R, error) {
+				unsubscribers[key] = mapped.SubscribeValidated(func(Validated[R]) {
 					updateOutput()
 				})
 			}

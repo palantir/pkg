@@ -241,8 +241,8 @@ func TestMergeValidated_Subscribe(t *testing.T) {
 	})
 	defer stop()
 	var received []int
-	merged.SubscribeValidated(func(val int, err error) {
-		received = append(received, val)
+	merged.SubscribeValidated(func(val refreshable.Validated[int]) {
+		received = append(received, val.Unvalidated())
 	})
 	// Initial subscription callback
 	require.Len(t, received, 1)
