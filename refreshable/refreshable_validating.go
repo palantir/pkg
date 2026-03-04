@@ -73,16 +73,16 @@ func updateValidRefreshableWithParents[M any](ctx context.Context, valid *validR
 }
 
 func getError(mapperErr, validatedParentError error) error {
-	if mapperErr == nil && validatedParentError == nil {
-		return nil
-	}
 	if mapperErr != nil && validatedParentError != nil {
 		return errors.Join(mapperErr, validatedParentError)
 	}
 	if mapperErr != nil {
 		return mapperErr
 	}
-	return validatedParentError
+	if validatedParentError != nil {
+		return validatedParentError
+	}
+	return nil
 }
 
 // identity is a validating map function that returns its input argument type.
