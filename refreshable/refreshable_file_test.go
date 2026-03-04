@@ -186,11 +186,12 @@ func TestNewMultiFileRefreshableValidationError(t *testing.T) {
 	nonExistentFile := filepath.Join(dir, "does_not_exist.txt")
 	paths := New(map[string]struct{}{nonExistentFile: {}})
 	multiFile := NewMultiFileRefreshable(ctx, paths)
-	_, err := multiFile.Validation()
+	val, err := multiFile.Validation()
+	require.Nil(t, val)
 	require.Error(t, err)
 	require.True(t, errors.Is(err, os.ErrNotExist) || errors.Is(err, syscall.ENOENT))
 	current := multiFile.Unvalidated()
-	require.Empty(t, current)
+	require.Equal(t, map[string][]byte{nonExistentFile: nil}, current)
 }
 
 func TestNewMultiFileRefreshableCanMap(t *testing.T) {

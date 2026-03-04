@@ -93,7 +93,7 @@ func (d *statFileChangeDetector) MarkUpdated() {
 // the corresponding file watchers are created or destroyed. Each file is read periodically
 // using NewFileRefreshable.
 //
-// Unvalidated() returns a map containing only successfully read files.
+// Unvalidated() returns a map containing the last successfully read content for each file.
 // Validation() returns the map and a joined error of all file read failures.
 func NewMultiFileRefreshable(ctx context.Context, paths Refreshable[map[string]struct{}]) Validated[map[string][]byte] {
 	return MapValues(ctx, paths, func(ctx context.Context, path string, _ struct{}) Validated[[]byte] {

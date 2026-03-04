@@ -75,14 +75,12 @@ func TestMapValuesValidationError(t *testing.T) {
 		}
 		return v
 	})
-	current := mapped.Unvalidated()
-	assert.Equal(t, 2, current["a"])
-	_, exists := current["b"]
-	assert.False(t, exists)
-	assert.Len(t, current, 1)
-	_, err := mapped.Validation()
+	val, err := mapped.Validation()
+	assert.Nil(t, val)
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, testErr))
+	current := mapped.Unvalidated()
+	assert.Equal(t, map[string]int{"a": 2, "b": 0}, current)
 }
 
 func TestMapValuesMappedRefreshableUpdates(t *testing.T) {
