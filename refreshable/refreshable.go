@@ -43,7 +43,7 @@ type Validated[T any] interface {
 	Unvalidated() T
 	// Validation returns the result of the most recent validation.
 	// If the last value was valid, Validation returns the same value as Unvalidated and a nil error.
-	// If the last value was invalid, it and the error are returned. Unvalidated returns the most recent valid value.
+	// If the last value was invalid, Validation returns T's zero value and the error. Unvalidated returns the most recent valid value.
 	Validation() (T, error)
 }
 

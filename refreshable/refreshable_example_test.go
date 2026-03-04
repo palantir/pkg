@@ -155,7 +155,7 @@ func ExampleValidate() {
 	r.Update(200)
 	fmt.Println(validated.Validation())
 	// Output: Initial error: value too low
-	// 42 value too low
+	// 0 value too low
 	// 100 <nil>
 	// 100 <nil>
 }
