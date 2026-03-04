@@ -41,9 +41,9 @@ func MapValues[K comparable, V, R any](
 		}
 		joined := errors.Join(errs...)
 		if joined == nil {
-			out.r.Update(validRefreshableContainer[map[K]R]{validated: result, unvalidated: result, lastErr: nil})
+			out.r.Update(validRefreshableContainer[map[K]R]{unvalidated: result, validated: result, lastErr: nil})
 		} else {
-			out.r.Update(validRefreshableContainer[map[K]R]{validated: result, unvalidated: nil, lastErr: joined})
+			out.r.Update(validRefreshableContainer[map[K]R]{unvalidated: result, validated: nil, lastErr: joined})
 		}
 	}
 

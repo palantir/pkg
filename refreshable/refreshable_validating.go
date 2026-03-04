@@ -15,16 +15,16 @@ type validRefreshable[T any] struct {
 }
 
 type validRefreshableContainer[T any] struct {
-	validated   T
 	unvalidated T
+	validated   T
 	lastErr     error
 }
 
-func (v *validRefreshable[T]) Unvalidated() T { return v.r.Current().validated }
+func (v *validRefreshable[T]) Unvalidated() T { return v.r.Current().unvalidated }
 
 func (v *validRefreshable[T]) SubscribeValidated(consumer func(T, error)) UnsubscribeFunc {
 	return v.r.Subscribe(func(val validRefreshableContainer[T]) {
-		consumer(val.validated, val.lastErr)
+		consumer(val.unvalidated, val.lastErr)
 	})
 }
 
@@ -33,7 +33,7 @@ func (v *validRefreshable[T]) SubscribeValidated(consumer func(T, error)) Unsubs
 // is equal to that returned by Unvalidated().
 func (v *validRefreshable[T]) Validation() (T, error) {
 	c := v.r.Current()
-	return c.unvalidated, c.lastErr
+	return c.validated, c.lastErr
 }
 
 func newValidRefreshable[M any]() *validRefreshable[M] {
@@ -56,18 +56,18 @@ func updateValidRefreshable[M any](ctx context.Context, valid *validRefreshable[
 }
 
 func updateValidRefreshableWithParents[M any](ctx context.Context, valid *validRefreshable[M], validatedParentError error, mapFn func(context.Context) (M, error)) {
-	validated := valid.r.Current().validated
-	unvalidated, mapperErr := mapFn(ctx)
+	unvalidated := valid.r.Current().unvalidated
+	validated, mapperErr := mapFn(ctx)
 	err := getError(mapperErr, validatedParentError)
 	if err == nil {
-		validated = unvalidated
+		unvalidated = validated
 	} else {
 		var zero M
-		unvalidated = zero
+		validated = zero
 	}
 	valid.r.Update(validRefreshableContainer[M]{
-		validated:   validated,
 		unvalidated: unvalidated,
+		validated:   validated,
 		lastErr:     err,
 	})
 }
@@ -96,8 +96,8 @@ func validatedFromRefreshable[M any](original Refreshable[M]) Validated[M] {
 	}
 	original.Subscribe(func(m M) {
 		valid.r.Update(validRefreshableContainer[M]{
-			validated:   m,
 			unvalidated: m,
+			validated:   m,
 			lastErr:     nil,
 		})
 	})
@@ -146,9 +146,9 @@ func CollectValidatedMutable[T any](list ...Validated[T]) (Validated[[]T], Valid
 		mu.RUnlock()
 		joined := errors.Join(errs...)
 		if joined == nil {
-			out.r.Update(validRefreshableContainer[[]T]{validated: current, unvalidated: current, lastErr: nil})
+			out.r.Update(validRefreshableContainer[[]T]{unvalidated: current, validated: current, lastErr: nil})
 		} else {
-			out.r.Update(validRefreshableContainer[[]T]{validated: current, unvalidated: nil, lastErr: joined})
+			out.r.Update(validRefreshableContainer[[]T]{unvalidated: current, validated: nil, lastErr: joined})
 		}
 	}
 	for _, r := range validateds {
@@ -183,10 +183,10 @@ func MergeValidated[T1 any, T2 any, R any](original1 Validated[T1], original2 Va
 		_, err2 := original2.Validation()
 		err := getError(err1, err2)
 		if err == nil {
-			out.r.Update(validRefreshableContainer[R]{validated: merged, unvalidated: merged, lastErr: nil})
+			out.r.Update(validRefreshableContainer[R]{unvalidated: merged, validated: merged, lastErr: nil})
 		} else {
 			var zero R
-			out.r.Update(validRefreshableContainer[R]{validated: merged, unvalidated: zero, lastErr: err})
+			out.r.Update(validRefreshableContainer[R]{unvalidated: merged, validated: zero, lastErr: err})
 		}
 	}
 	stop1 := original1.SubscribeValidated(func(T1, error) { doUpdate() })
