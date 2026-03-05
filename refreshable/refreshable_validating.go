@@ -4,30 +4,36 @@
 
 package refreshable
 
+import (
+	"context"
+	"errors"
+	"sync"
+)
+
 type validRefreshable[T any] struct {
 	r Updatable[validRefreshableContainer[T]]
 }
 
 type validRefreshableContainer[T any] struct {
-	validated   T
 	unvalidated T
+	validated   T
 	lastErr     error
 }
 
-func (v *validRefreshable[T]) Current() T { return v.r.Current().validated }
+func (v *validRefreshable[T]) Unvalidated() T { return v.r.Current().unvalidated }
 
-func (v *validRefreshable[T]) Subscribe(consumer func(T)) UnsubscribeFunc {
-	return v.r.Subscribe(func(val validRefreshableContainer[T]) {
-		consumer(val.validated)
+func (v *validRefreshable[T]) SubscribeValidated(consumer func(Validated[T])) UnsubscribeFunc {
+	return v.r.Subscribe(func(_ validRefreshableContainer[T]) {
+		consumer(v)
 	})
 }
 
 // Validation returns the most recent upstream Refreshable and its validation result.
 // If the error is nil, the validRefreshable is up-to-date with its original and the value
-// is equal to that returned by Current().
+// is equal to that returned by Unvalidated().
 func (v *validRefreshable[T]) Validation() (T, error) {
 	c := v.r.Current()
-	return c.unvalidated, c.lastErr
+	return c.validated, c.lastErr
 }
 
 func newValidRefreshable[M any]() *validRefreshable[M] {
@@ -37,28 +43,158 @@ func newValidRefreshable[M any]() *validRefreshable[M] {
 	return valid
 }
 
-func subscribeValidRefreshable[T, M any](v *validRefreshable[M], original Refreshable[T], mapFn func(T) (M, error)) UnsubscribeFunc {
-	return original.Subscribe(func(valueT T) {
-		updateValidRefreshable(v, func() (M, error) {
-			return mapFn(valueT)
+func subscribeValidRefreshable[T, M any](ctx context.Context, v *validRefreshable[M], original Validated[T], mapFn func(context.Context, T) (M, error)) UnsubscribeFunc {
+	return original.SubscribeValidated(func(val Validated[T]) {
+		_, lastErr := val.Validation()
+		valueT := val.Unvalidated()
+		updateValidRefreshableWithParents(ctx, v, lastErr, func(ctx context.Context) (M, error) {
+			return mapFn(ctx, valueT)
 		})
 	})
 }
 
-func updateValidRefreshable[M any](valid *validRefreshable[M], mapFn func() (M, error)) {
-	validated := valid.r.Current().validated
-	unvalidated, err := mapFn()
+func updateValidRefreshable[M any](ctx context.Context, valid *validRefreshable[M], mapFn func(context.Context) (M, error)) {
+	updateValidRefreshableWithParents(ctx, valid, nil, mapFn)
+}
+
+func updateValidRefreshableWithParents[M any](ctx context.Context, valid *validRefreshable[M], validatedParentError error, mapFn func(context.Context) (M, error)) {
+	unvalidated := valid.r.Current().unvalidated
+	validated, mapperErr := mapFn(ctx)
+	err := getError(mapperErr, validatedParentError)
 	if err == nil {
-		validated = unvalidated
+		unvalidated = validated
+	} else {
+		var zero M
+		validated = zero
 	}
 	valid.r.Update(validRefreshableContainer[M]{
-		validated:   validated,
 		unvalidated: unvalidated,
+		validated:   validated,
 		lastErr:     err,
 	})
 }
 
+func getError(mapperErr, validatedParentError error) error {
+	if mapperErr != nil && validatedParentError != nil {
+		return errors.Join(mapperErr, validatedParentError)
+	}
+	if mapperErr != nil {
+		return mapperErr
+	}
+	if validatedParentError != nil {
+		return validatedParentError
+	}
+	return nil
+}
+
 // identity is a validating map function that returns its input argument type.
-func identity[T any](validatingFn func(T) error) func(i T) (T, error) {
-	return func(i T) (T, error) { return i, validatingFn(i) }
+func identity[T any](validatingFn func(context.Context, T) error) func(ctx context.Context, i T) (T, error) {
+	return func(ctx context.Context, i T) (T, error) { return i, validatingFn(ctx, i) }
+}
+
+func validatedFromRefreshable[M any](original Refreshable[M]) Validated[M] {
+	valid := &validRefreshable[M]{
+		r: newDefault(validRefreshableContainer[M]{}),
+	}
+	original.Subscribe(func(m M) {
+		valid.r.Update(validRefreshableContainer[M]{
+			unvalidated: m,
+			validated:   m,
+			lastErr:     nil,
+		})
+	})
+	return valid
+}
+
+// MapValidated returns a new Validated based on the current one that handles updates based on the current Validated.
+func MapValidated[T any, M any](ctx context.Context, original Validated[T], mapFn func(context.Context, T) (M, error)) (Validated[M], UnsubscribeFunc, error) {
+	v := newValidRefreshable[M]()
+	stop := subscribeValidRefreshable(ctx, v, original, mapFn)
+	_, err := v.Validation()
+	return v, stop, err
+}
+
+// ValidatedAddFunc is a function that adds a new Validated to a collection.
+type ValidatedAddFunc[T any] func(Validated[T])
+
+// CollectValidated returns a new Validated that combines the latest values of multiple Validated refreshables into a slice.
+// The returned Validated is updated whenever any of the original Validated refreshables updates.
+// The unsubscribe function removes subscriptions from all original Validated refreshables.
+func CollectValidated[T any](list ...Validated[T]) (Validated[[]T], UnsubscribeFunc) {
+	out, _, unsub := CollectValidatedMutable(list...)
+	return out, unsub
+}
+
+// CollectValidatedMutable returns a new Validated that combines the latest values of multiple Validated refreshables into a slice.
+// The returned Validated is updated whenever any of the Validated refreshables updates.
+// The add function allows adding new Validated refreshables to the collection after creation.
+// The unsubscribe function removes subscriptions from all Validated refreshables in the collection.
+func CollectValidatedMutable[T any](list ...Validated[T]) (Validated[[]T], ValidatedAddFunc[T], UnsubscribeFunc) {
+	out := newValidRefreshable[[]T]()
+	var mu sync.RWMutex
+	validateds := make([]Validated[T], len(list))
+	copy(validateds, list)
+	stops := make([]UnsubscribeFunc, 0, len(list))
+	doUpdate := func() {
+		mu.RLock()
+		current := make([]T, len(validateds))
+		var errs []error
+		for i := range validateds {
+			current[i] = validateds[i].Unvalidated()
+			if _, err := validateds[i].Validation(); err != nil {
+				errs = append(errs, err)
+			}
+		}
+		mu.RUnlock()
+		joined := errors.Join(errs...)
+		if joined == nil {
+			out.r.Update(validRefreshableContainer[[]T]{unvalidated: current, validated: current, lastErr: nil})
+		} else {
+			out.r.Update(validRefreshableContainer[[]T]{unvalidated: current, validated: nil, lastErr: joined})
+		}
+	}
+	for _, r := range validateds {
+		stops = append(stops, r.SubscribeValidated(func(Validated[T]) { doUpdate() }))
+	}
+	add := func(r Validated[T]) {
+		mu.Lock()
+		validateds = append(validateds, r)
+		mu.Unlock()
+		// Subscribe outside of lock since it immediately invokes the callback
+		stop := r.SubscribeValidated(func(Validated[T]) { doUpdate() })
+		mu.Lock()
+		stops = append(stops, stop)
+		mu.Unlock()
+	}
+	return out, add, func() {
+		mu.Lock()
+		defer mu.Unlock()
+		for _, stop := range stops {
+			stop()
+		}
+	}
+}
+
+// MergeValidated returns a new Validated that combines the latest values of two Validated refreshables using the mergeFn.
+// The returned Validated is updated whenever either of the original Validated refreshables updates.
+func MergeValidated[T1 any, T2 any, R any](original1 Validated[T1], original2 Validated[T2], mergeFn func(T1, T2) R) (Validated[R], UnsubscribeFunc) {
+	out := newValidRefreshable[R]()
+	doUpdate := func() {
+		merged := mergeFn(original1.Unvalidated(), original2.Unvalidated())
+		_, err1 := original1.Validation()
+		_, err2 := original2.Validation()
+		err := getError(err1, err2)
+		if err == nil {
+			out.r.Update(validRefreshableContainer[R]{unvalidated: merged, validated: merged, lastErr: nil})
+		} else {
+			var zero R
+			out.r.Update(validRefreshableContainer[R]{unvalidated: merged, validated: zero, lastErr: err})
+		}
+	}
+	stop1 := original1.SubscribeValidated(func(Validated[T1]) { doUpdate() })
+	stop2 := original2.SubscribeValidated(func(Validated[T2]) { doUpdate() })
+	return out, func() {
+		stop1()
+		stop2()
+	}
 }

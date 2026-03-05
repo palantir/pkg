@@ -29,7 +29,7 @@ func NewAlwaysCheckChangeDetector() ChangeDetector {
 func (alwaysCheckChangeDetector) ShouldUpdate(context.Context) bool { return true }
 func (alwaysCheckChangeDetector) MarkUpdated()                      {}
 
-func NewRefreshableTickerWithDuration[M any](ctx context.Context, a time.Duration, readerFunc func() (M, error), detector ChangeDetector) Validated[M] {
+func NewRefreshableTickerWithDuration[M any](ctx context.Context, a time.Duration, readerFunc func(context.Context) (M, error), detector ChangeDetector) Validated[M] {
 	return NewRefreshableTicker(ctx, time.Tick(a), readerFunc, detector)
 }
 
@@ -37,10 +37,10 @@ func NewRefreshableTickerWithDuration[M any](ctx context.Context, a time.Duratio
 // The readerFunc is only called when the [ChangeDetector] indicates the data source has changed.
 // The detector's MarkUpdated is called after each successful read.
 // The readerFunc is called once initially and then on each tick (subject to the detector) until the context is cancelled.
-// If reading fails, the Current() value will be unchanged. The error is present in v.Validation().
-func NewRefreshableTicker[M any](ctx context.Context, updateTicker <-chan time.Time, readerFunc func() (M, error), detector ChangeDetector) Validated[M] {
+// If reading fails, the Unvalidated() value will be unchanged. The error is present in v.Validation().
+func NewRefreshableTicker[M any](ctx context.Context, updateTicker <-chan time.Time, readerFunc func(context.Context) (M, error), detector ChangeDetector) Validated[M] {
 	v := newValidRefreshable[M]()
-	updateValidRefreshable(v, readerFunc)
+	updateValidRefreshable(ctx, v, readerFunc)
 	if _, err := v.Validation(); err == nil {
 		detector.MarkUpdated()
 	}
@@ -51,7 +51,7 @@ func NewRefreshableTicker[M any](ctx context.Context, updateTicker <-chan time.T
 				if !detector.ShouldUpdate(ctx) {
 					continue
 				}
-				updateValidRefreshable(v, readerFunc)
+				updateValidRefreshable(ctx, v, readerFunc)
 				if _, err := v.Validation(); err == nil {
 					detector.MarkUpdated()
 				}

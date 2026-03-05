@@ -33,13 +33,17 @@ type Updatable[T any] interface {
 	Update(T)
 }
 
-// A Validated is a Refreshable capable of rejecting updates according to validation logic.
-// Its Current method returns the most recent value to pass validation.
+// A Validated is capable of rejecting updates according to validation logic.
+// Its Unvalidated method returns the most recent value to pass validation.
 type Validated[T any] interface {
-	Refreshable[T]
+	// SubscribeValidated calls the consumer function when the validated value updates until stop is closed.
+	// The consumer receives the latest value and its validation error (nil if valid).
+	SubscribeValidated(consumer func(Validated[T])) UnsubscribeFunc
+	// Unvalidated returns the most recent value to pass validation.
+	Unvalidated() T
 	// Validation returns the result of the most recent validation.
-	// If the last value was valid, Validation returns the same value as Current and a nil error.
-	// If the last value was invalid, it and the error are returned. Current returns the most recent valid value.
+	// If the last value was valid, Validation returns the same value as Unvalidated and a nil error.
+	// If the last value was invalid, Validation returns T's zero value and the error. Unvalidated returns the most recent valid value.
 	Validation() (T, error)
 }
 
@@ -100,9 +104,9 @@ func MapContext[T any, M any](ctx context.Context, original Refreshable[T], mapF
 // MapWithError is similar to Validate but allows for the function to return a mapping/mutation
 // of the input object in addition to returning an error. The returned validRefreshable will contain the mapped value.
 // An error is returned if the current original value fails to map.
-func MapWithError[T any, M any](original Refreshable[T], mapFn func(T) (M, error)) (Validated[M], UnsubscribeFunc, error) {
+func MapWithError[T any, M any](ctx context.Context, original Refreshable[T], mapFn func(context.Context, T) (M, error)) (Validated[M], UnsubscribeFunc, error) {
 	v := newValidRefreshable[M]()
-	stop := subscribeValidRefreshable(v, original, mapFn)
+	stop := subscribeValidRefreshable(ctx, v, validatedFromRefreshable(original), mapFn)
 	_, err := v.Validation()
 	return v, stop, err
 }
@@ -110,8 +114,8 @@ func MapWithError[T any, M any](original Refreshable[T], mapFn func(T) (M, error
 // Validate returns a new Refreshable that returns the latest original value accepted by the validatingFn.
 // If the upstream value results in an error, it is reported by Validation().
 // An error is returned if the current original value is invalid.
-func Validate[T any](original Refreshable[T], validatingFn func(T) error) (Validated[T], UnsubscribeFunc, error) {
-	return MapWithError(original, identity(validatingFn))
+func Validate[T any](ctx context.Context, original Refreshable[T], validatingFn func(context.Context, T) error) (Validated[T], UnsubscribeFunc, error) {
+	return MapWithError(ctx, original, identity(validatingFn))
 }
 
 // Merge returns a new Refreshable that combines the latest values of two Refreshables of different types using the mergeFn.

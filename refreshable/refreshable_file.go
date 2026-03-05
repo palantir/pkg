@@ -23,7 +23,7 @@ func NewFileRefreshable(ctx context.Context, filePath string) Validated[[]byte] 
 
 // NewFileRefreshableWithTicker returns a Validated refreshable whose current value is the bytes of the file at the provided path.
 // This function reads the file once then starts a goroutine which re-reads the file on each tick until the provided context is cancelled.
-// If reading the file fails, the Current() value will be unchanged. The error is present in v.Validation().
+// If reading the file fails, the Unvalidated() value will be unchanged. The error is present in v.Validation().
 // It is equivalent to calling NewFileRefreshableWithReaderFunc with os.ReadFile.
 func NewFileRefreshableWithTicker(ctx context.Context, filePath string, updateTicker <-chan time.Time) Validated[[]byte] {
 	return NewFileRefreshableWithReaderFunc(ctx, filePath, updateTicker, os.ReadFile)
@@ -35,9 +35,9 @@ func NewFileRefreshableWithTicker(ctx context.Context, filePath string, updateTi
 // (e.g., decompression, decryption, or other transformations).
 //
 // The readerFunc is called once initially and then on each tick until the context is cancelled.
-// If reading fails, the Current() value will be unchanged. The error is present in v.Validation().
+// If reading fails, the Unvalidated() value will be unchanged. The error is present in v.Validation().
 func NewFileRefreshableWithReaderFunc(ctx context.Context, filePath string, updateTicker <-chan time.Time, readerFuncOld func(string) ([]byte, error)) Validated[[]byte] {
-	readerFunc := func() ([]byte, error) {
+	readerFunc := func(ctx context.Context) ([]byte, error) {
 		return readerFuncOld(filePath)
 	}
 	detector := newStatFileChangeDetector(filePath)
@@ -93,7 +93,7 @@ func (d *statFileChangeDetector) MarkUpdated() {
 // the corresponding file watchers are created or destroyed. Each file is read periodically
 // using NewFileRefreshable.
 //
-// Current() returns a map containing only successfully read files.
+// Unvalidated() returns a map containing the last successfully read content for each file.
 // Validation() returns the map and a joined error of all file read failures.
 func NewMultiFileRefreshable(ctx context.Context, paths Refreshable[map[string]struct{}]) Validated[map[string][]byte] {
 	return MapValues(ctx, paths, func(ctx context.Context, path string, _ struct{}) Validated[[]byte] {

@@ -16,12 +16,13 @@ import (
 func TestMapValues(t *testing.T) {
 	ctx := context.Background()
 	input := New(map[string]int{"a": 1, "b": 2})
-	mapped := MapValues(ctx, input, func(_ context.Context, key string, value int) Validated[int] {
-		v := newValidRefreshable[int]()
-		v.r.Update(validRefreshableContainer[int]{validated: value * 2, unvalidated: value * 2, lastErr: nil})
+	mapped := MapValues(ctx, input, func(ctx context.Context, _ string, value int) Validated[int] {
+		v, _, _ := MapWithError(ctx, New(value), func(_ context.Context, v int) (int, error) {
+			return v * 2, nil
+		})
 		return v
 	})
-	current := mapped.Current()
+	current := mapped.Unvalidated()
 	assert.Equal(t, 2, current["a"])
 	assert.Equal(t, 4, current["b"])
 	assert.Len(t, current, 2)
@@ -32,14 +33,15 @@ func TestMapValues(t *testing.T) {
 func TestMapValuesAddKey(t *testing.T) {
 	ctx := context.Background()
 	input := New(map[string]int{"a": 1})
-	mapped := MapValues(ctx, input, func(_ context.Context, key string, value int) Validated[int] {
-		v := newValidRefreshable[int]()
-		v.r.Update(validRefreshableContainer[int]{validated: value * 2, unvalidated: value * 2, lastErr: nil})
+	mapped := MapValues(ctx, input, func(ctx context.Context, _ string, value int) Validated[int] {
+		v, _, _ := MapWithError(ctx, New(value), func(_ context.Context, v int) (int, error) {
+			return v * 2, nil
+		})
 		return v
 	})
-	require.Len(t, mapped.Current(), 1)
+	require.Len(t, mapped.Unvalidated(), 1)
 	input.Update(map[string]int{"a": 1, "b": 2})
-	current := mapped.Current()
+	current := mapped.Unvalidated()
 	assert.Equal(t, 2, current["a"])
 	assert.Equal(t, 4, current["b"])
 	assert.Len(t, current, 2)
@@ -48,14 +50,15 @@ func TestMapValuesAddKey(t *testing.T) {
 func TestMapValuesRemoveKey(t *testing.T) {
 	ctx := context.Background()
 	input := New(map[string]int{"a": 1, "b": 2})
-	mapped := MapValues(ctx, input, func(_ context.Context, key string, value int) Validated[int] {
-		v := newValidRefreshable[int]()
-		v.r.Update(validRefreshableContainer[int]{validated: value * 2, unvalidated: value * 2, lastErr: nil})
+	mapped := MapValues(ctx, input, func(ctx context.Context, _ string, value int) Validated[int] {
+		v, _, _ := MapWithError(ctx, New(value), func(_ context.Context, v int) (int, error) {
+			return v * 2, nil
+		})
 		return v
 	})
-	require.Len(t, mapped.Current(), 2)
+	require.Len(t, mapped.Unvalidated(), 2)
 	input.Update(map[string]int{"a": 1})
-	current := mapped.Current()
+	current := mapped.Unvalidated()
 	assert.Equal(t, 2, current["a"])
 	_, exists := current["b"]
 	assert.False(t, exists)
@@ -66,43 +69,35 @@ func TestMapValuesValidationError(t *testing.T) {
 	ctx := context.Background()
 	testErr := errors.New("validation failed")
 	input := New(map[string]int{"a": 1, "b": 2})
-	mapped := MapValues(ctx, input, func(_ context.Context, key string, value int) Validated[int] {
-		v := newValidRefreshable[int]()
-		if key == "b" {
-			v.r.Update(validRefreshableContainer[int]{validated: 0, unvalidated: value * 2, lastErr: testErr})
-		} else {
-			v.r.Update(validRefreshableContainer[int]{validated: value * 2, unvalidated: value * 2, lastErr: nil})
-		}
+	mapped := MapValues(ctx, input, func(ctx context.Context, key string, value int) Validated[int] {
+		v, _, _ := Validate(ctx, New(value*2), func(_ context.Context, _ int) error {
+			if key == "b" {
+				return testErr
+			}
+			return nil
+		})
 		return v
 	})
-	current := mapped.Current()
-	assert.Equal(t, 2, current["a"])
-	_, exists := current["b"]
-	assert.False(t, exists)
-	assert.Len(t, current, 1)
-	_, err := mapped.Validation()
+	val, err := mapped.Validation()
+	assert.Nil(t, val)
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, testErr))
+	current := mapped.Unvalidated()
+	assert.Equal(t, map[string]int{"a": 2, "b": 0}, current)
 }
 
 func TestMapValuesMappedRefreshableUpdates(t *testing.T) {
 	ctx := context.Background()
 	input := New(map[string]int{"a": 1})
-	var refreshToOutline *validRefreshable[string]
-	mapped := MapValues(ctx, input, func(_ context.Context, key string, value int) Validated[string] {
-		refreshToOutline = &validRefreshable[string]{
-			r: New[validRefreshableContainer[string]](validRefreshableContainer[string]{
-				validated:   "b",
-				unvalidated: "b",
-			}),
-		}
-		return refreshToOutline
+	var underlying Updatable[string]
+	mapped := MapValues(ctx, input, func(ctx context.Context, _ string, _ int) Validated[string] {
+		underlying = New("b")
+		v, _, _ := MapWithError(ctx, underlying, func(_ context.Context, s string) (string, error) {
+			return s, nil
+		})
+		return v
 	})
-	assert.Equal(t, map[string]string{"a": "b"}, mapped.Current())
-	updateValidRefreshable[string](refreshToOutline, func() (string, error) {
-		return "c", nil
-	})
-	assert.Equal(t, map[string]string{"a": "c"}, mapped.Current())
-	// require.Equal(t, 2, mapped.Current()["a"])
-	// assert.Equal(t, 100, mapped.Current()["a"])
+	assert.Equal(t, map[string]string{"a": "b"}, mapped.Unvalidated())
+	underlying.Update("c")
+	assert.Equal(t, map[string]string{"a": "c"}, mapped.Unvalidated())
 }
