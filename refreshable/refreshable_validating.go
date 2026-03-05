@@ -106,6 +106,16 @@ func validatedFromRefreshable[M any](original Refreshable[M]) Validated[M] {
 	return valid
 }
 
+// Unvalidate returns a Refreshable that always contains the most recent
+// value to pass validation from the original Validated.
+func Unvalidate[T any](original Validated[T]) (Refreshable[T], UnsubscribeFunc) {
+	out := newZero[T]()
+	stop := original.SubscribeValidated(func(v Validated[T]) {
+		out.Update(v.Unvalidated())
+	})
+	return out.readOnly(), stop
+}
+
 // MapValidated returns a new Validated based on the current one that handles updates based on the current Validated.
 func MapValidated[T any, M any](ctx context.Context, original Validated[T], mapFn func(context.Context, T) (M, error)) (Validated[M], UnsubscribeFunc, error) {
 	v := newValidRefreshable[M]()
@@ -197,4 +207,19 @@ func MergeValidated[T1 any, T2 any, R any](original1 Validated[T1], original2 Va
 		stop1()
 		stop2()
 	}
+}
+
+// MergeValidatedAndRefreshable returns a new Validated that combines the latest values of a Validated
+// and a plain Refreshable using the mergeFn. The Refreshable is wrapped with an always-valid Validate
+// so that only errors from the Validated source propagate. The returned Validated is updated whenever
+// either source updates.
+func MergeValidatedAndRefreshable[T1 any, T2 any, R any](
+	ctx context.Context,
+	original1 Validated[T1],
+	refreshable1 Refreshable[T2],
+	mergeFn func(T1, T2) R) (Validated[R], UnsubscribeFunc) {
+	original2, _, _ := Validate(ctx, refreshable1, func(ctx context.Context, i T2) error {
+		return nil
+	})
+	return MergeValidated(original1, original2, mergeFn)
 }

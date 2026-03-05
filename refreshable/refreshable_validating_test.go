@@ -200,6 +200,57 @@ func TestMergeValidated(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestMergeValidatedAndRefreshable(t *testing.T) {
+	ctx := context.Background()
+	r1 := refreshable.New("hello")
+	r2 := refreshable.New(2)
+	vr1, _, err := refreshable.MapWithError(ctx, r1, func(_ context.Context, s string) (string, error) {
+		if s == "" {
+			return "", errors.New("empty string")
+		}
+		return s, nil
+	})
+	require.NoError(t, err)
+	type merged struct {
+		s string
+		i int
+	}
+	m, stop := refreshable.MergeValidatedAndRefreshable(ctx, vr1, r2, func(s string, i int) merged {
+		return merged{s: s, i: i}
+	})
+	defer stop()
+	// Initial value
+	require.Equal(t, merged{s: "hello", i: 2}, m.Unvalidated())
+	_, err = m.Validation()
+	require.NoError(t, err)
+	// Plain refreshable update propagates
+	r2.Update(5)
+	require.Equal(t, merged{s: "hello", i: 5}, m.Unvalidated())
+	_, err = m.Validation()
+	require.NoError(t, err)
+	// Validated update propagates
+	r1.Update("world")
+	require.Equal(t, merged{s: "world", i: 5}, m.Unvalidated())
+	_, err = m.Validation()
+	require.NoError(t, err)
+	// Validation error from the Validated source retains last valid value
+	r1.Update("")
+	require.Equal(t, merged{s: "world", i: 5}, m.Unvalidated())
+	_, err = m.Validation()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "empty string")
+	// Plain refreshable update still reflected in unvalidated during error
+	r2.Update(10)
+	require.Equal(t, merged{s: "world", i: 10}, m.Unvalidated())
+	_, err = m.Validation()
+	require.Error(t, err)
+	// Recovery
+	r1.Update("recovered")
+	require.Equal(t, merged{s: "recovered", i: 10}, m.Unvalidated())
+	_, err = m.Validation()
+	require.NoError(t, err)
+}
+
 func TestMergeValidated_BothErrors(t *testing.T) {
 	ctx := context.Background()
 	r1 := refreshable.New("")
@@ -249,6 +300,47 @@ func TestMergeValidated_Subscribe(t *testing.T) {
 	r1.Update(10)
 	require.Len(t, received, 2)
 	require.Equal(t, 12, received[1])
+}
+
+func TestUnvalidate(t *testing.T) {
+	ctx := context.Background()
+	r := refreshable.New(10)
+	vr, vrStop, err := refreshable.Validate[int](ctx, r, func(_ context.Context, i int) error {
+		if i < 0 {
+			return errors.New("negative")
+		}
+		return nil
+	})
+	require.NoError(t, err)
+	defer vrStop()
+	plain, stop := refreshable.Unvalidate(vr)
+	defer stop()
+	// Initial value is the current valid value
+	require.Equal(t, 10, plain.Current())
+	// Valid updates propagate
+	r.Update(20)
+	require.Equal(t, 20, plain.Current())
+	// Invalid updates are ignored (last valid value retained)
+	r.Update(-1)
+	require.Equal(t, 20, plain.Current())
+	// Recovery after invalid update propagates
+	r.Update(30)
+	require.Equal(t, 30, plain.Current())
+	// Subscribe receives updates only for valid value changes
+	var received []int
+	plain.Subscribe(func(v int) {
+		received = append(received, v)
+	})
+	require.Len(t, received, 1) // initial callback
+	require.Equal(t, 30, received[0])
+	r.Update(40)
+	require.Len(t, received, 2)
+	require.Equal(t, 40, received[1])
+	r.Update(-5) // invalid, should not trigger new value
+	require.Len(t, received, 2)
+	r.Update(50)
+	require.Len(t, received, 3)
+	require.Equal(t, 50, received[2])
 }
 
 func TestCollectValidated(t *testing.T) {
