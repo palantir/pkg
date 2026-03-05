@@ -302,7 +302,7 @@ func TestMergeValidated_Subscribe(t *testing.T) {
 	require.Equal(t, 12, received[1])
 }
 
-func TestUnvalidate(t *testing.T) {
+func TestMapFromValidated(t *testing.T) {
 	ctx := context.Background()
 	r := refreshable.New(10)
 	vr, vrStop, err := refreshable.Validate[int](ctx, r, func(_ context.Context, i int) error {
@@ -313,34 +313,56 @@ func TestUnvalidate(t *testing.T) {
 	})
 	require.NoError(t, err)
 	defer vrStop()
-	plain, stop := refreshable.Unvalidate(vr)
+	doubled, stop := refreshable.MapFromValidated(vr, func(i int) int { return i * 2 })
 	defer stop()
-	// Initial value is the current valid value
-	require.Equal(t, 10, plain.Current())
-	// Valid updates propagate
+	// Initial value is mapFn applied to the current valid value
+	require.Equal(t, 20, doubled.Current())
+	// Valid updates propagate through the map
 	r.Update(20)
-	require.Equal(t, 20, plain.Current())
-	// Invalid updates are ignored (last valid value retained)
+	require.Equal(t, 40, doubled.Current())
+	// Invalid updates are ignored (last mapped valid value retained)
 	r.Update(-1)
-	require.Equal(t, 20, plain.Current())
-	// Recovery after invalid update propagates
+	require.Equal(t, 40, doubled.Current())
+	// Recovery after invalid update propagates new mapped value
 	r.Update(30)
-	require.Equal(t, 30, plain.Current())
-	// Subscribe receives updates only for valid value changes
+	require.Equal(t, 60, doubled.Current())
+	// Subscribe on returned Refreshable receives updates only for valid value changes
 	var received []int
-	plain.Subscribe(func(v int) {
+	doubled.Subscribe(func(v int) {
 		received = append(received, v)
 	})
 	require.Len(t, received, 1) // initial callback
-	require.Equal(t, 30, received[0])
+	require.Equal(t, 60, received[0])
 	r.Update(40)
 	require.Len(t, received, 2)
-	require.Equal(t, 40, received[1])
+	require.Equal(t, 80, received[1])
 	r.Update(-5) // invalid, should not trigger new value
 	require.Len(t, received, 2)
 	r.Update(50)
 	require.Len(t, received, 3)
-	require.Equal(t, 50, received[2])
+	require.Equal(t, 100, received[2])
+}
+
+func TestMapFromValidated_Identity(t *testing.T) {
+	ctx := context.Background()
+	r := refreshable.New(10)
+	vr, vrStop, err := refreshable.Validate[int](ctx, r, func(_ context.Context, i int) error {
+		if i < 0 {
+			return errors.New("negative")
+		}
+		return nil
+	})
+	require.NoError(t, err)
+	defer vrStop()
+	plain, stop := refreshable.MapFromValidated(vr, func(i int) int { return i })
+	defer stop()
+	require.Equal(t, 10, plain.Current())
+	r.Update(20)
+	require.Equal(t, 20, plain.Current())
+	r.Update(-1)
+	require.Equal(t, 20, plain.Current())
+	r.Update(30)
+	require.Equal(t, 30, plain.Current())
 }
 
 func TestCollectValidated(t *testing.T) {

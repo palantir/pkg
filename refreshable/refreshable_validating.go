@@ -106,12 +106,12 @@ func validatedFromRefreshable[M any](original Refreshable[M]) Validated[M] {
 	return valid
 }
 
-// Unvalidate returns a Refreshable that always contains the most recent
-// value to pass validation from the original Validated.
-func Unvalidate[T any](original Validated[T]) (Refreshable[T], UnsubscribeFunc) {
-	out := newZero[T]()
+// MapFromValidated returns a new Refreshable by applying mapFn to the most recent
+// value to pass validation from the original Validated. Invalid updates are ignored.
+func MapFromValidated[T any, M any](original Validated[T], mapFn func(T) M) (Refreshable[M], UnsubscribeFunc) {
+	out := newZero[M]()
 	stop := original.SubscribeValidated(func(v Validated[T]) {
-		out.Update(v.Unvalidated())
+		out.Update(mapFn(v.Unvalidated()))
 	})
 	return out.readOnly(), stop
 }
