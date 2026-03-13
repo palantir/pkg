@@ -5,7 +5,10 @@
 package refreshable
 
 import (
+	"bytes"
 	"context"
+	"maps"
+	"slices"
 	"sync"
 )
 
@@ -59,9 +62,80 @@ type Ready[T any] interface {
 // It is safe to call multiple times.
 type UnsubscribeFunc func()
 
-// New returns a new Updatable that begins with the given value.
+// New returns a new Updatable that begins with the given value and uses reflect.DeepEqual for debouncing.
 func New[T any](val T) Updatable[T] {
-	return newDefault(val)
+	return newDefault(val, nil)
+}
+
+// NewComparable returns a new Updatable using the == operator for debouncing.
+// Use for primitive and comparable types like string, int, or structs with only comparable fields.
+// Convert an existing refreshable with CacheWith(original, NewComparable).
+func NewComparable[T comparable](val T) *defaultRefreshable[T] {
+	return newDefault(val, func(x, y T) bool { return x == y })
+}
+
+// NewComparableMap returns a new Updatable for maps with comparable keys and values,
+// using maps.Equal for debouncing.
+// Convert an existing refreshable with CacheWith(original, NewComparableMap).
+func NewComparableMap[T ~map[K]V, K comparable, V comparable](val T) *defaultRefreshable[T] {
+	return newDefault(val, maps.Equal[T, T, K, V])
+}
+
+// NewComparableSlice returns a new Updatable for slices with comparable elements,
+// using slices.Equal for debouncing.
+// Convert an existing refreshable with CacheWith(original, NewComparableSlice).
+func NewComparableSlice[T ~[]E, E comparable](val T) *defaultRefreshable[T] {
+	return newDefault(val, slices.Equal[T, E])
+}
+
+// NewBytes returns a new Updatable for byte slices (or named types with underlying type []byte),
+// using bytes.Equal for debouncing.
+// Convert an existing refreshable with CacheWith(original, NewBytes).
+func NewBytes[T ~[]byte](val T) *defaultRefreshable[T] {
+	return newDefault(val, func(old T, val T) bool { return bytes.Equal(old, val) })
+}
+
+// selfEqual is a type that can compare itself to another value of the same type.
+// Examples include *x509.CertPool, *x509.Certificate, slog.Attr, slog.Value, net.IP, reflect.Value, regexp.Regexp, and time.Time.
+// Can also be implemented by any type that requires custom comparison.
+type selfEqual[T any] interface {
+	Equal(T) bool
+}
+
+// NewEqualMethod returns a new Updatable for types implementing Equal(T) bool,
+// using that method for debouncing. Compatible with types like time.Time and net.IP.
+// Convert an existing refreshable with CacheWith(original, NewEqualMethod).
+func NewEqualMethod[T selfEqual[T]](val T) *defaultRefreshable[T] {
+	return newDefault(val, T.Equal)
+}
+
+// NewEqualMethodMap returns a new Updatable for maps whose values implement Equal(V) bool,
+// comparing entries element-wise for debouncing.
+// Convert an existing refreshable with CacheWith(original, NewEqualMethodMap).
+func NewEqualMethodMap[T ~map[K]V, K comparable, V selfEqual[V]](val T) *defaultRefreshable[T] {
+	return newDefault(val, func(old T, val T) bool { return maps.EqualFunc[T, T, K, V](old, val, V.Equal) })
+}
+
+// NewEqualMethodSlice returns a new Updatable for slices whose elements implement Equal(E) bool,
+// comparing elements pairwise for debouncing.
+// Convert an existing refreshable with CacheWith(original, NewEqualMethodSlice).
+func NewEqualMethodSlice[T ~[]E, E selfEqual[E]](val T) *defaultRefreshable[T] {
+	return newDefault(val, func(old T, val T) bool { return slices.EqualFunc[T, T, E](old, val, E.Equal) })
+}
+
+// NewEqualFunc returns a new Updatable using a custom equality function for debouncing.
+// Use for any type where you can provide an appropriate comparison function.
+// If equals is nil, the default equality function (reflect.DeepEqual) is used.
+// Convert an existing refreshable with CacheWithFunc.
+func NewEqualFunc[T any](val T, equal func(T, T) bool) *defaultRefreshable[T] {
+	return newDefault(val, equal)
+}
+
+// CacheWithFunc returns a new Refreshable that subscribes to the original Refreshable and caches its value.
+// This is useful in combination with View to avoid recomputing an expensive mapped value
+// each time it is retrieved. The returned refreshable is read-only (does not implement Update).
+func CacheWithFunc[T any](original Refreshable[T], equals func(old T, val T) bool) *readOnlyRefreshable[T] {
+	return CacheWith(original, func(val T) *defaultRefreshable[T] { return NewEqualFunc(val, equals) })
 }
 
 // Cached returns a new Refreshable that subscribes to the original Refreshable and caches its value.
@@ -71,6 +145,16 @@ func Cached[T any](original Refreshable[T]) (Refreshable[T], UnsubscribeFunc) {
 	out := newZero[T]()
 	stop := original.Subscribe(out.Update)
 	return out.readOnly(), stop
+}
+
+// CacheWith returns a new Refreshable that subscribes to the original Refreshable and caches its value
+// using the provided constructor to determine an "equality function" used to debounce new values.
+// This is useful in combination with View to avoid recomputing an expensive mapped value
+// each time it is retrieved. The returned refreshable is read-only (does not implement Update).
+func CacheWith[T any](original Refreshable[T], constructor func(val T) *defaultRefreshable[T]) *readOnlyRefreshable[T] {
+	out := constructor(*new(T))
+	original.Subscribe(out.Update)
+	return out.readOnly()
 }
 
 // View returns a Refreshable implementation that converts the original Refreshable value to a new value using mapFn.

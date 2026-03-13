@@ -12,18 +12,20 @@ import (
 
 type defaultRefreshable[T any] struct {
 	mux         sync.Mutex
-	current     atomic.Value
+	current     atomic.Pointer[T]
 	subscribers []*func(T)
+	equals      func(T, T) bool
 }
 
-func newDefault[T any](val T) *defaultRefreshable[T] {
+func newDefault[T any](val T, equals func(T, T) bool) *defaultRefreshable[T] {
 	d := new(defaultRefreshable[T])
+	d.equals = equals
 	d.current.Store(&val)
 	return d
 }
 
 func newZero[T any]() *defaultRefreshable[T] {
-	return newDefault(*new(T))
+	return newDefault(*new(T), nil)
 }
 
 // Update changes the value of the Refreshable, then blocks while subscribers are executed.
@@ -31,16 +33,16 @@ func (d *defaultRefreshable[T]) Update(val T) {
 	d.mux.Lock()
 	defer d.mux.Unlock()
 	old := d.current.Swap(&val)
-	if reflect.DeepEqual(*(old.(*T)), val) {
-		return
-	}
-	for _, sub := range d.subscribers {
-		(*sub)(val)
+	equal := (d.equals != nil && d.equals(*old, val)) || (d.equals == nil && reflect.DeepEqual(*old, val))
+	if !equal {
+		for _, sub := range d.subscribers {
+			(*sub)(val)
+		}
 	}
 }
 
 func (d *defaultRefreshable[T]) Current() T {
-	return *(d.current.Load().(*T))
+	return *(d.current.Load())
 }
 
 func (d *defaultRefreshable[T]) Subscribe(consumer func(T)) UnsubscribeFunc {
