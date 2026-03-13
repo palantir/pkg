@@ -118,7 +118,7 @@ func TestNewBytes_NamedType(t *testing.T) {
 func TestCacheWith(t *testing.T) {
 	t.Run("propagates values from source", func(t *testing.T) {
 		source := refreshable.NewComparable("hello")
-		cached := refreshable.CacheWith[string](source, refreshable.NewComparable)
+		cached := refreshable.CacheWith[string](refreshable.NewComparable, source)
 		assert.Equal(t, "hello", cached.Current())
 
 		source.Update("world")
@@ -134,7 +134,7 @@ func TestCacheWith(t *testing.T) {
 		source.Subscribe(func(t time.Time) { sourceUpdates++ })
 		assert.Equal(t, 1, sourceUpdates, "subscribe should fire immediately")
 
-		cached := refreshable.CacheWith[time.Time](source, refreshable.NewEqualMethod)
+		cached := refreshable.CacheWith[time.Time](refreshable.NewEqualMethod, source)
 		cacheUpdates := 0
 		cached.Subscribe(func(time.Time) { cacheUpdates++ })
 		assert.Equal(t, 1, cacheUpdates, "subscribe should fire immediately")
@@ -158,7 +158,7 @@ func TestCacheWith(t *testing.T) {
 		source := refreshable.New(map[string]time.Time{"t": now})
 		sourceUpdates := 0
 		source.Subscribe(func(t map[string]time.Time) { sourceUpdates++ })
-		cached := refreshable.CacheWith[map[string]time.Time](source, refreshable.NewEqualMethodMap)
+		cached := refreshable.CacheWith[map[string]time.Time](refreshable.NewEqualMethodMap, source)
 		assert.Equal(t, map[string]time.Time{"t": now}, cached.Current())
 
 		cacheUpdates := 0
