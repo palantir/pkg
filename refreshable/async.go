@@ -71,7 +71,7 @@ func Wait[T any](ctx context.Context, ready Ready[T]) (T, bool) {
 // ready is an Updatable which exposes a channel that is closed when a value is first available.
 // Current returns the zero value before Update is called, marking the value ready.
 type ready[T any] struct {
-	in     Updatable[T]
+	in     *defaultRefreshable[T]
 	readyC <-chan struct{}
 	cancel context.CancelFunc
 }
