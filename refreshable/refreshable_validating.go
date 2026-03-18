@@ -116,6 +116,16 @@ func MapFromValidated[T any, M any](original Validated[T], mapFn func(T) M) (Ref
 	return out.readOnly(), stop
 }
 
+// MapFromValidatedChecked is identical to MapFromValidated but first checks if the
+// original Validated currently has a validation error and returns it if so.
+func MapFromValidatedChecked[T any, M any](original Validated[T], mapFn func(T) M) (Refreshable[M], UnsubscribeFunc, error) {
+	if _, err := original.Validation(); err != nil {
+		return nil, nil, err
+	}
+	out, stop := MapFromValidated(original, mapFn)
+	return out, stop, nil
+}
+
 // MapValidated returns a new Validated based on the current one that handles updates based on the current Validated.
 func MapValidated[T any, M any](ctx context.Context, original Validated[T], mapFn func(context.Context, T) (M, error)) (Validated[M], UnsubscribeFunc, error) {
 	v := newValidRefreshable[M]()
