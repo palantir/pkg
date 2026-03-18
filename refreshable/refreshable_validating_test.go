@@ -365,6 +365,45 @@ func TestMapFromValidated_Identity(t *testing.T) {
 	require.Equal(t, 30, plain.Current())
 }
 
+func TestMapFromValidatedChecked(t *testing.T) {
+	ctx := context.Background()
+	r := refreshable.New(10)
+	vr, vrStop, err := refreshable.Validate[int](ctx, r, func(_ context.Context, i int) error {
+		if i < 0 {
+			return errors.New("negative")
+		}
+		return nil
+	})
+	require.NoError(t, err)
+	defer vrStop()
+	doubled, stop, err := refreshable.MapFromValidatedChecked(vr, func(i int) int { return i * 2 })
+	require.NoError(t, err)
+	defer stop()
+	require.Equal(t, 20, doubled.Current())
+	r.Update(20)
+	require.Equal(t, 40, doubled.Current())
+	r.Update(-1)
+	require.Equal(t, 40, doubled.Current())
+	r.Update(30)
+	require.Equal(t, 60, doubled.Current())
+}
+
+func TestMapFromValidatedChecked_Error(t *testing.T) {
+	ctx := context.Background()
+	r := refreshable.New(-1)
+	vr, vrStop, _ := refreshable.Validate[int](ctx, r, func(_ context.Context, i int) error {
+		if i < 0 {
+			return errors.New("negative")
+		}
+		return nil
+	})
+	defer vrStop()
+	out, stop, err := refreshable.MapFromValidatedChecked(vr, func(i int) int { return i * 2 })
+	require.Error(t, err)
+	require.Nil(t, out)
+	require.Nil(t, stop)
+}
+
 func TestCollectValidated(t *testing.T) {
 	ctx := context.Background()
 	r1 := refreshable.New("a")
