@@ -38,7 +38,8 @@ func (v *validRefreshable[T]) Validation() (T, error) {
 
 func newValidRefreshable[M any]() *validRefreshable[M] {
 	valid := &validRefreshable[M]{
-		r: newDefault(validRefreshableContainer[M]{}),
+		// TODO: Wire equality
+		r: newDefault(validRefreshableContainer[M]{}, nil),
 	}
 	return valid
 }
@@ -94,7 +95,8 @@ func identity[T any](validatingFn func(context.Context, T) error) func(ctx conte
 
 func validatedFromRefreshable[M any](original Refreshable[M]) Validated[M] {
 	valid := &validRefreshable[M]{
-		r: newDefault(validRefreshableContainer[M]{}),
+		// TODO: Wire equality
+		r: newDefault(validRefreshableContainer[M]{}, nil),
 	}
 	original.Subscribe(func(m M) {
 		valid.r.Update(validRefreshableContainer[M]{
