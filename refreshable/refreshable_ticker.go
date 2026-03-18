@@ -6,6 +6,7 @@ package refreshable
 
 import (
 	"context"
+	"runtime"
 	"time"
 )
 
@@ -44,6 +45,8 @@ func NewRefreshableTicker[M any](ctx context.Context, updateTicker <-chan time.T
 	if _, err := v.Validation(); err == nil {
 		detector.MarkUpdated()
 	}
+
+	ctx, cancel := context.WithCancel(ctx)
 	go func() {
 		for {
 			select {
@@ -60,5 +63,7 @@ func NewRefreshableTicker[M any](ctx context.Context, updateTicker <-chan time.T
 			}
 		}
 	}()
+
+	runtime.AddCleanup(v, func(_ struct{}) { cancel() }, struct{}{})
 	return v
 }
