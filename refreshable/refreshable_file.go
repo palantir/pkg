@@ -8,7 +8,16 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"time"
+
+	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
+)
+
+// Global atomic counter for debugging
+var (
+	// MultiFileRefreshableCallCount tracks the number of times NewMultiFileRefreshable is called
+	MultiFileRefreshableCallCount atomic.Int64
 )
 
 const (
@@ -96,6 +105,11 @@ func (d *statFileChangeDetector) MarkUpdated() {
 // Unvalidated() returns a map containing the last successfully read content for each file.
 // Validation() returns the map and a joined error of all file read failures.
 func NewMultiFileRefreshable(ctx context.Context, paths Refreshable[map[string]struct{}]) Validated[map[string][]byte] {
+	// Increment global call counter
+	callCount := MultiFileRefreshableCallCount.Add(1)
+	svc1log.FromContext(ctx).Debug("NewMultiFileRefreshable called",
+		svc1log.SafeParam("callCount", callCount))
+
 	return MapValues(ctx, paths, func(ctx context.Context, path string, _ struct{}) Validated[[]byte] {
 		return NewFileRefreshable(ctx, path)
 	})
