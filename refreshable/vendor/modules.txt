@@ -4,6 +4,22 @@ github.com/davecgh/go-spew/spew
 # github.com/palantir/pkg v1.1.0
 ## explicit; go 1.19
 github.com/palantir/pkg
+# github.com/palantir/witchcraft-go-error v1.42.0
+## explicit; go 1.25.0
+github.com/palantir/witchcraft-go-error
+github.com/palantir/witchcraft-go-error/internal/errors
+# github.com/palantir/witchcraft-go-logging v1.66.0
+## explicit; go 1.26.0
+github.com/palantir/witchcraft-go-logging/internal/gopath
+github.com/palantir/witchcraft-go-logging/wlog
+github.com/palantir/witchcraft-go-logging/wlog/internal
+github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log
+# github.com/palantir/witchcraft-go-params v1.39.0
+## explicit; go 1.25.0
+github.com/palantir/witchcraft-go-params
+# github.com/palantir/witchcraft-go-tracing v1.41.0
+## explicit; go 1.25.0
+github.com/palantir/witchcraft-go-tracing/wtracing
 # github.com/pmezard/go-difflib v1.0.0
 ## explicit
 github.com/pmezard/go-difflib/difflib
