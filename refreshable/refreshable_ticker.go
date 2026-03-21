@@ -36,11 +36,13 @@ func NewRefreshableTickerWithDuration[M any](ctx context.Context, a time.Duratio
 // NewRefreshableTicker returns a [Validated] refreshable whose current value is read using the provided readerFunc.
 // The readerFunc is only called when the [ChangeDetector] indicates the data source has changed.
 // The detector's MarkUpdated is called after each successful read.
-// The readerFunc is called once initially and then on each tick (subject to the detector) until the context is cancelled.
+// The readerFunc is called once initially and then on each tick (subject to the detector) until the context is
+// cancelled or the returned Validated is garbage collected.
 // If reading fails, the Unvalidated() value will be unchanged. The error is present in v.Validation().
 func NewRefreshableTicker[M any](ctx context.Context, updateTicker <-chan time.Time, readerFunc func(context.Context) (M, error), detector ChangeDetector) Validated[M] {
+	tickCtx, tickCancel := context.WithCancel(ctx)
 	v := newValidRefreshable[M]()
-	updateValidRefreshable(ctx, v, readerFunc)
+	updateValidRefreshable(tickCtx, v, readerFunc)
 	if _, err := v.Validation(); err == nil {
 		detector.MarkUpdated()
 	}
@@ -48,17 +50,17 @@ func NewRefreshableTicker[M any](ctx context.Context, updateTicker <-chan time.T
 		for {
 			select {
 			case <-updateTicker:
-				if !detector.ShouldUpdate(ctx) {
+				if !detector.ShouldUpdate(tickCtx) {
 					continue
 				}
-				updateValidRefreshable(ctx, v, readerFunc)
+				updateValidRefreshable(tickCtx, v, readerFunc)
 				if _, err := v.Validation(); err == nil {
 					detector.MarkUpdated()
 				}
-			case <-ctx.Done():
+			case <-tickCtx.Done():
 				return
 			}
 		}
 	}()
-	return v
+	return newDerivedValidated(v, UnsubscribeFunc(tickCancel))
 }

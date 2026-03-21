@@ -71,22 +71,6 @@ func (d *defaultRefreshable[T]) unsubscribe(consumerFnPtr *func(T)) UnsubscribeF
 	}
 }
 
-func (d *defaultRefreshable[T]) readOnly() *readOnlyRefreshable[T] {
-	return (*readOnlyRefreshable[T])(d)
-}
-
-// readOnlyRefreshable aliases defaultRefreshable but hides the Update method so the type
-// does not implement Updatable.
-type readOnlyRefreshable[T any] defaultRefreshable[T]
-
-func (d *readOnlyRefreshable[T]) Current() T {
-	return (*defaultRefreshable[T])(d).Current()
-}
-
-func (d *readOnlyRefreshable[T]) Subscribe(consumer func(T)) UnsubscribeFunc {
-	return (*defaultRefreshable[T])(d).Subscribe(consumer)
-}
-
 // mapperRefreshable wraps an existing Refreshable and applies a mapping function to its values.
 // Subscribe may be called repeatedly with the same value when the underlying value changes but the mapped value does not.
 // mapperRefreshable does not implement Updatable because the mapped value may not be able to be converted back to the original type.
@@ -100,5 +84,8 @@ func (d mapperRefreshable[S, T]) Current() T {
 }
 
 func (d mapperRefreshable[S, T]) Subscribe(consumer func(T)) UnsubscribeFunc {
-	return d.base.Subscribe(func(value S) { consumer(d.mapper(value)) })
+	// Extract mapper to avoid capturing d.base in the closure, which would
+	// prevent GC cleanup of upstream derived wrappers in Map chains.
+	mapper := d.mapper
+	return d.base.Subscribe(func(value S) { consumer(mapper(value)) })
 }

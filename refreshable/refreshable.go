@@ -70,7 +70,15 @@ func New[T any](val T) Updatable[T] {
 func Cached[T any](original Refreshable[T]) (Refreshable[T], UnsubscribeFunc) {
 	out := newZero[T]()
 	stop := original.Subscribe(out.Update)
-	return out.readOnly(), stop
+	d := newDerivedRefreshable(out, stop)
+	d.refs = append(d.refs, original)
+	return d, stop
+}
+
+// CachedAuto is like Cached with automatic GC-based cleanup of the upstream subscription.
+func CachedAuto[T any](original Refreshable[T]) Refreshable[T] {
+	out, _ := Cached(original)
+	return out
 }
 
 // View returns a Refreshable implementation that converts the original Refreshable value to a new value using mapFn.
@@ -91,6 +99,12 @@ func Map[T any, M any](original Refreshable[T], mapFn func(T) M) (Refreshable[M]
 	return Cached(View(original, mapFn))
 }
 
+// MapAuto is like Map with automatic GC-based cleanup of the upstream subscription.
+func MapAuto[T any, M any](original Refreshable[T], mapFn func(T) M) Refreshable[M] {
+	out, _ := Map(original, mapFn)
+	return out
+}
+
 // MapContext is like Map but unsubscribes when the context is cancelled.
 func MapContext[T any, M any](ctx context.Context, original Refreshable[T], mapFn func(T) M) Refreshable[M] {
 	out, stop := Map(original, mapFn)
@@ -106,9 +120,18 @@ func MapContext[T any, M any](ctx context.Context, original Refreshable[T], mapF
 // An error is returned if the current original value fails to map.
 func MapWithError[T any, M any](ctx context.Context, original Refreshable[T], mapFn func(context.Context, T) (M, error)) (Validated[M], UnsubscribeFunc, error) {
 	v := newValidRefreshable[M]()
-	stop := subscribeValidRefreshable(ctx, v, validatedFromRefreshable(original), mapFn)
+	intermediate := validatedFromRefreshable(original)
+	stop := subscribeValidRefreshable(ctx, v, intermediate, mapFn)
 	_, err := v.Validation()
-	return v, stop, err
+	d := newDerivedValidated(v, stop)
+	d.refs = append(d.refs, intermediate) // prevent GC of intermediate subscription chain
+	return d, stop, err
+}
+
+// MapWithErrorAuto is like MapWithError with automatic GC-based cleanup of the upstream subscription.
+func MapWithErrorAuto[T any, M any](ctx context.Context, original Refreshable[T], mapFn func(context.Context, T) (M, error)) (Validated[M], error) {
+	out, _, err := MapWithError(ctx, original, mapFn)
+	return out, err
 }
 
 // Validate returns a new Refreshable that returns the latest original value accepted by the validatingFn.
@@ -118,9 +141,14 @@ func Validate[T any](ctx context.Context, original Refreshable[T], validatingFn 
 	return MapWithError(ctx, original, identity(validatingFn))
 }
 
+// ValidateAuto is like Validate with automatic GC-based cleanup of the upstream subscription.
+func ValidateAuto[T any](ctx context.Context, original Refreshable[T], validatingFn func(context.Context, T) error) (Validated[T], error) {
+	out, _, err := Validate(ctx, original, validatingFn)
+	return out, err
+}
+
 // Merge returns a new Refreshable that combines the latest values of two Refreshables of different types using the mergeFn.
 // The returned Refreshable is updated whenever either of the original Refreshables updates.
-// The unsubscribe function removes subscriptions from both original Refreshables.
 func Merge[T1 any, T2 any, R any](original1 Refreshable[T1], original2 Refreshable[T2], mergeFn func(T1, T2) R) (Refreshable[R], UnsubscribeFunc) {
 	out := newZero[R]()
 	doUpdate := func() {
@@ -128,18 +156,30 @@ func Merge[T1 any, T2 any, R any](original1 Refreshable[T1], original2 Refreshab
 	}
 	stop1 := original1.Subscribe(func(T1) { doUpdate() })
 	stop2 := original2.Subscribe(func(T2) { doUpdate() })
-	return out.readOnly(), func() {
+	combined := func() {
 		stop1()
 		stop2()
 	}
+	return newDerivedRefreshable(out, combined), combined
+}
+
+// MergeAuto is like Merge with automatic GC-based cleanup of the upstream subscriptions.
+func MergeAuto[T1 any, T2 any, R any](original1 Refreshable[T1], original2 Refreshable[T2], mergeFn func(T1, T2) R) Refreshable[R] {
+	out, _ := Merge(original1, original2, mergeFn)
+	return out
 }
 
 // Collect returns a new Refreshable that combines the latest values of multiple Refreshables into a slice.
 // The returned Refreshable is updated whenever any of the original Refreshables updates.
-// The unsubscribe function removes subscriptions from all original Refreshables.
 func Collect[T any](list ...Refreshable[T]) (Refreshable[[]T], UnsubscribeFunc) {
 	out, _, unsub := CollectMutable(list...)
 	return out, unsub
+}
+
+// CollectAuto is like Collect with automatic GC-based cleanup of the upstream subscriptions.
+func CollectAuto[T any](list ...Refreshable[T]) Refreshable[[]T] {
+	out, _ := Collect(list...)
+	return out
 }
 
 // AddFunc is a function that adds a new Refreshable to a collection.
@@ -177,11 +217,12 @@ func CollectMutable[T any](list ...Refreshable[T]) (Refreshable[[]T], AddFunc[T]
 		stops = append(stops, stop)
 		mu.Unlock()
 	}
-	return out.readOnly(), add, func() {
+	combined := func() {
 		mu.Lock()
 		defer mu.Unlock()
 		for _, stop := range stops {
 			stop()
 		}
 	}
+	return newDerivedRefreshable(out, combined), add, combined
 }

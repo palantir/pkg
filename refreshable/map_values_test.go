@@ -17,7 +17,7 @@ func TestMapValues(t *testing.T) {
 	ctx := context.Background()
 	input := New(map[string]int{"a": 1, "b": 2})
 	mapped := MapValues(ctx, input, func(ctx context.Context, _ string, value int) Validated[int] {
-		v, _, _ := MapWithError(ctx, New(value), func(_ context.Context, v int) (int, error) {
+		v, _ := MapWithErrorAuto(ctx, New(value), func(_ context.Context, v int) (int, error) {
 			return v * 2, nil
 		})
 		return v
@@ -34,7 +34,7 @@ func TestMapValuesAddKey(t *testing.T) {
 	ctx := context.Background()
 	input := New(map[string]int{"a": 1})
 	mapped := MapValues(ctx, input, func(ctx context.Context, _ string, value int) Validated[int] {
-		v, _, _ := MapWithError(ctx, New(value), func(_ context.Context, v int) (int, error) {
+		v, _ := MapWithErrorAuto(ctx, New(value), func(_ context.Context, v int) (int, error) {
 			return v * 2, nil
 		})
 		return v
@@ -51,7 +51,7 @@ func TestMapValuesRemoveKey(t *testing.T) {
 	ctx := context.Background()
 	input := New(map[string]int{"a": 1, "b": 2})
 	mapped := MapValues(ctx, input, func(ctx context.Context, _ string, value int) Validated[int] {
-		v, _, _ := MapWithError(ctx, New(value), func(_ context.Context, v int) (int, error) {
+		v, _ := MapWithErrorAuto(ctx, New(value), func(_ context.Context, v int) (int, error) {
 			return v * 2, nil
 		})
 		return v
@@ -70,7 +70,7 @@ func TestMapValuesValidationError(t *testing.T) {
 	testErr := errors.New("validation failed")
 	input := New(map[string]int{"a": 1, "b": 2})
 	mapped := MapValues(ctx, input, func(ctx context.Context, key string, value int) Validated[int] {
-		v, _, _ := Validate(ctx, New(value*2), func(_ context.Context, _ int) error {
+		v, _ := ValidateAuto(ctx, New(value*2), func(_ context.Context, _ int) error {
 			if key == "b" {
 				return testErr
 			}
@@ -92,7 +92,7 @@ func TestMapValuesMappedRefreshableUpdates(t *testing.T) {
 	var underlying Updatable[string]
 	mapped := MapValues(ctx, input, func(ctx context.Context, _ string, _ int) Validated[string] {
 		underlying = New("b")
-		v, _, _ := MapWithError(ctx, underlying, func(_ context.Context, s string) (string, error) {
+		v, _ := MapWithErrorAuto(ctx, underlying, func(_ context.Context, s string) (string, error) {
 			return s, nil
 		})
 		return v

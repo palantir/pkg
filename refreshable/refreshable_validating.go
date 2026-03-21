@@ -96,14 +96,16 @@ func validatedFromRefreshable[M any](original Refreshable[M]) Validated[M] {
 	valid := &validRefreshable[M]{
 		r: newDefault(validRefreshableContainer[M]{}),
 	}
-	original.Subscribe(func(m M) {
+	unsub := original.Subscribe(func(m M) {
 		valid.r.Update(validRefreshableContainer[M]{
 			unvalidated: m,
 			validated:   m,
 			lastErr:     nil,
 		})
 	})
-	return valid
+	d := newDerivedValidated(valid, unsub)
+	d.refs = append(d.refs, original)
+	return d
 }
 
 // MapFromValidated returns a new Refreshable by applying mapFn to the most recent
@@ -113,7 +115,15 @@ func MapFromValidated[T any, M any](original Validated[T], mapFn func(T) M) (Ref
 	stop := original.SubscribeValidated(func(v Validated[T]) {
 		out.Update(mapFn(v.Unvalidated()))
 	})
-	return out.readOnly(), stop
+	d := newDerivedRefreshable(out, stop)
+	d.refs = append(d.refs, original)
+	return d, stop
+}
+
+// MapFromValidatedAuto is like MapFromValidated with automatic GC-based cleanup of the upstream subscription.
+func MapFromValidatedAuto[T any, M any](original Validated[T], mapFn func(T) M) Refreshable[M] {
+	out, _ := MapFromValidated(original, mapFn)
+	return out
 }
 
 // MapFromValidatedChecked is identical to MapFromValidated but first checks if the
@@ -126,12 +136,28 @@ func MapFromValidatedChecked[T any, M any](original Validated[T], mapFn func(T) 
 	return out, stop, nil
 }
 
+// MapFromValidatedCheckedAuto is like MapFromValidatedChecked with automatic GC-based cleanup of the upstream subscription.
+func MapFromValidatedCheckedAuto[T any, M any](original Validated[T], mapFn func(T) M) (Refreshable[M], error) {
+	if _, err := original.Validation(); err != nil {
+		return nil, err
+	}
+	return MapFromValidatedAuto(original, mapFn), nil
+}
+
 // MapValidated returns a new Validated based on the current one that handles updates based on the current Validated.
 func MapValidated[T any, M any](ctx context.Context, original Validated[T], mapFn func(context.Context, T) (M, error)) (Validated[M], UnsubscribeFunc, error) {
 	v := newValidRefreshable[M]()
 	stop := subscribeValidRefreshable(ctx, v, original, mapFn)
 	_, err := v.Validation()
-	return v, stop, err
+	d := newDerivedValidated(v, stop)
+	d.refs = append(d.refs, original)
+	return d, stop, err
+}
+
+// MapValidatedAuto is like MapValidated with automatic GC-based cleanup of the upstream subscription.
+func MapValidatedAuto[T any, M any](ctx context.Context, original Validated[T], mapFn func(context.Context, T) (M, error)) (Validated[M], error) {
+	out, _, err := MapValidated(ctx, original, mapFn)
+	return out, err
 }
 
 // ValidatedAddFunc is a function that adds a new Validated to a collection.
@@ -139,10 +165,15 @@ type ValidatedAddFunc[T any] func(Validated[T])
 
 // CollectValidated returns a new Validated that combines the latest values of multiple Validated refreshables into a slice.
 // The returned Validated is updated whenever any of the original Validated refreshables updates.
-// The unsubscribe function removes subscriptions from all original Validated refreshables.
 func CollectValidated[T any](list ...Validated[T]) (Validated[[]T], UnsubscribeFunc) {
 	out, _, unsub := CollectValidatedMutable(list...)
 	return out, unsub
+}
+
+// CollectValidatedAuto is like CollectValidated with automatic GC-based cleanup of the upstream subscriptions.
+func CollectValidatedAuto[T any](list ...Validated[T]) Validated[[]T] {
+	out, _ := CollectValidated(list...)
+	return out
 }
 
 // CollectValidatedMutable returns a new Validated that combines the latest values of multiple Validated refreshables into a slice.
@@ -186,17 +217,17 @@ func CollectValidatedMutable[T any](list ...Validated[T]) (Validated[[]T], Valid
 		stops = append(stops, stop)
 		mu.Unlock()
 	}
-	return out, add, func() {
+	combined := func() {
 		mu.Lock()
 		defer mu.Unlock()
 		for _, stop := range stops {
 			stop()
 		}
 	}
+	return newDerivedValidated(out, combined), add, combined
 }
 
 // MergeValidated returns a new Validated that combines the latest values of two Validated refreshables using the mergeFn.
-// The returned Validated is updated whenever either of the original Validated refreshables updates.
 func MergeValidated[T1 any, T2 any, R any](original1 Validated[T1], original2 Validated[T2], mergeFn func(T1, T2) R) (Validated[R], UnsubscribeFunc) {
 	out := newValidRefreshable[R]()
 	doUpdate := func() {
@@ -213,10 +244,17 @@ func MergeValidated[T1 any, T2 any, R any](original1 Validated[T1], original2 Va
 	}
 	stop1 := original1.SubscribeValidated(func(Validated[T1]) { doUpdate() })
 	stop2 := original2.SubscribeValidated(func(Validated[T2]) { doUpdate() })
-	return out, func() {
+	combined := func() {
 		stop1()
 		stop2()
 	}
+	return newDerivedValidated(out, combined), combined
+}
+
+// MergeValidatedAuto is like MergeValidated with automatic GC-based cleanup of the upstream subscriptions.
+func MergeValidatedAuto[T1 any, T2 any, R any](original1 Validated[T1], original2 Validated[T2], mergeFn func(T1, T2) R) Validated[R] {
+	out, _ := MergeValidated(original1, original2, mergeFn)
+	return out
 }
 
 // MergeValidatedAndRefreshable returns a new Validated that combines the latest values of a Validated
@@ -227,9 +265,25 @@ func MergeValidatedAndRefreshable[T1 any, T2 any, R any](
 	ctx context.Context,
 	original1 Validated[T1],
 	refreshable1 Refreshable[T2],
-	mergeFn func(T1, T2) R) (Validated[R], UnsubscribeFunc) {
+	mergeFn func(T1, T2) R,
+) (Validated[R], UnsubscribeFunc) {
 	original2, _, _ := Validate(ctx, refreshable1, func(ctx context.Context, i T2) error {
 		return nil
 	})
-	return MergeValidated(original1, original2, mergeFn)
+	result, unsub := MergeValidated(original1, original2, mergeFn)
+	// Keep original2 alive as long as result is alive so its upstream
+	// subscription chain is not prematurely GC'd.
+	result.(*derivedValidated[R]).refs = append(result.(*derivedValidated[R]).refs, original2)
+	return result, unsub
+}
+
+// MergeValidatedAndRefreshableAuto is like MergeValidatedAndRefreshable with automatic GC-based cleanup of the upstream subscriptions.
+func MergeValidatedAndRefreshableAuto[T1 any, T2 any, R any](
+	ctx context.Context,
+	original1 Validated[T1],
+	refreshable1 Refreshable[T2],
+	mergeFn func(T1, T2) R,
+) Validated[R] {
+	out, _ := MergeValidatedAndRefreshable(ctx, original1, refreshable1, mergeFn)
+	return out
 }
