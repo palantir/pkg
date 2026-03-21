@@ -70,7 +70,9 @@ func New[T any](val T) Updatable[T] {
 func Cached[T any](original Refreshable[T]) (Refreshable[T], UnsubscribeFunc) {
 	out := newZero[T]()
 	stop := original.Subscribe(out.Update)
-	return out.readOnly(), stop
+	d := newDerivedRefreshable(out.readOnly(), stop)
+	d.refs = append(d.refs, original)
+	return d, stop
 }
 
 // View returns a Refreshable implementation that converts the original Refreshable value to a new value using mapFn.
@@ -106,9 +108,12 @@ func MapContext[T any, M any](ctx context.Context, original Refreshable[T], mapF
 // An error is returned if the current original value fails to map.
 func MapWithError[T any, M any](ctx context.Context, original Refreshable[T], mapFn func(context.Context, T) (M, error)) (Validated[M], UnsubscribeFunc, error) {
 	v := newValidRefreshable[M]()
-	stop := subscribeValidRefreshable(ctx, v, validatedFromRefreshable(original), mapFn)
+	intermediate := validatedFromRefreshable(original)
+	stop := subscribeValidRefreshable(ctx, v, intermediate, mapFn)
 	_, err := v.Validation()
-	return v, stop, err
+	d := newDerivedValidated(v, stop)
+	d.refs = append(d.refs, intermediate) // prevent GC of intermediate subscription chain
+	return d, stop, err
 }
 
 // Validate returns a new Refreshable that returns the latest original value accepted by the validatingFn.
@@ -128,10 +133,11 @@ func Merge[T1 any, T2 any, R any](original1 Refreshable[T1], original2 Refreshab
 	}
 	stop1 := original1.Subscribe(func(T1) { doUpdate() })
 	stop2 := original2.Subscribe(func(T2) { doUpdate() })
-	return out.readOnly(), func() {
+	combined := func() {
 		stop1()
 		stop2()
 	}
+	return newDerivedRefreshable(out.readOnly(), combined), combined
 }
 
 // Collect returns a new Refreshable that combines the latest values of multiple Refreshables into a slice.
@@ -177,11 +183,12 @@ func CollectMutable[T any](list ...Refreshable[T]) (Refreshable[[]T], AddFunc[T]
 		stops = append(stops, stop)
 		mu.Unlock()
 	}
-	return out.readOnly(), add, func() {
+	combined := func() {
 		mu.Lock()
 		defer mu.Unlock()
 		for _, stop := range stops {
 			stop()
 		}
 	}
+	return newDerivedRefreshable(out.readOnly(), combined), add, combined
 }

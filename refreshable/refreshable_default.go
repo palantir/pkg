@@ -100,5 +100,8 @@ func (d mapperRefreshable[S, T]) Current() T {
 }
 
 func (d mapperRefreshable[S, T]) Subscribe(consumer func(T)) UnsubscribeFunc {
-	return d.base.Subscribe(func(value S) { consumer(d.mapper(value)) })
+	// Extract mapper to avoid capturing d.base in the closure, which would
+	// prevent GC cleanup of upstream derived wrappers in Map chains.
+	mapper := d.mapper
+	return d.base.Subscribe(func(value S) { consumer(mapper(value)) })
 }
