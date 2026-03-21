@@ -96,14 +96,16 @@ func validatedFromRefreshable[M any](original Refreshable[M]) Validated[M] {
 	valid := &validRefreshable[M]{
 		r: newDefault(validRefreshableContainer[M]{}),
 	}
-	original.Subscribe(func(m M) {
+	unsub := original.Subscribe(func(m M) {
 		valid.r.Update(validRefreshableContainer[M]{
 			unvalidated: m,
 			validated:   m,
 			lastErr:     nil,
 		})
 	})
-	return valid
+	d := newDerivedValidated(valid, unsub)
+	d.refs = append(d.refs, original)
+	return d
 }
 
 // MapFromValidated returns a new Refreshable by applying mapFn to the most recent
@@ -113,7 +115,9 @@ func MapFromValidated[T any, M any](original Validated[T], mapFn func(T) M) (Ref
 	stop := original.SubscribeValidated(func(v Validated[T]) {
 		out.Update(mapFn(v.Unvalidated()))
 	})
-	return out.readOnly(), stop
+	d := newDerivedRefreshable(out.readOnly(), stop)
+	d.refs = append(d.refs, original)
+	return d, stop
 }
 
 // MapFromValidatedChecked is identical to MapFromValidated but first checks if the
@@ -131,7 +135,9 @@ func MapValidated[T any, M any](ctx context.Context, original Validated[T], mapF
 	v := newValidRefreshable[M]()
 	stop := subscribeValidRefreshable(ctx, v, original, mapFn)
 	_, err := v.Validation()
-	return v, stop, err
+	d := newDerivedValidated(v, stop)
+	d.refs = append(d.refs, original)
+	return d, stop, err
 }
 
 // ValidatedAddFunc is a function that adds a new Validated to a collection.
@@ -186,13 +192,14 @@ func CollectValidatedMutable[T any](list ...Validated[T]) (Validated[[]T], Valid
 		stops = append(stops, stop)
 		mu.Unlock()
 	}
-	return out, add, func() {
+	combined := func() {
 		mu.Lock()
 		defer mu.Unlock()
 		for _, stop := range stops {
 			stop()
 		}
 	}
+	return newDerivedValidated(out, combined), add, combined
 }
 
 // MergeValidated returns a new Validated that combines the latest values of two Validated refreshables using the mergeFn.
@@ -213,10 +220,11 @@ func MergeValidated[T1 any, T2 any, R any](original1 Validated[T1], original2 Va
 	}
 	stop1 := original1.SubscribeValidated(func(Validated[T1]) { doUpdate() })
 	stop2 := original2.SubscribeValidated(func(Validated[T2]) { doUpdate() })
-	return out, func() {
+	combined := func() {
 		stop1()
 		stop2()
 	}
+	return newDerivedValidated(out, combined), combined
 }
 
 // MergeValidatedAndRefreshable returns a new Validated that combines the latest values of a Validated
@@ -231,5 +239,9 @@ func MergeValidatedAndRefreshable[T1 any, T2 any, R any](
 	original2, _, _ := Validate(ctx, refreshable1, func(ctx context.Context, i T2) error {
 		return nil
 	})
-	return MergeValidated(original1, original2, mergeFn)
+	result, unsub := MergeValidated(original1, original2, mergeFn)
+	// Keep original2 alive as long as result is alive so its upstream
+	// subscription chain is not prematurely GC'd.
+	result.(*derivedValidated[R]).refs = append(result.(*derivedValidated[R]).refs, original2)
+	return result, unsub
 }
