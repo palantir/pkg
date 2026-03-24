@@ -81,8 +81,10 @@ func (d *DefaultRefreshable) unsubscribe(consumerFnPtr *func(interface{})) {
 
 func (d *DefaultRefreshable) Map(mapFn func(interface{}) interface{}) Refreshable {
 	newRefreshable := NewDefaultRefreshable(mapFn(d.Current()))
-	d.Subscribe(func(updatedVal interface{}) {
+	unsub := d.Subscribe(func(updatedVal interface{}) {
 		_ = newRefreshable.Update(mapFn(updatedVal))
 	})
-	return newRefreshable
+	derived := newDerivedRefreshable(newRefreshable, unsub)
+	derived.refs = append(derived.refs, d)
+	return derived
 }

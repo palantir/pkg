@@ -66,15 +66,11 @@ func newValidatingRefreshable(origRefreshable Refreshable, validatingFn func(int
 
 	var lastValidateErr atomic.Value
 	lastValidateErr.Store(errorWrapper{})
-	v := ValidatingRefreshable{
-		Refreshable:     validatedRefreshable,
-		lastValidateErr: &lastValidateErr,
-	}
 
 	updateValueFn := func(i interface{}) {
 		mappedVal, err := validatingFn(i)
 		if err != nil {
-			v.lastValidateErr.Store(errorWrapper{err})
+			lastValidateErr.Store(errorWrapper{err})
 			return
 		}
 		if storeMappedVal {
@@ -82,14 +78,20 @@ func newValidatingRefreshable(origRefreshable Refreshable, validatingFn func(int
 		} else {
 			err = validatedRefreshable.Update(i)
 		}
-		v.lastValidateErr.Store(errorWrapper{err: err})
+		lastValidateErr.Store(errorWrapper{err: err})
 	}
 
-	origRefreshable.Subscribe(updateValueFn)
+	unsub := origRefreshable.Subscribe(updateValueFn)
 
 	// manually update value after performing subscription. This ensures that, if the current value changed between when
 	// it was fetched earlier in the function and when the subscription was performed, it is properly captured.
 	updateValueFn(origRefreshable.Current())
 
+	derived := newDerivedRefreshable(validatedRefreshable, unsub)
+	derived.refs = append(derived.refs, origRefreshable)
+	v := ValidatingRefreshable{
+		Refreshable:     derived,
+		lastValidateErr: &lastValidateErr,
+	}
 	return &v, nil
 }

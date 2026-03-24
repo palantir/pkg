@@ -25,10 +25,10 @@ func ToV2[T any](v1 Refreshable) refreshablev2.Refreshable[T] {
 // FromV2 converts from a v1 Refreshable created by this package to v2 supporting type safety via generics.
 func FromV2[T any](v2 refreshablev2.Refreshable[T]) Refreshable {
 	v1 := NewDefaultRefreshable(v2.Current())
-	v2.Subscribe(func(i T) {
+	unsub := v2.Subscribe(func(i T) {
 		if err := v1.Update(i); err != nil {
 			panic(err)
 		}
 	})
-	return v1
+	return newDerivedRefreshable(v1, unsub)
 }
