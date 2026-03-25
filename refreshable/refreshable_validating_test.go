@@ -22,7 +22,7 @@ func TestValidatingRefreshable(t *testing.T) {
 	ctx := context.Background()
 	type container struct{ Value string }
 	r := refreshable.New(container{Value: "value"})
-	vr, _, err := refreshable.Validate[container](ctx, r, func(ctx context.Context, i container) error {
+	vr, err := refreshable.ValidateAuto[container](ctx, r, func(ctx context.Context, i container) error {
 		if len(i.Value) == 0 {
 			return errors.New("empty")
 		}
@@ -57,11 +57,11 @@ func TestMapValidatingRefreshable(t *testing.T) {
 	parsed, err := url.Parse("https://palantir.com:443")
 	require.NoError(t, err)
 	r := refreshable.New("https://palantir.com:443")
-	vr, _, err := refreshable.MapWithError[string, *url.URL](ctx, r, func(_ context.Context, s string) (*url.URL, error) { return url.Parse(s) })
+	vr, err := refreshable.MapWithErrorAuto[string, *url.URL](ctx, r, func(_ context.Context, s string) (*url.URL, error) { return url.Parse(s) })
 	require.NoError(t, err)
 	val, err := vr.Validation()
 	require.NoError(t, err)
-	validatedHost, _, _ := refreshable.MapValidated(ctx, vr, func(ctx context.Context, u *url.URL) (string, error) {
+	validatedHost, _ := refreshable.MapValidatedAuto(ctx, vr, func(ctx context.Context, u *url.URL) (string, error) {
 		return u.Hostname(), nil
 	})
 	require.Equal(t, r.Current(), "https://palantir.com:443")
@@ -91,7 +91,7 @@ func TestMapValidatingRefreshable(t *testing.T) {
 func TestMapValidated(t *testing.T) {
 	ctx := context.Background()
 	r := refreshable.New(10)
-	vr, _, err := refreshable.Validate[int](ctx, r, func(_ context.Context, i int) error {
+	vr, err := refreshable.ValidateAuto[int](ctx, r, func(_ context.Context, i int) error {
 		if i < 0 {
 			return errors.New("negative")
 		}
@@ -151,14 +151,14 @@ func TestMergeValidated(t *testing.T) {
 	ctx := context.Background()
 	r1 := refreshable.New("hello")
 	r2 := refreshable.New(2)
-	vr1, _, err := refreshable.MapWithError(ctx, r1, func(_ context.Context, s string) (string, error) {
+	vr1, err := refreshable.MapWithErrorAuto(ctx, r1, func(_ context.Context, s string) (string, error) {
 		if s == "" {
 			return "", errors.New("empty string")
 		}
 		return s, nil
 	})
 	require.NoError(t, err)
-	vr2, _, err := refreshable.MapWithError(ctx, r2, func(_ context.Context, i int) (int, error) {
+	vr2, err := refreshable.MapWithErrorAuto(ctx, r2, func(_ context.Context, i int) (int, error) {
 		if i < 0 {
 			return 0, errors.New("negative")
 		}
@@ -204,7 +204,7 @@ func TestMergeValidatedAndRefreshable(t *testing.T) {
 	ctx := context.Background()
 	r1 := refreshable.New("hello")
 	r2 := refreshable.New(2)
-	vr1, _, err := refreshable.MapWithError(ctx, r1, func(_ context.Context, s string) (string, error) {
+	vr1, err := refreshable.MapWithErrorAuto(ctx, r1, func(_ context.Context, s string) (string, error) {
 		if s == "" {
 			return "", errors.New("empty string")
 		}
@@ -255,13 +255,13 @@ func TestMergeValidated_BothErrors(t *testing.T) {
 	ctx := context.Background()
 	r1 := refreshable.New("")
 	r2 := refreshable.New(-1)
-	vr1, _, _ := refreshable.MapWithError(ctx, r1, func(_ context.Context, s string) (string, error) {
+	vr1, _ := refreshable.MapWithErrorAuto(ctx, r1, func(_ context.Context, s string) (string, error) {
 		if s == "" {
 			return "", errors.New("empty")
 		}
 		return s, nil
 	})
-	vr2, _, _ := refreshable.MapWithError(ctx, r2, func(_ context.Context, i int) (int, error) {
+	vr2, _ := refreshable.MapWithErrorAuto(ctx, r2, func(_ context.Context, i int) (int, error) {
 		if i < 0 {
 			return 0, errors.New("negative")
 		}
@@ -409,18 +409,18 @@ func TestCollectValidated(t *testing.T) {
 	r1 := refreshable.New("a")
 	r2 := refreshable.New("b")
 	r3 := refreshable.New("c")
-	vr1, _, err := refreshable.MapWithError(ctx, r1, func(_ context.Context, s string) (string, error) {
+	vr1, err := refreshable.MapWithErrorAuto(ctx, r1, func(_ context.Context, s string) (string, error) {
 		if s == "" {
 			return "", errors.New("empty")
 		}
 		return s, nil
 	})
 	require.NoError(t, err)
-	vr2, _, err := refreshable.MapWithError(ctx, r2, func(_ context.Context, s string) (string, error) {
+	vr2, err := refreshable.MapWithErrorAuto(ctx, r2, func(_ context.Context, s string) (string, error) {
 		return s, nil
 	})
 	require.NoError(t, err)
-	vr3, _, err := refreshable.MapWithError(ctx, r3, func(_ context.Context, s string) (string, error) {
+	vr3, err := refreshable.MapWithErrorAuto(ctx, r3, func(_ context.Context, s string) (string, error) {
 		return s, nil
 	})
 	require.NoError(t, err)
@@ -479,7 +479,7 @@ func TestCollectValidatedMutable_ErrorPropagation(t *testing.T) {
 	ctx := context.Background()
 	r1 := refreshable.New(1)
 	r2 := refreshable.New(2)
-	vr1, _, err := refreshable.MapWithError(ctx, r1, func(_ context.Context, i int) (int, error) {
+	vr1, err := refreshable.MapWithErrorAuto(ctx, r1, func(_ context.Context, i int) (int, error) {
 		if i < 0 {
 			return 0, errors.New("negative")
 		}
@@ -522,7 +522,7 @@ func TestCollectValidatedMutable_RaceCondition(t *testing.T) {
 		wg.Add(1)
 		go func(val int) {
 			defer wg.Done()
-			v, _, _ := refreshable.Validate(ctx, refreshable.New(val), func(_ context.Context, _ int) error { return nil })
+			v, _ := refreshable.ValidateAuto(ctx, refreshable.New(val), func(_ context.Context, _ int) error { return nil })
 			add(v)
 		}(i + 100)
 	}
@@ -535,16 +535,60 @@ func TestCollectValidatedMutable_RaceCondition(t *testing.T) {
 		}(i)
 	}
 	for range 10 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_ = collected.Unvalidated()
-		}()
+		})
 	}
 	wg.Wait()
 	assert.Eventually(t, func() bool {
 		return len(collected.Unvalidated()) == 12
 	}, time.Second, time.Millisecond)
+}
+
+func TestMergeValidated_RaceCondition(t *testing.T) {
+	ctx := context.Background()
+	r1 := refreshable.New(0)
+	r2 := refreshable.New(0)
+	vr1, vr1Stop, err := refreshable.Validate(ctx, r1, func(_ context.Context, _ int) error { return nil })
+	require.NoError(t, err)
+	defer vr1Stop()
+	vr2, vr2Stop, err := refreshable.Validate(ctx, r2, func(_ context.Context, _ int) error { return nil })
+	require.NoError(t, err)
+	defer vr2Stop()
+	type merged struct {
+		a, b int
+	}
+	m, stop := refreshable.MergeValidated(vr1, vr2, func(a, b int) merged {
+		return merged{a: a, b: b}
+	})
+	defer stop()
+	var wg sync.WaitGroup
+	// Concurrently update both sources.
+	for i := range 100 {
+		wg.Add(2)
+		go func(val int) {
+			defer wg.Done()
+			r1.Update(val)
+		}(i)
+		go func(val int) {
+			defer wg.Done()
+			r2.Update(val * 10)
+		}(i)
+	}
+	// Concurrently read the merged output.
+	for range 100 {
+		wg.Go(func() {
+			_ = m.Unvalidated()
+			_, _ = m.Validation()
+		})
+	}
+	wg.Wait()
+	// Write deterministic final values after concurrent storm settles.
+	r1.Update(999)
+	r2.Update(9990)
+	got := m.Unvalidated()
+	assert.Equal(t, 999, got.a)
+	assert.Equal(t, 9990, got.b)
 }
 
 // TestValidatingRefreshable_SubscriptionRaceCondition tests that the ValidatingRefreshable stays current
@@ -554,7 +598,7 @@ func TestValidatingRefreshable_SubscriptionRaceCondition(t *testing.T) {
 	//r := &updateImmediatelyRefreshable{r: refreshable.New(1), newValue: 2}
 	r := refreshable.New(1)
 	var seen1, seen2 bool
-	vr, _, err := refreshable.Validate[int](ctx, r, func(_ context.Context, i int) error {
+	vr, err := refreshable.ValidateAuto[int](ctx, r, func(_ context.Context, i int) error {
 		go r.Update(2)
 		switch i {
 		case 1:
@@ -603,13 +647,13 @@ func TestValidatedPutTogetherErrors(t *testing.T) {
 	i, err = validatedThird.Validation()
 	assert.Equal(t, 100, i)
 	assert.NoError(t, err)
-	fullyValidated, _ := refreshable.CollectValidated(validatedFirst, validatedSecond, validatedThird)
+	fullyValidated := refreshable.CollectValidatedAuto(validatedFirst, validatedSecond, validatedThird)
 	result, err := fullyValidated.Validation()
 	assert.Equal(t, []int{1, 10, 100}, fullyValidated.Unvalidated())
 	assert.Equal(t, []int{1, 10, 100}, result)
 	assert.NoError(t, err)
 
-	validatedSum, _, err := refreshable.MapValidated(ctx, fullyValidated, func(ctx context.Context, arg []int) (int, error) {
+	validatedSum, err := refreshable.MapValidatedAuto(ctx, fullyValidated, func(ctx context.Context, arg []int) (int, error) {
 		total := 0
 		for _, v := range arg {
 			total += v

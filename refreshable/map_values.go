@@ -7,67 +7,101 @@ package refreshable
 import (
 	"context"
 	"errors"
+	"sync"
 )
 
-// MapValues creates a Validated Refreshable by applying a mapper function to each entry in a map.
-// For each key-value pair in the input map, the mapper function creates a Validated[R] refreshable.
-// The output is a Validated[map[K]R] that aggregates all mapped values.
+// MapValues creates a Validated[map[K]R] by applying mapperFn to each entry of a map Refreshable.
+// When keys are added, mapperFn is called with a per-key context that is cancelled on removal.
+// When any per-key refreshable updates, the output map is rebuilt with aggregated validation errors.
 //
-// When keys are added to the input map, new refreshables are created via the mapper function.
-// When keys are removed, their corresponding refreshables are unsubscribed.
-// When any individual mapped refreshable updates, the output map is rebuilt.
-//
-// Unvalidated() returns a map containing the last valid value for each key.
-// Validation() returns the map and a joined error of all validation failures.
-//
-// This should be used instead of just calling Map on a map[K]V when you need to interject an additional refreshable that can be updated independently
+// Use this instead of Map on a map[K]V when you need per-key refreshables that update independently.
 func MapValues[K comparable, V, R any](
 	ctx context.Context,
 	refreshableMap Refreshable[map[K]V],
 	mapperFn func(context.Context, K, V) Validated[R],
 ) Validated[map[K]R] {
+	type perKey struct {
+		val    Validated[R]
+		unsub  UnsubscribeFunc
+		cancel context.CancelFunc
+	}
+
 	out := newValidRefreshable[map[K]R]()
-	mappedRefreshables := make(map[K]Validated[R])
-	unsubscribers := make(map[K]UnsubscribeFunc)
+	var mu sync.Mutex
+	keys := make(map[K]*perKey)
 
 	updateOutput := func() {
+		mu.Lock()
 		result := make(map[K]R)
 		var errs []error
-		for key, refreshable := range mappedRefreshables {
-			result[key] = refreshable.Unvalidated()
-			if _, err := refreshable.Validation(); err != nil {
+		for k, pk := range keys {
+			result[k] = pk.val.Unvalidated()
+			if _, err := pk.val.Validation(); err != nil {
 				errs = append(errs, err)
 			}
 		}
+		mu.Unlock()
 		joined := errors.Join(errs...)
 		if joined == nil {
-			out.r.Update(validRefreshableContainer[map[K]R]{unvalidated: result, validated: result, lastErr: nil})
+			out.r.Update(validRefreshableContainer[map[K]R]{unvalidated: result, validated: result})
 		} else {
-			out.r.Update(validRefreshableContainer[map[K]R]{unvalidated: result, validated: nil, lastErr: joined})
+			out.r.Update(validRefreshableContainer[map[K]R]{unvalidated: result, lastErr: joined})
 		}
 	}
 
-	refreshableMap.Subscribe(func(currentMap map[K]V) {
-		// Remove keys no longer in the map
-		for key, unsub := range unsubscribers {
-			if _, exists := currentMap[key]; !exists {
-				unsub()
-				delete(unsubscribers, key)
-				delete(mappedRefreshables, key)
+	unsub := refreshableMap.Subscribe(func(currentMap map[K]V) {
+		mu.Lock()
+		var removed []*perKey
+		for k := range keys {
+			if _, ok := currentMap[k]; !ok {
+				removed = append(removed, keys[k])
+				delete(keys, k)
 			}
 		}
-		// Add new keys
-		for key, value := range currentMap {
-			if _, exists := mappedRefreshables[key]; !exists {
-				mapped := mapperFn(ctx, key, value)
-				mappedRefreshables[key] = mapped
-				unsubscribers[key] = mapped.SubscribeValidated(func(Validated[R]) {
-					updateOutput()
-				})
+		type newEntry struct {
+			key K
+			pk  *perKey
+		}
+		var added []newEntry
+		for k, v := range currentMap {
+			if _, ok := keys[k]; !ok {
+				keyCtx, keyCancel := context.WithCancel(ctx)
+				pk := &perKey{val: mapperFn(keyCtx, k, v), cancel: keyCancel}
+				keys[k] = pk
+				added = append(added, newEntry{key: k, pk: pk})
 			}
+		}
+		mu.Unlock()
+
+		// Run outside lock: unsub/cancel may trigger callbacks that call updateOutput,
+		// and SubscribeValidated immediately invokes its callback.
+		for _, pk := range removed {
+			pk.unsub()
+			pk.cancel()
+		}
+		for _, entry := range added {
+			stop := entry.pk.val.SubscribeValidated(func(Validated[R]) { updateOutput() })
+			mu.Lock()
+			entry.pk.unsub = stop
+			mu.Unlock()
 		}
 		updateOutput()
 	})
 
-	return out
+	combinedUnsub := func() {
+		unsub()
+		mu.Lock()
+		all := make([]*perKey, 0, len(keys))
+		for _, pk := range keys {
+			all = append(all, pk)
+		}
+		clear(keys)
+		mu.Unlock()
+		for _, pk := range all {
+			pk.unsub()
+			pk.cancel()
+		}
+	}
+
+	return newDerivedValidated(out, combinedUnsub)
 }

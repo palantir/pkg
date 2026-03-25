@@ -6,13 +6,14 @@ package refreshable
 
 import (
 	"reflect"
+	"slices"
 	"sync"
 	"sync/atomic"
 )
 
 type defaultRefreshable[T any] struct {
 	mux         sync.Mutex
-	current     atomic.Value
+	current     atomic.Pointer[T]
 	subscribers []*func(T)
 }
 
@@ -31,7 +32,7 @@ func (d *defaultRefreshable[T]) Update(val T) {
 	d.mux.Lock()
 	defer d.mux.Unlock()
 	old := d.current.Swap(&val)
-	if reflect.DeepEqual(*(old.(*T)), val) {
+	if reflect.DeepEqual(*old, val) {
 		return
 	}
 	for _, sub := range d.subscribers {
@@ -40,7 +41,7 @@ func (d *defaultRefreshable[T]) Update(val T) {
 }
 
 func (d *defaultRefreshable[T]) Current() T {
-	return *(d.current.Load().(*T))
+	return *d.current.Load()
 }
 
 func (d *defaultRefreshable[T]) Subscribe(consumer func(T)) UnsubscribeFunc {
@@ -66,25 +67,9 @@ func (d *defaultRefreshable[T]) unsubscribe(consumerFnPtr *func(T)) UnsubscribeF
 			}
 		}
 		if matchIdx != -1 {
-			d.subscribers = append(d.subscribers[:matchIdx], d.subscribers[matchIdx+1:]...)
+			d.subscribers = slices.Delete(d.subscribers, matchIdx, matchIdx+1)
 		}
 	}
-}
-
-func (d *defaultRefreshable[T]) readOnly() *readOnlyRefreshable[T] {
-	return (*readOnlyRefreshable[T])(d)
-}
-
-// readOnlyRefreshable aliases defaultRefreshable but hides the Update method so the type
-// does not implement Updatable.
-type readOnlyRefreshable[T any] defaultRefreshable[T]
-
-func (d *readOnlyRefreshable[T]) Current() T {
-	return (*defaultRefreshable[T])(d).Current()
-}
-
-func (d *readOnlyRefreshable[T]) Subscribe(consumer func(T)) UnsubscribeFunc {
-	return (*defaultRefreshable[T])(d).Subscribe(consumer)
 }
 
 // mapperRefreshable wraps an existing Refreshable and applies a mapping function to its values.
@@ -100,5 +85,8 @@ func (d mapperRefreshable[S, T]) Current() T {
 }
 
 func (d mapperRefreshable[S, T]) Subscribe(consumer func(T)) UnsubscribeFunc {
-	return d.base.Subscribe(func(value S) { consumer(d.mapper(value)) })
+	// Extract mapper to avoid capturing d.base in the closure, which would
+	// prevent GC cleanup of upstream derived wrappers in Map chains.
+	mapper := d.mapper
+	return d.base.Subscribe(func(value S) { consumer(mapper(value)) })
 }

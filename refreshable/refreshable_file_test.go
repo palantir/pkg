@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync/atomic"
 	"syscall"
 	"testing"
@@ -350,6 +351,40 @@ func TestFileRefreshableTransientReadError(t *testing.T) {
 		assert.Equal(t, "updated", string(curr))
 	}, time.Second, 10*time.Millisecond)
 	require.Equal(t, "updated", string(refreshableFile.Unvalidated()))
+}
+
+func TestTickerGCCleanup(t *testing.T) {
+	ctx := t.Context()
+	ticker := make(chan time.Time, 1)
+	var readCalls atomic.Int64
+	readerFunc := func(ctx context.Context) (int, error) {
+		readCalls.Add(1)
+		return 42, nil
+	}
+	v := NewRefreshableTicker(ctx, ticker, readerFunc, NewAlwaysCheckChangeDetector())
+	require.Equal(t, 42, v.Unvalidated())
+	initial := readCalls.Load()
+
+	// Tick to confirm the goroutine is reading.
+	ticker <- time.Now()
+	require.Eventually(t, func() bool {
+		return readCalls.Load() > initial
+	}, time.Second, time.Millisecond)
+
+	// Drop the reference and GC. Two cycles are needed because the compiler
+	// may retain a stale reference in a register, preventing collection on
+	// the first pass.
+	v = nil //nolint:ineffassign // intentional: test GC behavior
+	runtime.GC()
+	runtime.GC()
+
+	// The ticker goroutine should stop: further ticks should not call readerFunc.
+	assert.Eventually(t, func() bool {
+		before := readCalls.Load()
+		ticker <- time.Now()
+		time.Sleep(50 * time.Millisecond)
+		return readCalls.Load() == before
+	}, time.Second, 10*time.Millisecond, "ticker goroutine should stop after Validated is GC'd")
 }
 
 func getStringFromRefreshable(t *testing.T, r Validated[[]byte]) string {
