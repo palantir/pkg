@@ -141,6 +141,9 @@ func MapFromValidatedCheckedAuto[T any, M any](original Validated[T], mapFn func
 }
 
 // MapValidated returns a new Validated based on the current one that handles updates based on the current Validated.
+// The context is passed to the mapFn but is not considered in the subscription lifecycle.
+// An error is returned if the current original value fails to map.
+// The subscription and mapping continue until the UnsubscribeFunc is called or the Validated is garbage-collected.
 func MapValidated[T any, M any](ctx context.Context, original Validated[T], mapFn func(context.Context, T) (M, error)) (Validated[M], UnsubscribeFunc, error) {
 	v := newValidRefreshable[M]()
 	stop := subscribeValidRefreshable(ctx, v, original, mapFn)
@@ -298,6 +301,8 @@ func MergeValidatedAuto[T1 any, T2 any, R any](original1 Validated[T1], original
 // and a plain Refreshable using the mergeFn. The Refreshable is wrapped with an always-valid Validate
 // so that only errors from the Validated source propagate. The returned Validated is updated whenever
 // either source updates.
+// The context is used internally to wrap the Refreshable as a Validated but does not affect the subscription lifecycle.
+// The subscription and mapping continue until the UnsubscribeFunc is called or the Validated is garbage-collected.
 func MergeValidatedAndRefreshable[T1 any, T2 any, R any](
 	ctx context.Context,
 	original1 Validated[T1],

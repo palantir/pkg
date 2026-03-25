@@ -115,7 +115,9 @@ func MapContext[T any, M any](ctx context.Context, original Refreshable[T], mapF
 
 // MapWithError is similar to Validate but allows for the function to return a mapping/mutation
 // of the input object in addition to returning an error. The returned validRefreshable will contain the mapped value.
+// The context is passed to the mapFn but is not considered in the subscription lifecycle.
 // An error is returned if the current original value fails to map.
+// The subscription and mapping continue until the UnsubscribeFunc is called or the Validated is garbage-collected.
 func MapWithError[T any, M any](ctx context.Context, original Refreshable[T], mapFn func(context.Context, T) (M, error)) (Validated[M], UnsubscribeFunc, error) {
 	v := newValidRefreshable[M]()
 	intermediate := validatedFromRefreshable(original)
@@ -131,8 +133,10 @@ func MapWithErrorAuto[T any, M any](ctx context.Context, original Refreshable[T]
 }
 
 // Validate returns a new Refreshable that returns the latest original value accepted by the validatingFn.
+// The context is passed to the validatingFn but is not considered in the subscription lifecycle.
 // If the upstream value results in an error, it is reported by Validation().
 // An error is returned if the current original value is invalid.
+// The subscription and mapping continue until the UnsubscribeFunc is called or the Validated is garbage-collected.
 func Validate[T any](ctx context.Context, original Refreshable[T], validatingFn func(context.Context, T) error) (Validated[T], UnsubscribeFunc, error) {
 	return MapWithError(ctx, original, identity(validatingFn))
 }
