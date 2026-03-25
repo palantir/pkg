@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"reflect"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -670,11 +671,11 @@ func TestCollectValidatedMapValidatedPipeline(t *testing.T) {
 	var flattenCalls atomic.Int64
 	leaf, err := refreshable.MapValidatedAuto(ctx, collected, func(_ context.Context, certs [][]byte) (string, error) {
 		flattenCalls.Add(1)
-		var combined string
+		var combined strings.Builder
 		for _, c := range certs {
-			combined += string(c) + ";"
+			combined.WriteString(string(c) + ";")
 		}
-		return combined, nil
+		return combined.String(), nil
 	})
 	require.NoError(t, err)
 	require.Equal(t, "cert1;cert2;", leaf.Unvalidated())
@@ -692,7 +693,7 @@ func TestCollectValidatedMapValidatedPipeline(t *testing.T) {
 
 	assert.Eventually(t, func() bool {
 		before := flattenCalls.Load()
-		r1.Update([]byte(fmt.Sprintf("val%d", before+100)))
+		r1.Update(fmt.Appendf(nil, "val%d", before+100))
 		return flattenCalls.Load() == before
 	}, time.Second, 10*time.Millisecond, "CollectValidated->MapValidated pipeline should clean up after GC")
 }
@@ -1063,9 +1064,7 @@ func TestConcurrentCreateDropDerived(t *testing.T) {
 	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		for i := 1; ; i++ {
 			select {
 			case <-ctx.Done():
@@ -1074,28 +1073,24 @@ func TestConcurrentCreateDropDerived(t *testing.T) {
 				parent.Update(i)
 			}
 		}
-	}()
+	})
 
 	for range 20 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for range 100 {
 				derived := refreshable.MapAuto(parent, func(v int) int { return v * 2 })
 				_ = derived.Current()
 				runtime.Gosched()
 			}
-		}()
+		})
 	}
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		for range 20 {
 			runtime.GC()
 			time.Sleep(time.Millisecond)
 		}
-	}()
+	})
 
 	done := make(chan struct{})
 	go func() {
@@ -1122,7 +1117,7 @@ func TestConcurrentCreateDropDerived(t *testing.T) {
 func updatableSubscriberCount(t *testing.T, updatable any) int {
 	t.Helper()
 	v := reflect.ValueOf(updatable)
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
 	subs := v.FieldByName("subscribers")
@@ -1135,7 +1130,7 @@ func updatableSubscriberCount(t *testing.T, updatable any) int {
 // levels, each requiring a separate GC cycle followed by async cleanup
 // completion before the next level becomes unreachable.
 func forceGCAndCleanup() {
-	for i := 0; i < 20; i++ {
+	for range 20 {
 		runtime.GC()
 		time.Sleep(10 * time.Millisecond)
 	}
@@ -1342,7 +1337,7 @@ func TestHTTPClientLikePatternSubscriberCleanup(t *testing.T) {
 	// Create and discard multiple clients, simulating repeated calls to
 	// serviceToImportClient without caching.
 	const iterations = 50
-	for i := 0; i < iterations; i++ {
+	for range iterations {
 		_ = createClient()
 	}
 

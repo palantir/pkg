@@ -99,11 +99,9 @@ func TestCollectMutable_RaceCondition(t *testing.T) {
 	}
 	// Concurrent reads
 	for range 10 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_ = collected.Current()
-		}()
+		})
 	}
 	wg.Wait()
 

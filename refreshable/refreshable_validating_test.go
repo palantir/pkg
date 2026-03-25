@@ -535,11 +535,9 @@ func TestCollectValidatedMutable_RaceCondition(t *testing.T) {
 		}(i)
 	}
 	for range 10 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_ = collected.Unvalidated()
-		}()
+		})
 	}
 	wg.Wait()
 	assert.Eventually(t, func() bool {
@@ -579,12 +577,10 @@ func TestMergeValidated_RaceCondition(t *testing.T) {
 	}
 	// Concurrently read the merged output.
 	for range 100 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_ = m.Unvalidated()
 			_, _ = m.Validation()
-		}()
+		})
 	}
 	wg.Wait()
 	// Write deterministic final values after concurrent storm settles.
