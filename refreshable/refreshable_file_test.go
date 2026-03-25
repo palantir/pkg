@@ -371,7 +371,9 @@ func TestTickerGCCleanup(t *testing.T) {
 		return readCalls.Load() > initial
 	}, time.Second, time.Millisecond)
 
-	// Drop the reference and GC.
+	// Drop the reference and GC. Two cycles are needed because the compiler
+	// may retain a stale reference in a register, preventing collection on
+	// the first pass.
 	v = nil //nolint:ineffassign // intentional: test GC behavior
 	runtime.GC()
 	runtime.GC()

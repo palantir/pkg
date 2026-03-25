@@ -6,7 +6,6 @@ package refreshable_test
 
 import (
 	"fmt"
-	"runtime"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -26,8 +25,7 @@ func BenchmarkParentUpdateAfterDerivedDrop(b *testing.B) {
 				derived := refreshable.MapAuto(parent, func(v int) int { return v + i })
 				_ = derived.Current()
 			}
-			runtime.GC()
-			runtime.GC()
+			gcCollect()
 			time.Sleep(100 * time.Millisecond)
 			b.ResetTimer()
 			for i := range b.N {
@@ -54,8 +52,7 @@ func BenchmarkParentSubscriberCountAfterDrop(b *testing.B) {
 					derived := refreshable.MapAuto(parent, func(v int) int { return v + i })
 					_ = derived.Current()
 				}
-				runtime.GC()
-				runtime.GC()
+				gcCollect()
 				time.Sleep(100 * time.Millisecond)
 
 				callCount.Store(0)

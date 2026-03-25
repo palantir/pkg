@@ -42,8 +42,7 @@ func TestMapGCCleanup(t *testing.T) {
 	require.Equal(t, 4, derived.Current())
 
 	derived = nil
-	runtime.GC()
-	runtime.GC()
+	gcCollect()
 
 	assert.Eventually(t, func() bool {
 		before := mapCalls.Load()
@@ -81,8 +80,7 @@ func TestCachedGCCleanup(t *testing.T) {
 	require.Equal(t, 1, cached.Current())
 
 	cached = nil
-	runtime.GC()
-	runtime.GC()
+	gcCollect()
 
 	assert.Eventually(t, func() bool {
 		before := subscribeCalls.Load()
@@ -103,8 +101,7 @@ func TestMergeGCCleanup(t *testing.T) {
 	require.Equal(t, 3, merged.Current())
 
 	merged = nil
-	runtime.GC()
-	runtime.GC()
+	gcCollect()
 
 	assert.Eventually(t, func() bool {
 		before := mergeCalls.Load()
@@ -121,8 +118,7 @@ func TestCollectGCCleanup(t *testing.T) {
 	require.Equal(t, []int{10, 20}, collected.Current())
 
 	collected = nil
-	runtime.GC()
-	runtime.GC()
+	gcCollect()
 
 	var newSubCalls atomic.Int64
 	r1.Subscribe(func(int) { newSubCalls.Add(1) })
@@ -211,8 +207,7 @@ func TestValidateGCCleanup(t *testing.T) {
 	require.Equal(t, 10, validated.Unvalidated())
 
 	validated = nil
-	runtime.GC()
-	runtime.GC()
+	gcCollect()
 
 	assert.Eventually(t, func() bool {
 		before := validateCalls.Load()
@@ -238,8 +233,7 @@ func TestMergeValidatedGCCleanup(t *testing.T) {
 	require.Equal(t, 3, merged.Unvalidated())
 
 	merged = nil
-	runtime.GC()
-	runtime.GC()
+	gcCollect()
 
 	assert.Eventually(t, func() bool {
 		before := mergeCalls.Load()
@@ -262,8 +256,7 @@ func TestMapFromValidatedGCCleanup(t *testing.T) {
 	require.Equal(t, 20, mapped.Current())
 
 	mapped = nil
-	runtime.GC()
-	runtime.GC()
+	gcCollect()
 
 	assert.Eventually(t, func() bool {
 		before := mapCalls.Load()
@@ -290,8 +283,7 @@ func TestMapWithErrorGCCleanup(t *testing.T) {
 	require.Equal(t, "val=10", mapped.Unvalidated())
 
 	mapped = nil
-	runtime.GC()
-	runtime.GC()
+	gcCollect()
 
 	assert.Eventually(t, func() bool {
 		before := mapCalls.Load()
@@ -318,8 +310,7 @@ func TestMergeValidatedAndRefreshableGCCleanup(t *testing.T) {
 	require.Equal(t, 3, merged.Unvalidated())
 
 	merged = nil
-	runtime.GC()
-	runtime.GC()
+	gcCollect()
 
 	assert.Eventually(t, func() bool {
 		before := mergeCalls.Load()
@@ -346,8 +337,7 @@ func TestCollectValidatedGCCleanup_NoSubscribers(t *testing.T) {
 	r1.Subscribe(func(int) { subCalls.Add(1) })
 
 	collected = nil
-	runtime.GC()
-	runtime.GC()
+	gcCollect()
 
 	assert.Eventually(t, func() bool {
 		before := subCalls.Load()
@@ -371,8 +361,7 @@ func TestMapValidatedGCCleanup(t *testing.T) {
 	require.Equal(t, 20, mapped.Unvalidated())
 
 	mapped = nil
-	runtime.GC()
-	runtime.GC()
+	gcCollect()
 
 	assert.Eventually(t, func() bool {
 		before := mapCalls.Load()
@@ -392,8 +381,7 @@ func TestDirectSubscribeNotAffected(t *testing.T) {
 	var calls atomic.Int64
 	parent.Subscribe(func(int) { calls.Add(1) })
 
-	runtime.GC()
-	runtime.GC()
+	gcCollect()
 
 	before := calls.Load()
 	parent.Update(2)
@@ -413,8 +401,7 @@ func TestDerivedRefreshableHoldsSubscriptionAlive(t *testing.T) {
 	parent := refreshable.New(1)
 	derived := refreshable.MapAuto(parent, func(v int) int { return v * 10 })
 
-	runtime.GC()
-	runtime.GC()
+	gcCollect()
 
 	parent.Update(5)
 	require.Equal(t, 50, derived.Current())
@@ -446,8 +433,7 @@ func TestChainedDerivedKeepsUpstreamAlive(t *testing.T) {
 	require.Equal(t, 3, leaf.Current())
 
 	intermediate = nil //nolint:ineffassign // intentional: clear stack reference to test GC behavior
-	runtime.GC()
-	runtime.GC()
+	gcCollect()
 
 	parent.Update(5)
 	require.Equal(t, 15, leaf.Current())
@@ -478,8 +464,7 @@ func TestMapValidatedChainGCCleanup(t *testing.T) {
 
 	leaf = nil
 	intermediate = nil //nolint:ineffassign // intentional: clear stack reference to test GC behavior
-	runtime.GC()
-	runtime.GC()
+	gcCollect()
 
 	assert.Eventually(t, func() bool {
 		before := validateCalls.Load()
@@ -507,8 +492,7 @@ func TestLongMapChain(t *testing.T) {
 	require.Equal(t, 6, leaf.Current()) // 1 + 5
 
 	current = nil //nolint:ineffassign // intentional: clear stack reference to test GC behavior
-	runtime.GC()
-	runtime.GC()
+	gcCollect()
 
 	parent.Update(10)
 	require.Equal(t, 15, leaf.Current()) // 10 + 5
@@ -681,15 +665,13 @@ func TestCollectValidatedMapValidatedPipeline(t *testing.T) {
 	require.Equal(t, "cert1;cert2;", leaf.Unvalidated())
 
 	collected = nil //nolint:ineffassign // intentional: clear stack reference to test GC behavior
-	runtime.GC()
-	runtime.GC()
+	gcCollect()
 
 	r1.Update([]byte("new-cert1"))
 	require.Contains(t, leaf.Unvalidated(), "new-cert1")
 
 	leaf = nil
-	runtime.GC()
-	runtime.GC()
+	gcCollect()
 
 	assert.Eventually(t, func() bool {
 		before := flattenCalls.Load()
@@ -731,8 +713,7 @@ func TestMapFromValidatedFanOut(t *testing.T) {
 	for i := range refreshables {
 		refreshables[i] = nil
 	}
-	runtime.GC()
-	runtime.GC()
+	gcCollect()
 
 	assert.Eventually(t, func() bool {
 		before := mapCalls[0].Load()
@@ -769,8 +750,7 @@ func TestDeepMapValidatedChain(t *testing.T) {
 
 	current = nil //nolint:ineffassign // intentional: clear stack reference to test GC behavior
 	v = nil       //nolint:ineffassign // intentional: clear stack reference to test GC behavior
-	runtime.GC()
-	runtime.GC()
+	gcCollect()
 
 	parent.Update(10)
 	require.Equal(t, 13, leaf.Unvalidated()) // 10 + 3
@@ -804,8 +784,7 @@ func TestSubscribeOnDerivedThenDrop(t *testing.T) {
 	require.Equal(t, int64(2), subCalls.Load())
 
 	derived = nil
-	runtime.GC()
-	runtime.GC()
+	gcCollect()
 
 	before := subCalls.Load()
 	parent.Update(999)
@@ -828,8 +807,7 @@ func TestSubscribeOnDerivedThenDrop_UnsubCleansUp(t *testing.T) {
 	require.Equal(t, int64(1), subCalls.Load())
 
 	derived = nil
-	runtime.GC()
-	runtime.GC()
+	gcCollect()
 
 	before := subCalls.Load()
 	parent.Update(999)
@@ -861,8 +839,7 @@ func TestSubscribeValidatedOnDerivedThenDrop(t *testing.T) {
 	require.Equal(t, int64(2), subCalls.Load())
 
 	validated = nil
-	runtime.GC()
-	runtime.GC()
+	gcCollect()
 
 	before := subCalls.Load()
 	parent.Update(999)
@@ -886,8 +863,7 @@ func TestCollectValidatedGCCleanup(t *testing.T) {
 	require.Equal(t, []int{1, 2}, collected.Unvalidated())
 
 	collected = nil
-	runtime.GC()
-	runtime.GC()
+	gcCollect()
 
 	before := subCalls.Load()
 	r1.Update(int(before) + 100)
@@ -919,8 +895,7 @@ func TestLongMapChainSubscribeThenDrop(t *testing.T) {
 
 	leaf = nil
 	current = nil //nolint:ineffassign // intentional: clear stack reference to test GC behavior
-	runtime.GC()
-	runtime.GC()
+	gcCollect()
 
 	before := subCalls.Load()
 	parent.Update(10)
@@ -953,8 +928,7 @@ func TestMultipleSubscribersOnDerived(t *testing.T) {
 	require.Equal(t, int64(1), sub2Calls.Load())
 
 	derived = nil
-	runtime.GC()
-	runtime.GC()
+	gcCollect()
 
 	before1 := sub1Calls.Load()
 	before2 := sub2Calls.Load()
@@ -995,8 +969,7 @@ func TestExplicitUnsubThenGC(t *testing.T) {
 	require.Equal(t, before, derived.Current(), "no updates after explicit unsub")
 
 	derived = nil
-	runtime.GC()
-	runtime.GC()
+	gcCollect()
 	// No panic means success.
 	parent.Update(50)
 	require.Equal(t, 50, parent.Current())
@@ -1016,8 +989,7 @@ func TestExplicitUnsubThenGC_Validated(t *testing.T) {
 
 	stop()
 	validated = nil
-	runtime.GC()
-	runtime.GC()
+	gcCollect()
 	parent.Update(20)
 	require.Equal(t, 20, parent.Current())
 }
@@ -1037,8 +1009,7 @@ func TestMapContextGCBeforeCancel(t *testing.T) {
 	require.Equal(t, 2, mapped.Current())
 
 	mapped = nil
-	runtime.GC()
-	runtime.GC()
+	gcCollect()
 
 	assert.Eventually(t, func() bool {
 		before := mapCalls.Load()
@@ -1123,6 +1094,17 @@ func updatableSubscriberCount(t *testing.T, updatable any) int {
 	subs := v.FieldByName("subscribers")
 	require.True(t, subs.IsValid(), "could not find subscribers field via reflection")
 	return subs.Len()
+}
+
+// gcCollect triggers reliable collection of unreachable objects. Two cycles
+// are needed because the Go compiler may retain a dead reference in a register
+// or stack slot, preventing the object from appearing unreachable on the first
+// pass. This is distinct from SetFinalizer (which resurrects objects);
+// runtime.AddCleanup does not resurrect, but the stale-reference issue still
+// requires a second cycle for reliable test behavior.
+func gcCollect() {
+	runtime.GC()
+	runtime.GC()
 }
 
 // forceGCAndCleanup runs multiple GC cycles with pauses to allow
