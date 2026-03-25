@@ -547,6 +547,54 @@ func TestCollectValidatedMutable_RaceCondition(t *testing.T) {
 	}, time.Second, time.Millisecond)
 }
 
+func TestMergeValidated_RaceCondition(t *testing.T) {
+	ctx := context.Background()
+	r1 := refreshable.New(0)
+	r2 := refreshable.New(0)
+	vr1, vr1Stop, err := refreshable.Validate(ctx, r1, func(_ context.Context, _ int) error { return nil })
+	require.NoError(t, err)
+	defer vr1Stop()
+	vr2, vr2Stop, err := refreshable.Validate(ctx, r2, func(_ context.Context, _ int) error { return nil })
+	require.NoError(t, err)
+	defer vr2Stop()
+	type merged struct {
+		a, b int
+	}
+	m, stop := refreshable.MergeValidated(vr1, vr2, func(a, b int) merged {
+		return merged{a: a, b: b}
+	})
+	defer stop()
+	var wg sync.WaitGroup
+	// Concurrently update both sources.
+	for i := range 100 {
+		wg.Add(2)
+		go func(val int) {
+			defer wg.Done()
+			r1.Update(val)
+		}(i)
+		go func(val int) {
+			defer wg.Done()
+			r2.Update(val * 10)
+		}(i)
+	}
+	// Concurrently read the merged output.
+	for range 100 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_ = m.Unvalidated()
+			_, _ = m.Validation()
+		}()
+	}
+	wg.Wait()
+	// Write deterministic final values after concurrent storm settles.
+	r1.Update(999)
+	r2.Update(9990)
+	got := m.Unvalidated()
+	assert.Equal(t, 999, got.a)
+	assert.Equal(t, 9990, got.b)
+}
+
 // TestValidatingRefreshable_SubscriptionRaceCondition tests that the ValidatingRefreshable stays current
 // if the underlying refreshable updates during the creation process.
 func TestValidatingRefreshable_SubscriptionRaceCondition(t *testing.T) {

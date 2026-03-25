@@ -6,13 +6,14 @@ package refreshable
 
 import (
 	"reflect"
+	"slices"
 	"sync"
 	"sync/atomic"
 )
 
 type defaultRefreshable[T any] struct {
 	mux         sync.Mutex
-	current     atomic.Value
+	current     atomic.Pointer[T]
 	subscribers []*func(T)
 }
 
@@ -31,7 +32,7 @@ func (d *defaultRefreshable[T]) Update(val T) {
 	d.mux.Lock()
 	defer d.mux.Unlock()
 	old := d.current.Swap(&val)
-	if reflect.DeepEqual(*(old.(*T)), val) {
+	if reflect.DeepEqual(*old, val) {
 		return
 	}
 	for _, sub := range d.subscribers {
@@ -40,7 +41,7 @@ func (d *defaultRefreshable[T]) Update(val T) {
 }
 
 func (d *defaultRefreshable[T]) Current() T {
-	return *(d.current.Load().(*T))
+	return *d.current.Load()
 }
 
 func (d *defaultRefreshable[T]) Subscribe(consumer func(T)) UnsubscribeFunc {
@@ -66,7 +67,7 @@ func (d *defaultRefreshable[T]) unsubscribe(consumerFnPtr *func(T)) UnsubscribeF
 			}
 		}
 		if matchIdx != -1 {
-			d.subscribers = append(d.subscribers[:matchIdx], d.subscribers[matchIdx+1:]...)
+			d.subscribers = slices.Delete(d.subscribers, matchIdx, matchIdx+1)
 		}
 	}
 }

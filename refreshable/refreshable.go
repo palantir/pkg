@@ -70,9 +70,7 @@ func New[T any](val T) Updatable[T] {
 func Cached[T any](original Refreshable[T]) (Refreshable[T], UnsubscribeFunc) {
 	out := newZero[T]()
 	stop := original.Subscribe(out.Update)
-	d := newDerivedRefreshable(out, stop)
-	d.refs = append(d.refs, original)
-	return d, stop
+	return newDerivedRefreshable(out, stop), stop
 }
 
 // CachedAuto is like Cached with automatic GC-based cleanup of the upstream subscription.
@@ -123,9 +121,7 @@ func MapWithError[T any, M any](ctx context.Context, original Refreshable[T], ma
 	intermediate := validatedFromRefreshable(original)
 	stop := subscribeValidRefreshable(ctx, v, intermediate, mapFn)
 	_, err := v.Validation()
-	d := newDerivedValidated(v, stop)
-	d.refs = append(d.refs, intermediate) // prevent GC of intermediate subscription chain
-	return d, stop, err
+	return newDerivedValidated(v, stop), stop, err
 }
 
 // MapWithErrorAuto is like MapWithError with automatic GC-based cleanup of the upstream subscription.
@@ -151,11 +147,29 @@ func ValidateAuto[T any](ctx context.Context, original Refreshable[T], validatin
 // The returned Refreshable is updated whenever either of the original Refreshables updates.
 func Merge[T1 any, T2 any, R any](original1 Refreshable[T1], original2 Refreshable[T2], mergeFn func(T1, T2) R) (Refreshable[R], UnsubscribeFunc) {
 	out := newZero[R]()
+	// Subscriber callbacks push latest values into shared state so doUpdate
+	// does not capture any Refreshable interface values. This avoids reference
+	// cycles between derivedRefreshable wrappers and upstream subscriber lists
+	// that would prevent runtime.AddCleanup from firing.
+	var mu sync.Mutex
+	val1 := original1.Current()
+	val2 := original2.Current()
 	doUpdate := func() {
-		out.Update(mergeFn(original1.Current(), original2.Current()))
+		// mu must be held by caller.
+		out.Update(mergeFn(val1, val2))
 	}
-	stop1 := original1.Subscribe(func(T1) { doUpdate() })
-	stop2 := original2.Subscribe(func(T2) { doUpdate() })
+	stop1 := original1.Subscribe(func(v T1) {
+		mu.Lock()
+		defer mu.Unlock()
+		val1 = v
+		doUpdate()
+	})
+	stop2 := original2.Subscribe(func(v T2) {
+		mu.Lock()
+		defer mu.Unlock()
+		val2 = v
+		doUpdate()
+	})
 	combined := func() {
 		stop1()
 		stop2()
@@ -191,28 +205,43 @@ type AddFunc[T any] func(Refreshable[T])
 // The unsubscribe function removes subscriptions from all Refreshables in the collection.
 func CollectMutable[T any](list ...Refreshable[T]) (Refreshable[[]T], AddFunc[T], UnsubscribeFunc) {
 	out := newZero[[]T]()
-	var mu sync.RWMutex
-	refreshables := make([]Refreshable[T], len(list))
-	copy(refreshables, list)
+	// Subscriber callbacks push latest values into a parallel slice so doUpdate
+	// does not capture any Refreshable interface values. This avoids reference
+	// cycles between derivedRefreshable wrappers and upstream subscriber lists
+	// that would prevent runtime.AddCleanup from firing.
+	var mu sync.Mutex
+	vals := make([]T, len(list))
+	for i, r := range list {
+		vals[i] = r.Current()
+	}
 	stops := make([]UnsubscribeFunc, 0, len(list))
 	doUpdate := func() {
-		mu.RLock()
-		current := make([]T, len(refreshables))
-		for i := range refreshables {
-			current[i] = refreshables[i].Current()
-		}
-		mu.RUnlock()
+		// mu must be held by caller.
+		current := make([]T, len(vals))
+		copy(current, vals)
 		out.Update(current)
 	}
-	for _, r := range refreshables {
-		stops = append(stops, r.Subscribe(func(T) { doUpdate() }))
+	for i, r := range list {
+		idx := i
+		stops = append(stops, r.Subscribe(func(v T) {
+			mu.Lock()
+			defer mu.Unlock()
+			vals[idx] = v
+			doUpdate()
+		}))
 	}
 	add := func(r Refreshable[T]) {
 		mu.Lock()
-		refreshables = append(refreshables, r)
+		vals = append(vals, r.Current())
+		idx := len(vals) - 1
 		mu.Unlock()
-		// Subscribe outside of lock since it immediately invokes the callback
-		stop := r.Subscribe(func(T) { doUpdate() })
+		// Subscribe outside of lock since it immediately invokes the callback.
+		stop := r.Subscribe(func(v T) {
+			mu.Lock()
+			defer mu.Unlock()
+			vals[idx] = v
+			doUpdate()
+		})
 		mu.Lock()
 		stops = append(stops, stop)
 		mu.Unlock()

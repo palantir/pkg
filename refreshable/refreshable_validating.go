@@ -103,9 +103,7 @@ func validatedFromRefreshable[M any](original Refreshable[M]) Validated[M] {
 			lastErr:     nil,
 		})
 	})
-	d := newDerivedValidated(valid, unsub)
-	d.refs = append(d.refs, original)
-	return d
+	return newDerivedValidated(valid, unsub)
 }
 
 // MapFromValidated returns a new Refreshable by applying mapFn to the most recent
@@ -115,9 +113,7 @@ func MapFromValidated[T any, M any](original Validated[T], mapFn func(T) M) (Ref
 	stop := original.SubscribeValidated(func(v Validated[T]) {
 		out.Update(mapFn(v.Unvalidated()))
 	})
-	d := newDerivedRefreshable(out, stop)
-	d.refs = append(d.refs, original)
-	return d, stop
+	return newDerivedRefreshable(out, stop), stop
 }
 
 // MapFromValidatedAuto is like MapFromValidated with automatic GC-based cleanup of the upstream subscription.
@@ -149,9 +145,7 @@ func MapValidated[T any, M any](ctx context.Context, original Validated[T], mapF
 	v := newValidRefreshable[M]()
 	stop := subscribeValidRefreshable(ctx, v, original, mapFn)
 	_, err := v.Validation()
-	d := newDerivedValidated(v, stop)
-	d.refs = append(d.refs, original)
-	return d, stop, err
+	return newDerivedValidated(v, stop), stop, err
 }
 
 // MapValidatedAuto is like MapValidated with automatic GC-based cleanup of the upstream subscription.
@@ -182,21 +176,28 @@ func CollectValidatedAuto[T any](list ...Validated[T]) Validated[[]T] {
 // The unsubscribe function removes subscriptions from all Validated refreshables in the collection.
 func CollectValidatedMutable[T any](list ...Validated[T]) (Validated[[]T], ValidatedAddFunc[T], UnsubscribeFunc) {
 	out := newValidRefreshable[[]T]()
-	var mu sync.RWMutex
-	validateds := make([]Validated[T], len(list))
-	copy(validateds, list)
+	// Subscriber callbacks push latest values into parallel slices so doUpdate
+	// does not capture any Validated interface values. This avoids reference
+	// cycles between derivedValidated wrappers and upstream subscriber lists
+	// that would prevent runtime.AddCleanup from firing.
+	var mu sync.Mutex
+	vals := make([]T, len(list))
+	valErrs := make([]error, len(list))
+	for i, r := range list {
+		vals[i] = r.Unvalidated()
+		_, valErrs[i] = r.Validation()
+	}
 	stops := make([]UnsubscribeFunc, 0, len(list))
 	doUpdate := func() {
-		mu.RLock()
-		current := make([]T, len(validateds))
+		// mu must be held by caller.
+		current := make([]T, len(vals))
+		copy(current, vals)
 		var errs []error
-		for i := range validateds {
-			current[i] = validateds[i].Unvalidated()
-			if _, err := validateds[i].Validation(); err != nil {
+		for _, err := range valErrs {
+			if err != nil {
 				errs = append(errs, err)
 			}
 		}
-		mu.RUnlock()
 		joined := errors.Join(errs...)
 		if joined == nil {
 			out.r.Update(validRefreshableContainer[[]T]{unvalidated: current, validated: current, lastErr: nil})
@@ -204,15 +205,31 @@ func CollectValidatedMutable[T any](list ...Validated[T]) (Validated[[]T], Valid
 			out.r.Update(validRefreshableContainer[[]T]{unvalidated: current, validated: nil, lastErr: joined})
 		}
 	}
-	for _, r := range validateds {
-		stops = append(stops, r.SubscribeValidated(func(Validated[T]) { doUpdate() }))
+	for i, r := range list {
+		idx := i
+		stops = append(stops, r.SubscribeValidated(func(v Validated[T]) {
+			mu.Lock()
+			defer mu.Unlock()
+			vals[idx] = v.Unvalidated()
+			_, valErrs[idx] = v.Validation()
+			doUpdate()
+		}))
 	}
 	add := func(r Validated[T]) {
 		mu.Lock()
-		validateds = append(validateds, r)
+		_, validErr := r.Validation()
+		vals = append(vals, r.Unvalidated())
+		valErrs = append(valErrs, validErr)
+		idx := len(vals) - 1
 		mu.Unlock()
-		// Subscribe outside of lock since it immediately invokes the callback
-		stop := r.SubscribeValidated(func(Validated[T]) { doUpdate() })
+		// Subscribe outside of lock since it immediately invokes the callback.
+		stop := r.SubscribeValidated(func(v Validated[T]) {
+			mu.Lock()
+			defer mu.Unlock()
+			vals[idx] = v.Unvalidated()
+			_, valErrs[idx] = v.Validation()
+			doUpdate()
+		})
 		mu.Lock()
 		stops = append(stops, stop)
 		mu.Unlock()
@@ -230,10 +247,18 @@ func CollectValidatedMutable[T any](list ...Validated[T]) (Validated[[]T], Valid
 // MergeValidated returns a new Validated that combines the latest values of two Validated refreshables using the mergeFn.
 func MergeValidated[T1 any, T2 any, R any](original1 Validated[T1], original2 Validated[T2], mergeFn func(T1, T2) R) (Validated[R], UnsubscribeFunc) {
 	out := newValidRefreshable[R]()
+	// Subscriber callbacks push latest values into shared state so doUpdate
+	// does not capture any Validated interface values. This avoids reference
+	// cycles between derivedValidated wrappers and upstream subscriber lists
+	// that would prevent runtime.AddCleanup from firing.
+	var mu sync.Mutex
+	val1 := original1.Unvalidated()
+	val2 := original2.Unvalidated()
+	_, err1 := original1.Validation()
+	_, err2 := original2.Validation()
 	doUpdate := func() {
-		merged := mergeFn(original1.Unvalidated(), original2.Unvalidated())
-		_, err1 := original1.Validation()
-		_, err2 := original2.Validation()
+		// mu must be held by caller.
+		merged := mergeFn(val1, val2)
 		err := getError(err1, err2)
 		if err == nil {
 			out.r.Update(validRefreshableContainer[R]{unvalidated: merged, validated: merged, lastErr: nil})
@@ -242,8 +267,20 @@ func MergeValidated[T1 any, T2 any, R any](original1 Validated[T1], original2 Va
 			out.r.Update(validRefreshableContainer[R]{unvalidated: merged, validated: zero, lastErr: err})
 		}
 	}
-	stop1 := original1.SubscribeValidated(func(Validated[T1]) { doUpdate() })
-	stop2 := original2.SubscribeValidated(func(Validated[T2]) { doUpdate() })
+	stop1 := original1.SubscribeValidated(func(v Validated[T1]) {
+		mu.Lock()
+		defer mu.Unlock()
+		val1 = v.Unvalidated()
+		_, err1 = v.Validation()
+		doUpdate()
+	})
+	stop2 := original2.SubscribeValidated(func(v Validated[T2]) {
+		mu.Lock()
+		defer mu.Unlock()
+		val2 = v.Unvalidated()
+		_, err2 = v.Validation()
+		doUpdate()
+	})
 	combined := func() {
 		stop1()
 		stop2()
@@ -270,11 +307,7 @@ func MergeValidatedAndRefreshable[T1 any, T2 any, R any](
 	original2, _, _ := Validate(ctx, refreshable1, func(ctx context.Context, i T2) error {
 		return nil
 	})
-	result, unsub := MergeValidated(original1, original2, mergeFn)
-	// Keep original2 alive as long as result is alive so its upstream
-	// subscription chain is not prematurely GC'd.
-	result.(*derivedValidated[R]).refs = append(result.(*derivedValidated[R]).refs, original2)
-	return result, unsub
+	return MergeValidated(original1, original2, mergeFn)
 }
 
 // MergeValidatedAndRefreshableAuto is like MergeValidatedAndRefreshable with automatic GC-based cleanup of the upstream subscriptions.

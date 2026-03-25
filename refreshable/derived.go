@@ -16,12 +16,16 @@ import (
 // Must be a separate allocation from the inner Refreshable: the inner is
 // typically captured by upstream subscription callbacks, so combining them
 // would create a reference cycle that prevents runtime.AddCleanup from firing.
+//
+// Upstream derived wrappers do NOT need to be kept alive by this wrapper.
+// When an upstream wrapper is collected, its cleanupState.gcDone is set but
+// cleanup is deferred until subCount reaches zero. The subscription callbacks
+// reference the upstream inner (not the wrapper), so updates continue to flow.
+// When the downstream eventually unsubscribes, the deferred cleanup fires and
+// correctly propagates the unsubscribe to the grandparent.
 type derivedRefreshable[T any] struct {
 	inner Refreshable[T]
 	state *cleanupState
-	// refs keeps upstream objects alive to prevent premature GC cleanup of
-	// upstream derived wrappers that this consumer depends on.
-	refs []any
 }
 
 func newDerivedRefreshable[T any](inner Refreshable[T], unsubs ...UnsubscribeFunc) *derivedRefreshable[T] {
@@ -55,7 +59,6 @@ func (d *derivedRefreshable[T]) Subscribe(consumer func(T)) UnsubscribeFunc {
 type derivedValidated[T any] struct {
 	inner Validated[T]
 	state *cleanupState
-	refs  []any // see derivedRefreshable.refs
 }
 
 func newDerivedValidated[T any](inner Validated[T], unsubs ...UnsubscribeFunc) *derivedValidated[T] {
@@ -119,6 +122,11 @@ func (s *cleanupState) tryCleanup() {
 			for _, unsub := range s.unsubs {
 				unsub()
 			}
+			// Release references captured by unsub closures so that objects
+			// reachable only through these closures (e.g. transport chains,
+			// upstream inners) become unreachable immediately rather than
+			// waiting for this cleanupState to be garbage collected.
+			s.unsubs = nil
 		})
 	}
 }

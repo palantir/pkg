@@ -103,7 +103,5 @@ func MapValues[K comparable, V, R any](
 		}
 	}
 
-	d := newDerivedValidated(out, combinedUnsub)
-	d.refs = append(d.refs, refreshableMap)
-	return d
+	return newDerivedValidated(out, combinedUnsub)
 }

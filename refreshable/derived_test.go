@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -130,6 +131,67 @@ func TestCollectGCCleanup(t *testing.T) {
 		r1.Update(int(before) + 200)
 		return newSubCalls.Load()-before == 1
 	}, time.Second, 10*time.Millisecond)
+}
+
+// TestMergeGCCleanup_DerivedInputs verifies that Merge cleans up when its
+// inputs are derived refreshables (not plain Updatables). Without push-based
+// value propagation, the doUpdate closure would capture the input derived
+// wrappers, preventing their runtime.AddCleanup from firing.
+func TestMergeGCCleanup_DerivedInputs(t *testing.T) {
+	parent1 := refreshable.New(1)
+	parent2 := refreshable.New(2)
+
+	d1 := refreshable.MapAuto(parent1, func(v int) int { return v * 10 })
+	d2 := refreshable.MapAuto(parent2, func(v int) int { return v * 100 })
+
+	var mergeCalls atomic.Int64
+	merged := refreshable.MergeAuto(d1, d2, func(a, b int) int {
+		mergeCalls.Add(1)
+		return a + b
+	})
+	require.Equal(t, 210, merged.Current())
+
+	d1 = nil     //nolint:ineffassign
+	d2 = nil     //nolint:ineffassign
+	merged = nil //nolint:ineffassign
+
+	forceGCAndCleanup()
+
+	assert.Eventually(t, func() bool {
+		before := mergeCalls.Load()
+		parent1.Update(int(before) + 100)
+		return mergeCalls.Load() == before
+	}, 5*time.Second, 10*time.Millisecond, "merge with derived inputs should clean up after GC")
+}
+
+// TestCollectGCCleanup_DerivedInputs verifies that Collect cleans up when its
+// inputs are derived refreshables. Without push-based value propagation, the
+// doUpdate closure would capture the input derived wrappers via the
+// refreshables slice, preventing their runtime.AddCleanup from firing.
+func TestCollectGCCleanup_DerivedInputs(t *testing.T) {
+	parent1 := refreshable.New(10)
+	parent2 := refreshable.New(20)
+
+	d1 := refreshable.MapAuto(parent1, func(v int) int { return v * 2 })
+	d2 := refreshable.MapAuto(parent2, func(v int) int { return v * 3 })
+
+	var subCalls atomic.Int64
+	parent1.Subscribe(func(int) { subCalls.Add(1) })
+
+	collected := refreshable.CollectAuto(d1, d2)
+	require.Equal(t, []int{20, 60}, collected.Current())
+
+	d1 = nil        //nolint:ineffassign
+	d2 = nil        //nolint:ineffassign
+	collected = nil //nolint:ineffassign
+
+	forceGCAndCleanup()
+
+	assert.Eventually(t, func() bool {
+		before := subCalls.Load()
+		parent1.Update(int(before) + 200)
+		return subCalls.Load()-before == 1
+	}, 5*time.Second, 10*time.Millisecond, "collect with derived inputs should clean up after GC")
 }
 
 func TestValidateGCCleanup(t *testing.T) {
@@ -458,6 +520,138 @@ func TestLongMapChain(t *testing.T) {
 		parent.Update(int(before) + 100)
 		return callCounts[0].Load() == before
 	}, 5*time.Second, 10*time.Millisecond, "long chain should be cleaned up after dropping leaf")
+}
+
+// TestMapWithErrorFanOutMapOnResult tests: MapWithError → fan-out → Map on one result → drop.
+func TestMapWithErrorFanOutMapOnResult(t *testing.T) {
+	ctx := context.Background()
+	parent := refreshable.New(42)
+
+	var mapCalls atomic.Int64
+	validParams, err := refreshable.MapWithErrorAuto(ctx, parent, func(_ context.Context, v int) (int, error) {
+		mapCalls.Add(1)
+		return v * 2, nil
+	})
+	require.NoError(t, err)
+
+	// Fan out
+	r1 := refreshable.MapFromValidatedAuto(validParams, func(v int) int { return v + 1 })
+	r2 := refreshable.MapFromValidatedAuto(validParams, func(v int) int { return v + 2 })
+
+	// Map on one fan-out result (subscribes to r1)
+	derived := refreshable.MapAuto(r1, func(v int) int { return v * 10 })
+	_ = derived.Current()
+
+	_ = r2
+	r1 = nil          //nolint:ineffassign
+	r2 = nil          //nolint:ineffassign
+	validParams = nil //nolint:ineffassign
+	derived = nil     //nolint:ineffassign
+
+	forceGCAndCleanup()
+
+	assert.Eventually(t, func() bool {
+		before := mapCalls.Load()
+		parent.Update(int(before) + 100)
+		return mapCalls.Load() == before
+	}, 5*time.Second, 10*time.Millisecond, "fan-out with Map should clean up after all are dropped")
+}
+
+// TestMapWithErrorFanOutMergeValidatedAndRefreshable tests:
+// MapWithError → fan-out → MergeValidatedAndRefreshable → drop.
+func TestMapWithErrorFanOutMergeValidatedAndRefreshable(t *testing.T) {
+	ctx := context.Background()
+	parent := refreshable.New(42)
+
+	var mapCalls atomic.Int64
+	validParams, err := refreshable.MapWithErrorAuto(ctx, parent, func(_ context.Context, v int) (int, error) {
+		mapCalls.Add(1)
+		return v * 2, nil
+	})
+	require.NoError(t, err)
+
+	// Fan out
+	r1 := refreshable.MapFromValidatedAuto(validParams, func(v int) int { return v + 1 })
+
+	// MergeValidatedAndRefreshable (subscribes to validParams and r1)
+	merged := refreshable.MergeValidatedAndRefreshableAuto(ctx, validParams, r1, func(a, b int) int {
+		return a + b
+	})
+	_ = merged.Unvalidated()
+
+	r1 = nil          //nolint:ineffassign
+	validParams = nil //nolint:ineffassign
+	merged = nil      //nolint:ineffassign
+
+	forceGCAndCleanup()
+
+	assert.Eventually(t, func() bool {
+		before := mapCalls.Load()
+		parent.Update(int(before) + 100)
+		return mapCalls.Load() == before
+	}, 5*time.Second, 10*time.Millisecond, "fan-out with MergeValidatedAndRefreshable should clean up after all are dropped")
+}
+
+// TestMapWithErrorFanOutWithSubscribers mimics the pattern from
+// NewClientFromRefreshableConfig: MapWithError → many MapFromValidated fan-out,
+// plus additional Map/Subscribe calls on some of the fan-out results.
+// This is a more complex cleanup chain than the simple fan-out test.
+func TestMapWithErrorFanOutWithSubscribers(t *testing.T) {
+	ctx := context.Background()
+	parent := refreshable.New(42)
+
+	var mapCalls atomic.Int64
+	validParams, err := refreshable.MapWithErrorAuto(ctx, parent, func(_ context.Context, v int) (int, error) {
+		mapCalls.Add(1)
+		return v * 2, nil
+	})
+	require.NoError(t, err)
+	require.Equal(t, 84, validParams.Unvalidated())
+
+	// Fan out: create multiple MapFromValidated results
+	const fanOutCount = 10
+	fanOut := make([]refreshable.Refreshable[int], fanOutCount)
+	for i := range fanOutCount {
+		idx := i
+		fanOut[i] = refreshable.MapFromValidatedAuto(validParams, func(v int) int {
+			return v + idx
+		})
+	}
+
+	// Subscribe to one of the fan-out results (like Map(b.TransportParams, ...))
+	derived := refreshable.MapAuto(fanOut[2], func(v int) int { return v * 10 })
+	_ = derived.Current()
+
+	// MergeValidatedAndRefreshable on validParams and the derived (like getRefreshableTLSConfig)
+	merged := refreshable.MergeValidatedAndRefreshableAuto(ctx, validParams, derived, func(a, b int) int {
+		return a + b
+	})
+	_ = merged.Unvalidated()
+
+	// Also try subscribing to one of the fan-out results with Map then MergeValidatedAndRefreshable
+	derived2 := refreshable.MapAuto(fanOut[3], func(v int) int { return v * 100 })
+	merged2 := refreshable.MergeValidatedAndRefreshableAuto(ctx, validParams, derived2, func(a, b int) int {
+		return a + b
+	})
+	_ = merged2.Unvalidated()
+
+	// Drop everything
+	for i := range fanOut {
+		fanOut[i] = nil
+	}
+	validParams = nil //nolint:ineffassign
+	derived = nil     //nolint:ineffassign
+	merged = nil      //nolint:ineffassign
+	derived2 = nil    //nolint:ineffassign
+	merged2 = nil     //nolint:ineffassign
+
+	forceGCAndCleanup()
+
+	assert.Eventually(t, func() bool {
+		before := mapCalls.Load()
+		parent.Update(int(before) + 100)
+		return mapCalls.Load() == before
+	}, 5*time.Second, 10*time.Millisecond, "fan-out with subscribers should clean up after all are dropped")
 }
 
 // TestCollectValidatedMapValidatedPipeline mirrors a real-world TLS cert
@@ -914,4 +1108,259 @@ func TestConcurrentCreateDropDerived(t *testing.T) {
 
 	parent.Update(42)
 	require.Equal(t, 42, parent.Current())
+}
+
+// ---------------------------------------------------------------------------
+// Subscriber count helpers for GC cleanup verification via reflection.
+// ---------------------------------------------------------------------------
+
+// updatableSubscriberCount uses reflection to read the length of the internal
+// subscribers slice on a defaultRefreshable. This provides a direct measure of
+// subscription accumulation without triggering subscriber callbacks.
+// The updatable parameter is passed as any to support different generic
+// instantiations of Updatable.
+func updatableSubscriberCount(t *testing.T, updatable any) int {
+	t.Helper()
+	v := reflect.ValueOf(updatable)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	subs := v.FieldByName("subscribers")
+	require.True(t, subs.IsValid(), "could not find subscribers field via reflection")
+	return subs.Len()
+}
+
+// forceGCAndCleanup runs multiple GC cycles with pauses to allow
+// runtime.AddCleanup callbacks to execute. The cleanup chain has multiple
+// levels, each requiring a separate GC cycle followed by async cleanup
+// completion before the next level becomes unreachable.
+func forceGCAndCleanup() {
+	for i := 0; i < 20; i++ {
+		runtime.GC()
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Simple cleanup: MapWithError + MapFromValidated fan-out, drop all, verify
+// config subscriber count returns to zero.
+// ---------------------------------------------------------------------------
+
+// TestMapWithErrorMapFromValidatedFanOutSubscriberCleanup verifies the basic
+// cleanup chain: MapWithError creates an intermediate validatedFromRefreshable
+// that subscribes to the root config, and MapFromValidated creates derived
+// refreshables that subscribe to the validated result. Dropping all derived
+// references should cascade cleanup back to the root.
+func TestMapWithErrorMapFromValidatedFanOutSubscriberCleanup(t *testing.T) {
+	ctx := context.Background()
+	config := refreshable.New(42)
+
+	baselineSubscribers := updatableSubscriberCount(t, config)
+	t.Logf("Baseline subscriber count: %d", baselineSubscribers)
+
+	// MapWithError: config -> validatedFromRefreshable (subscribes to config) -> validParams
+	validParams, err := refreshable.MapWithErrorAuto(ctx, config, func(_ context.Context, v int) (int, error) {
+		return v * 2, nil
+	})
+	require.NoError(t, err)
+	require.Equal(t, 84, validParams.Unvalidated())
+
+	// Fan out: 3 MapFromValidated derived refreshables
+	r1 := refreshable.MapFromValidatedAuto(validParams, func(v int) int { return v + 1 })
+	r2 := refreshable.MapFromValidatedAuto(validParams, func(v int) int { return v + 2 })
+	r3 := refreshable.MapFromValidatedAuto(validParams, func(v int) int { return v + 3 })
+
+	require.Equal(t, 85, r1.Current())
+	require.Equal(t, 86, r2.Current())
+	require.Equal(t, 87, r3.Current())
+
+	afterCreateSubscribers := updatableSubscriberCount(t, config)
+	t.Logf("Subscriber count after creating chain: %d", afterCreateSubscribers)
+	require.Greater(t, afterCreateSubscribers, baselineSubscribers,
+		"creating the chain should add subscribers to config")
+
+	// Drop everything
+	r1 = nil          //nolint:ineffassign
+	r2 = nil          //nolint:ineffassign
+	r3 = nil          //nolint:ineffassign
+	validParams = nil //nolint:ineffassign
+
+	forceGCAndCleanup()
+
+	finalSubscribers := updatableSubscriberCount(t, config)
+	t.Logf("Subscriber count after GC cleanup: %d", finalSubscribers)
+
+	assert.Equal(t, baselineSubscribers, finalSubscribers,
+		"subscriber count should return to baseline after dropping all derived refreshables; "+
+			"got growth of %d", finalSubscribers-baselineSubscribers)
+}
+
+// ---------------------------------------------------------------------------
+// httpclient-like pattern: full NewClientFromRefreshableConfig simulation.
+// ---------------------------------------------------------------------------
+
+// TestHTTPClientLikePatternSubscriberCleanup mimics the refreshable chain
+// created by httpclient.NewClientFromRefreshableConfig:
+//
+//  1. Root Updatable `config` (like the ClientConfig refreshable)
+//  2. MapWithError(config, validateFn) -> validParams (like validated client params)
+//  3. Multiple MapFromValidated(validParams, fn) calls (~10 derived refreshables,
+//     like ServiceName, DialerParams, TransportParams, MetricsConfig, etc.)
+//  4. One derived refreshable used in Map to create a "transport-like" chain
+//     that captures several other derived refreshables (simulating the HTTP
+//     transport that holds ServiceName, DisableMetrics, metricsTags)
+//  5. Another derived refreshable used in Map for a "uri scorer" (simulating
+//     the URI scorer that previously captured the builder)
+//  6. A "client" struct holding some of these refreshables plus the Map results
+//  7. Drop the client, GC, verify config subscriber count returns to 0
+//
+// This is the pattern that caused unbounded memory growth in production when
+// refreshable subscriptions were not cleaned up after the HTTP client was
+// garbage collected.
+func TestHTTPClientLikePatternSubscriberCleanup(t *testing.T) {
+	ctx := context.Background()
+
+	// clientConfig simulates httpclient.ClientConfig
+	type clientConfig struct {
+		ServiceName    string
+		URIs           []string
+		DialTimeout    int
+		DisableMetrics bool
+		MaxRetries     int
+	}
+
+	config := refreshable.New(clientConfig{
+		ServiceName:    "my-service",
+		URIs:           []string{"https://localhost:8080"},
+		DialTimeout:    30,
+		DisableMetrics: false,
+		MaxRetries:     3,
+	})
+
+	baselineSubscribers := updatableSubscriberCount(t, config)
+	t.Logf("Baseline subscriber count: %d", baselineSubscribers)
+
+	// Simulate creating a client from a refreshable config, like
+	// NewClientFromRefreshableConfig does.
+	createClient := func() any {
+		// Step 2: MapWithError validates config and produces validated params.
+		// In the real code this is: validParams, _, _ := MapWithError(ctx, config, validateFn)
+		validParams, err := refreshable.MapWithErrorAuto(ctx, config, func(_ context.Context, c clientConfig) (clientConfig, error) {
+			if c.ServiceName == "" {
+				return clientConfig{}, errors.New("service name required")
+			}
+			return c, nil
+		})
+		require.NoError(t, err)
+
+		// Step 3: Fan out MapFromValidated for various config fields.
+		// In the real code these are things like:
+		//   b.ServiceName = MapFromValidated(validParams, func(p) string { return p.ServiceName })
+		//   b.DialerParams = MapFromValidated(validParams, func(p) DialerParams { ... })
+		//   etc.
+		serviceName := refreshable.MapFromValidatedAuto(validParams, func(c clientConfig) string {
+			return c.ServiceName
+		})
+		uris := refreshable.MapFromValidatedAuto(validParams, func(c clientConfig) []string {
+			return c.URIs
+		})
+		dialTimeout := refreshable.MapFromValidatedAuto(validParams, func(c clientConfig) int {
+			return c.DialTimeout
+		})
+		disableMetrics := refreshable.MapFromValidatedAuto(validParams, func(c clientConfig) bool {
+			return c.DisableMetrics
+		})
+		maxRetries := refreshable.MapFromValidatedAuto(validParams, func(c clientConfig) int {
+			return c.MaxRetries
+		})
+		// Additional derived refreshables to simulate the ~10 that the real code creates
+		metricsTags := refreshable.MapFromValidatedAuto(validParams, func(c clientConfig) string {
+			return fmt.Sprintf("service:%s", c.ServiceName)
+		})
+		dialerConfig := refreshable.MapFromValidatedAuto(validParams, func(c clientConfig) int {
+			return c.DialTimeout * 2
+		})
+		idleTimeout := refreshable.MapFromValidatedAuto(validParams, func(c clientConfig) int {
+			return c.DialTimeout * 3
+		})
+		tlsHandshakeTimeout := refreshable.MapFromValidatedAuto(validParams, func(c clientConfig) int {
+			return c.DialTimeout / 2
+		})
+		expectContinueTimeout := refreshable.MapFromValidatedAuto(validParams, func(c clientConfig) int {
+			return c.DialTimeout / 3
+		})
+
+		// Step 4: "transport-like" chain. In the real httpclient code, the
+		// transport captures several of the above refreshables. Here we simulate
+		// that with a Map that reads from multiple captured refreshables.
+		transportRefreshable := refreshable.MapAuto(dialerConfig, func(dc int) string {
+			// In the real code, the transport builder closure captures
+			// serviceName, disableMetrics, metricsTags, etc.
+			return fmt.Sprintf("transport(dialer=%d, service=%s, metrics=%v, tags=%s)",
+				dc, serviceName.Current(), disableMetrics.Current(), metricsTags.Current())
+		})
+
+		// Step 5: "uri scorer" chain. In the real code, the URI scorer was
+		// previously capturing the builder which held all refreshables.
+		uriScorerRefreshable := refreshable.MapAuto(uris, func(u []string) string {
+			return fmt.Sprintf("scorer(%v, retries=%d)", u, maxRetries.Current())
+		})
+
+		// Step 6: Assemble the "client" struct.
+		type client struct {
+			ServiceName           refreshable.Refreshable[string]
+			URIs                  refreshable.Refreshable[[]string]
+			DialTimeout           refreshable.Refreshable[int]
+			DisableMetrics        refreshable.Refreshable[bool]
+			MaxRetries            refreshable.Refreshable[int]
+			IdleTimeout           refreshable.Refreshable[int]
+			TLSHandshakeTimeout   refreshable.Refreshable[int]
+			ExpectContinueTimeout refreshable.Refreshable[int]
+			Transport             refreshable.Refreshable[string]
+			URIScorer             refreshable.Refreshable[string]
+		}
+		return &client{
+			ServiceName:           serviceName,
+			URIs:                  uris,
+			DialTimeout:           dialTimeout,
+			DisableMetrics:        disableMetrics,
+			MaxRetries:            maxRetries,
+			IdleTimeout:           idleTimeout,
+			TLSHandshakeTimeout:   tlsHandshakeTimeout,
+			ExpectContinueTimeout: expectContinueTimeout,
+			Transport:             transportRefreshable,
+			URIScorer:             uriScorerRefreshable,
+		}
+	}
+
+	// Create and discard a warmup client, similar to the apollo-unbundler test.
+	_ = createClient()
+	forceGCAndCleanup()
+	warmupSubscribers := updatableSubscriberCount(t, config)
+	t.Logf("Subscriber count after warmup + GC: %d", warmupSubscribers)
+
+	// Create and discard multiple clients, simulating repeated calls to
+	// serviceToImportClient without caching.
+	const iterations = 50
+	for i := 0; i < iterations; i++ {
+		_ = createClient()
+	}
+
+	afterCreateSubscribers := updatableSubscriberCount(t, config)
+	t.Logf("Subscriber count after creating %d clients (before GC): %d", iterations, afterCreateSubscribers)
+
+	forceGCAndCleanup()
+
+	finalSubscribers := updatableSubscriberCount(t, config)
+	subscriberGrowth := finalSubscribers - baselineSubscribers
+	t.Logf("Final subscriber count: %d (growth from baseline: %d)", finalSubscribers, subscriberGrowth)
+
+	// After GC cleanup, the subscriber count on the root config should return
+	// to baseline. Each NewClientFromRefreshableConfig-like call adds 1
+	// subscriber to config via validatedFromRefreshable. Without cleanup
+	// propagation, this would grow by 1 per client (i.e. growth == iterations).
+	assert.Less(t, subscriberGrowth, 5,
+		"subscriber count grew by %d after discarding %d clients; "+
+			"the cleanup chain from derived refreshables back to the root config is not working",
+		subscriberGrowth, iterations)
 }
