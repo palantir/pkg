@@ -17,7 +17,7 @@ import (
 func TestValidatingRefreshable(t *testing.T) {
 	type container struct{ Value string }
 	r := refreshable.NewDefaultRefreshable(container{Value: "value"})
-	vr, err := refreshable.NewValidatingRefreshable(r, func(i interface{}) error {
+	vr, err := refreshable.NewValidatingRefreshable(r, func(i any) error {
 		if len(i.(container).Value) == 0 {
 			return errors.New("empty")
 		}
@@ -45,7 +45,7 @@ func TestValidatingRefreshable(t *testing.T) {
 
 func TestMapValidatingRefreshable(t *testing.T) {
 	r := refreshable.NewDefaultRefreshable("https://palantir.com:443")
-	vr, err := refreshable.NewMapValidatingRefreshable(r, func(i interface{}) (interface{}, error) {
+	vr, err := refreshable.NewMapValidatingRefreshable(r, func(i any) (any, error) {
 		return url.Parse(i.(string))
 	})
 	require.NoError(t, err)
@@ -71,7 +71,7 @@ func TestMapValidatingRefreshable(t *testing.T) {
 // if the underlying refreshable updates during the creation process.
 func TestValidatingRefreshable_SubscriptionRaceCondition(t *testing.T) {
 	r := &updateImmediatelyRefreshable{r: refreshable.NewDefaultRefreshable(1), newValue: 2}
-	vr, err := refreshable.NewValidatingRefreshable(r, func(i interface{}) error { return nil })
+	vr, err := refreshable.NewValidatingRefreshable(r, func(i any) error { return nil })
 	require.NoError(t, err)
 	// If this returns 1, it is likely because the VR contains a stale value
 	assert.Equal(t, 2, vr.Current())
@@ -80,19 +80,19 @@ func TestValidatingRefreshable_SubscriptionRaceCondition(t *testing.T) {
 // updateImmediatelyRefreshable is a mock implementation which updates to newValue immediately when Current() is called
 type updateImmediatelyRefreshable struct {
 	r        *refreshable.DefaultRefreshable
-	newValue interface{}
+	newValue any
 }
 
-func (r *updateImmediatelyRefreshable) Current() interface{} {
+func (r *updateImmediatelyRefreshable) Current() any {
 	c := r.r.Current()
 	_ = r.r.Update(r.newValue)
 	return c
 }
 
-func (r *updateImmediatelyRefreshable) Subscribe(f func(interface{})) func() {
+func (r *updateImmediatelyRefreshable) Subscribe(f func(any)) func() {
 	return r.r.Subscribe(f)
 }
 
-func (r *updateImmediatelyRefreshable) Map(f func(interface{}) interface{}) refreshable.Refreshable {
+func (r *updateImmediatelyRefreshable) Map(f func(any) any) refreshable.Refreshable {
 	return r.r.Map(f)
 }

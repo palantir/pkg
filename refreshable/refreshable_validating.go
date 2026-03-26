@@ -26,8 +26,8 @@ func (v *ValidatingRefreshable) LastValidateErr() error {
 // NewValidatingRefreshable returns a new Refreshable whose current value is the latest value that passes the provided
 // validatingFn successfully. This returns an error if the current value of the passed in Refreshable does not pass the
 // validatingFn or if the validatingFn or Refreshable are nil.
-func NewValidatingRefreshable(origRefreshable Refreshable, validatingFn func(interface{}) error) (*ValidatingRefreshable, error) {
-	mappingFn := func(i interface{}) (interface{}, error) {
+func NewValidatingRefreshable(origRefreshable Refreshable, validatingFn func(any) error) (*ValidatingRefreshable, error) {
+	mappingFn := func(i any) (any, error) {
 		if err := validatingFn(i); err != nil {
 			return nil, err
 		}
@@ -39,11 +39,11 @@ func NewValidatingRefreshable(origRefreshable Refreshable, validatingFn func(int
 // NewMapValidatingRefreshable is similar to NewValidatingRefreshable but allows for the function to return a mapping/mutation
 // of the input object in addition to returning an error. The returned ValidatingRefreshable will contain the mapped value.
 // The mapped value must always be of the same type (but not necessarily that of the input type).
-func NewMapValidatingRefreshable(origRefreshable Refreshable, mappingFn func(interface{}) (interface{}, error)) (*ValidatingRefreshable, error) {
+func NewMapValidatingRefreshable(origRefreshable Refreshable, mappingFn func(any) (any, error)) (*ValidatingRefreshable, error) {
 	return newValidatingRefreshable(origRefreshable, mappingFn, true)
 }
 
-func newValidatingRefreshable(origRefreshable Refreshable, validatingFn func(interface{}) (interface{}, error), storeMappedVal bool) (*ValidatingRefreshable, error) {
+func newValidatingRefreshable(origRefreshable Refreshable, validatingFn func(any) (any, error), storeMappedVal bool) (*ValidatingRefreshable, error) {
 	if validatingFn == nil {
 		return nil, errors.New("failed to create validating Refreshable because the validating function was nil")
 	}
@@ -71,7 +71,7 @@ func newValidatingRefreshable(origRefreshable Refreshable, validatingFn func(int
 		lastValidateErr: &lastValidateErr,
 	}
 
-	updateValueFn := func(i interface{}) {
+	updateValueFn := func(i any) {
 		mappedVal, err := validatingFn(i)
 		if err != nil {
 			v.lastValidateErr.Store(errorWrapper{err})

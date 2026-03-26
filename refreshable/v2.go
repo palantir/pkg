@@ -12,7 +12,7 @@ import (
 // If v1's value is not of type T, the function panics.
 func ToV2[T any](v1 Refreshable) refreshablev2.Refreshable[T] {
 	v2 := refreshablev2.New[T](v1.Current().(T))
-	v1.Subscribe(func(i interface{}) {
+	v1.Subscribe(func(i any) {
 		v2.Update(i.(T))
 	})
 	// If v1 is updated before the subscription above is registered,
