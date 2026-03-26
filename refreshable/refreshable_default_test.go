@@ -28,10 +28,10 @@ func TestDefaultRefreshable(t *testing.T) {
 
 	t.Run("Subscribe", func(t *testing.T) {
 		var v1, v2 container
-		unsub1 := r.Subscribe(func(i interface{}) {
+		unsub1 := r.Subscribe(func(i any) {
 			v1 = *(i.(*container))
 		})
-		_ = r.Subscribe(func(i interface{}) {
+		_ = r.Subscribe(func(i any) {
 			v2 = *(i.(*container))
 		})
 		assert.Equal(t, v1.Value, "")
@@ -51,7 +51,7 @@ func TestDefaultRefreshable(t *testing.T) {
 	t.Run("Map", func(t *testing.T) {
 		err := r.Update(&container{Value: "value"})
 		require.NoError(t, err)
-		m := r.Map(func(i interface{}) interface{} {
+		m := r.Map(func(i any) any {
 			return len(i.(*container).Value)
 		})
 		assert.Equal(t, m.Current(), 5)

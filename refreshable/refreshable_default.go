@@ -16,10 +16,10 @@ type DefaultRefreshable struct {
 	current *atomic.Value
 
 	sync.Mutex  // protects subscribers
-	subscribers []*func(interface{})
+	subscribers []*func(any)
 }
 
-func NewDefaultRefreshable(val interface{}) *DefaultRefreshable {
+func NewDefaultRefreshable(val any) *DefaultRefreshable {
 	current := atomic.Value{}
 	current.Store(val)
 
@@ -29,7 +29,7 @@ func NewDefaultRefreshable(val interface{}) *DefaultRefreshable {
 	}
 }
 
-func (d *DefaultRefreshable) Update(val interface{}) error {
+func (d *DefaultRefreshable) Update(val any) error {
 	d.Lock()
 	defer d.Unlock()
 
@@ -48,11 +48,11 @@ func (d *DefaultRefreshable) Update(val interface{}) error {
 	return nil
 }
 
-func (d *DefaultRefreshable) Current() interface{} {
+func (d *DefaultRefreshable) Current() any {
 	return d.current.Load()
 }
 
-func (d *DefaultRefreshable) Subscribe(consumer func(interface{})) (unsubscribe func()) {
+func (d *DefaultRefreshable) Subscribe(consumer func(any)) (unsubscribe func()) {
 	d.Lock()
 	defer d.Unlock()
 
@@ -63,7 +63,7 @@ func (d *DefaultRefreshable) Subscribe(consumer func(interface{})) (unsubscribe 
 	}
 }
 
-func (d *DefaultRefreshable) unsubscribe(consumerFnPtr *func(interface{})) {
+func (d *DefaultRefreshable) unsubscribe(consumerFnPtr *func(any)) {
 	d.Lock()
 	defer d.Unlock()
 
@@ -79,9 +79,9 @@ func (d *DefaultRefreshable) unsubscribe(consumerFnPtr *func(interface{})) {
 	}
 }
 
-func (d *DefaultRefreshable) Map(mapFn func(interface{}) interface{}) Refreshable {
+func (d *DefaultRefreshable) Map(mapFn func(any) any) Refreshable {
 	newRefreshable := NewDefaultRefreshable(mapFn(d.Current()))
-	d.Subscribe(func(updatedVal interface{}) {
+	d.Subscribe(func(updatedVal any) {
 		_ = newRefreshable.Update(mapFn(updatedVal))
 	})
 	return newRefreshable

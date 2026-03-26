@@ -6,12 +6,12 @@ package refreshable
 
 type Refreshable interface {
 	// Current returns the most recent value of this Refreshable.
-	Current() interface{}
+	Current() any
 
 	// Subscribe subscribes to changes of this Refreshable. The provided function is called with the value of Current()
 	// whenever the value changes.
-	Subscribe(consumer func(interface{})) (unsubscribe func())
+	Subscribe(consumer func(any)) (unsubscribe func())
 
 	// Map returns a new Refreshable based on the current one that handles updates based on the current Refreshable.
-	Map(func(interface{}) interface{}) Refreshable
+	Map(func(any) any) Refreshable
 }
