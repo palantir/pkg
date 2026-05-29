@@ -166,27 +166,21 @@ $`),
 
 func TestPrintInfoLevelErrorAndParamsWithDebugTransformer(t *testing.T) {
 	t.Run("nil error produces no output", func(t *testing.T) {
-		var cmd cobra.Command
 		var out bytes.Buffer
-		cmd.SetErr(&out)
-		cobracli.PrintInfoLevelErrorAndParamsWithDebugTransformer(nil, nil)(&cmd, nil)
+		cobracli.PrintInfoLevelErrorAndParamsWithDebugTransformer(&out, nil, nil)(&cobra.Command{}, nil)
 		require.Equal(t, "", out.String())
 	})
 
 	t.Run("error without params prints only error message", func(t *testing.T) {
-		var cmd cobra.Command
 		var out bytes.Buffer
-		cmd.SetErr(&out)
-		cobracli.PrintInfoLevelErrorAndParamsWithDebugTransformer(nil, nil)(&cmd, errors.New("🥳"))
+		cobracli.PrintInfoLevelErrorAndParamsWithDebugTransformer(&out, nil, nil)(&cobra.Command{}, errors.New("🥳"))
 		require.Equal(t, "Error: 🥳\n", out.String())
 	})
 
 	t.Run("error with params prints error and params", func(t *testing.T) {
-		var cmd cobra.Command
 		var out bytes.Buffer
-		cmd.SetErr(&out)
 		type jsonInvalidMapKey struct{}
-		cobracli.PrintInfoLevelErrorAndParamsWithDebugTransformer(nil, nil)(&cmd, werror.ErrorWithContextParams(
+		cobracli.PrintInfoLevelErrorAndParamsWithDebugTransformer(&out, nil, nil)(&cobra.Command{}, werror.ErrorWithContextParams(
 			context.Background(),
 			"🥳",
 			werror.SafeParam("foo", "bar"),
@@ -202,12 +196,10 @@ Error params:
 	})
 
 	t.Run("debug mode uses debug transformer", func(t *testing.T) {
-		var cmd cobra.Command
 		var out bytes.Buffer
-		cmd.SetErr(&out)
-		cobracli.PrintInfoLevelErrorAndParamsWithDebugTransformer(ptr(true), func(err error) string {
+		cobracli.PrintInfoLevelErrorAndParamsWithDebugTransformer(&out, ptr(true), func(err error) string {
 			return "✅"
-		})(&cmd, werror.ErrorWithContextParams(
+		})(&cobra.Command{}, werror.ErrorWithContextParams(
 			context.Background(),
 			"🥳",
 			werror.SafeParam("foo", "bar"),

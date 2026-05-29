@@ -8,8 +8,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"maps"
 	"os"
+	"slices"
 	"sort"
 	"strings"
 
@@ -211,42 +214,47 @@ func FlagErrorsUsageErrorConfigurer(command *cobra.Command) {
 	})
 }
 
-// PrintInfoLevelErrorAndParamsWithDebugTransformer provides a cobra error handler that will print the error message and params as standard.
-// If the debugVar resolves to be present and true, instead the debugErrTransform function will be called to present the error.
-// Commonly, the debugErrTransform will be used with the errorstringer.StackWithInterleavedMessages function to print a stacktrace.
-func PrintInfoLevelErrorAndParamsWithDebugTransformer(debugVar *bool, debugErrTransform func(error) string) func(command *cobra.Command, err error) {
-	return func(command *cobra.Command, err error) {
+// PrintInfoLevelErrorAndParamsWithDebugTransformer provides a cobra error handler that prints the error message and
+// any werror-attached safe/unsafe params, one per line. Param values are formatted using their JSON-marshalled
+// representation; if a value cannot be marshalled, the marshalling error message is printed in its place.
+//
+// If the debugVar pointer is non-nil and resolves to true, the debugErrTransform function is called to render the
+// error instead, and params are not printed separately. Commonly, debugErrTransform is paired with
+// errorstringer.StackWithInterleavedMessages to print a stacktrace.
+//
+// Output is written to errWriter. If errWriter is nil, os.Stderr is used. Note that this handler does not write to
+// the cobra command's configured error stream (command.ErrOrStderr()): callers that want to redirect output through
+// the command must pass command.ErrOrStderr() (or an equivalent writer) explicitly. Output is buffered and flushed
+// in a single write so partial output is not emitted on a write failure.
+func PrintInfoLevelErrorAndParamsWithDebugTransformer(errWriter io.Writer, debugVar *bool, debugErrTransform func(error) string) func(command *cobra.Command, err error) {
+	if errWriter == nil {
+		errWriter = os.Stderr
+	}
+	return func(_ *cobra.Command, err error) {
 		if err == nil || err.Error() == "" {
 			return
 		}
 
 		var buf bytes.Buffer
-		// always print contents of buffer no matter what return path from function
+		// always flush buffer no matter what return path from function
 		defer func() {
-			if _, err := buf.WriteTo(command.ErrOrStderr()); err != nil {
-				_, _ = fmt.Fprintln(os.Stdout, "Error copying error buffer to file:", err.Error())
-				_, _ = fmt.Fprintln(os.Stdout, "Buffer:", buf.String())
-			}
+			_, _ = buf.WriteTo(errWriter)
 		}()
 
 		if debugVar != nil && *debugVar && debugErrTransform != nil {
-			// err always nil for bytes.Buffer.WriteString
+			// writes to bytes.Buffer always return nil error
 			_, _ = fmt.Fprintln(&buf, "Error:", debugErrTransform(err))
 			return
 		}
-		// err always nil for bytes.Buffer.WriteString
+		// writes to bytes.Buffer always return nil error
 		_, _ = fmt.Fprintln(&buf, "Error:", err.Error())
 		safe, unsafe := werror.ParamsFromError(err)
 		if len(safe) == 0 && len(unsafe) == 0 {
 			return
 		}
 		var keys []string
-		for key := range safe {
-			keys = append(keys, key)
-		}
-		for key := range unsafe {
-			keys = append(keys, key)
-		}
+		keys = slices.AppendSeq(keys, maps.Keys(safe))
+		keys = slices.AppendSeq(keys, maps.Keys(unsafe))
 		sort.Strings(keys)
 		// writes to bytes.Buffer always return nil error
 		_, _ = fmt.Fprintln(&buf, "Error params:")
@@ -263,7 +271,7 @@ func PrintInfoLevelErrorAndParamsWithDebugTransformer(debugVar *bool, debugErrTr
 	}
 }
 
-func formattedParamLine(key string, val interface{}) string {
+func formattedParamLine(key string, val any) string {
 	marshalled, err := json.Marshal(val)
 	formattedVal := string(marshalled)
 	if err != nil {
