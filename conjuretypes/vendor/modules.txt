@@ -1,0 +1,44 @@
+# github.com/davecgh/go-spew v1.1.1
+## explicit
+github.com/davecgh/go-spew/spew
+# github.com/go-json-experiment/json v0.0.0-20260601182631-00ed12fed2a6
+## explicit; go 1.26
+github.com/go-json-experiment/json
+github.com/go-json-experiment/json/internal
+github.com/go-json-experiment/json/internal/jsonflags
+github.com/go-json-experiment/json/internal/jsonopts
+github.com/go-json-experiment/json/internal/jsonwire
+github.com/go-json-experiment/json/jsontext
+# github.com/palantir/pkg v1.1.0
+## explicit; go 1.19
+github.com/palantir/pkg
+# github.com/palantir/pkg/bearertoken v1.2.0
+## explicit; go 1.25.0
+github.com/palantir/pkg/bearertoken
+# github.com/palantir/pkg/binary v1.2.0
+## explicit; go 1.25.0
+github.com/palantir/pkg/binary
+# github.com/palantir/pkg/datetime v1.3.0
+## explicit; go 1.25.0
+github.com/palantir/pkg/datetime
+# github.com/palantir/pkg/rid v1.2.0
+## explicit; go 1.25.0
+github.com/palantir/pkg/rid
+# github.com/palantir/pkg/safelong v1.3.0
+## explicit; go 1.25.0
+github.com/palantir/pkg/safelong
+# github.com/palantir/pkg/uuid v1.3.0
+## explicit; go 1.25.0
+github.com/palantir/pkg/uuid
+github.com/palantir/pkg/uuid/internal/uuid
+# github.com/pmezard/go-difflib v1.0.0
+## explicit
+github.com/pmezard/go-difflib/difflib
+# github.com/stretchr/testify v1.11.1
+## explicit; go 1.17
+github.com/stretchr/testify/assert
+github.com/stretchr/testify/assert/yaml
+github.com/stretchr/testify/require
+# gopkg.in/yaml.v3 v3.0.1
+## explicit
+gopkg.in/yaml.v3

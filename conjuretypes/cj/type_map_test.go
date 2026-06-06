@@ -1,0 +1,140 @@
+// Copyright (c) 2025 Palantir Technologies. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+package cj_test
+
+import (
+	"cmp"
+	"maps"
+	"math"
+	"math/rand/v2"
+	"slices"
+	"testing"
+	"time"
+
+	"github.com/palantir/pkg/conjuretypes/cj"
+	"github.com/palantir/pkg/datetime"
+)
+
+func TestMap(t *testing.T) {
+	tests := []struct {
+		Name string
+		Test typeTest
+	}{
+		{
+			Name: "empty",
+			Test: typeTestCase[map[string]int]{Codec: cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]()), Value: map[string]int{}, JSON: "{}"},
+		},
+		{
+			Name: "one",
+			Test: typeTestCase[map[string]int]{Codec: cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]()), Value: map[string]int{"foo": 1}, JSON: "{\"foo\":1}"},
+		},
+		{
+			Name: "ordered",
+			Test: typeTestCase[map[string]string]{Codec: cj.OrderedMap[map[string]string](cj.String[string](), cj.String[string]()), Value: map[string]string{"j": "10", "i": "9", "h": "8", "g": "7", "f": "6", "e": "5", "d": "4", "c": "3", "b": "2", "a": "1"}, JSON: "{\"a\":\"1\",\"b\":\"2\",\"c\":\"3\",\"d\":\"4\",\"e\":\"5\",\"f\":\"6\",\"g\":\"7\",\"h\":\"8\",\"i\":\"9\",\"j\":\"10\"}"},
+		},
+		{
+			Name: "ordered_int_keys",
+			Test: typeTestCase[map[int]int]{Codec: cj.OrderedMap[map[int]int](cj.Int32MapKey[int](), cj.Int32[int]()), Value: map[int]int{100: 100, 10: 10, 9: 9, 1: 1, 0: 0, -1: -1}, JSON: "{\"-1\":-1,\"0\":0,\"1\":1,\"9\":9,\"10\":10,\"100\":100}"},
+		},
+		{
+			Name: "ordered_float_keys",
+			Test: typeTestCase[map[float64]float64]{Codec: cj.OrderedMap[map[float64]float64](cj.FloatMapKey[float64](), cj.Float[float64]()), Value: map[float64]float64{100: 100, 10: 10, 9: 9, 1: 1, 0: 0, -1: -1, -0.10: -0.10, -0.9: -0.9, math.Inf(1): math.Inf(1), math.Inf(-1): math.Inf(-1)},
+				JSON: "{\"-Infinity\":\"-Infinity\",\"-1\":-1,\"-0.9\":-0.9,\"-0.1\":-0.1,\"0\":0,\"1\":1,\"9\":9,\"10\":10,\"100\":100,\"Infinity\":\"Infinity\"}",
+			},
+		},
+		{
+			Name: "nested",
+			Test: typeTestCase[map[string][]int]{Codec: cj.OrderedMap[map[string][]int](cj.String[string](), cj.List[[]int](cj.Int32[int]())), Value: map[string][]int{"nums": {1, 2, 3}}, JSON: "{\"nums\":[1,2,3]}"},
+		},
+		{
+			Name: "boolean map key",
+			Test: typeTestCase[map[bool]int]{Codec: cj.ComparableMap[map[bool]int](cj.BooleanMapKey[bool](), cj.Int32[int]()), Value: map[bool]int{true: 2, false: 2}, JSON: "{\"false\":2,\"true\":2}"},
+		},
+		{
+			Name: "datetime map key",
+			Test: typeTestCase[map[datetime.DateTime]string]{Codec: cj.ComparableMap[map[datetime.DateTime]string](cj.DateTime[datetime.DateTime](), cj.String[string]()), Value: map[datetime.DateTime]string{datetime.DateTime(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)): "2024-01-01T00:00:00Z", datetime.DateTime(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)): "2025-01-01T00:00:00Z"}, JSON: "{\"2024-01-01T00:00:00Z\":\"2024-01-01T00:00:00Z\",\"2025-01-01T00:00:00Z\":\"2025-01-01T00:00:00Z\"}"},
+		},
+		{
+			Name: "null_marshal",
+			Test: typeTestCase[map[string]int]{Codec: cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]()), JSON: "{}", SkipTestUnmarshal: true, Value: map[string]int(nil)},
+		},
+		{
+			Name: "null_unmarshal",
+			Test: typeTestCase[map[string]int]{Codec: cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]()), JSON: "null", SkipTestMarshal: true, Value: map[string]int{}},
+		},
+		{
+			Name: "not an object",
+			Test: typeTestCase[map[string]int]{Codec: cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]()), JSON: "[]", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "KindMismatchError at offset 1: want object opening brace, got ["},
+		},
+		{
+			Name: "duplicate key",
+			Test: typeTestCase[map[string]int]{Codec: cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]()), JSON: "{\"a\":1,\"a\":2}", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "SyntaxError at offset 6: jsontext: duplicate object member name \"a\""},
+		},
+		{
+			Name: "duplicate int key",
+			Test: typeTestCase[map[int]int]{Codec: cj.OrderedMap[map[int]int](cj.Int32MapKey[int](), cj.Int32[int]()), JSON: "{\"01\":1,\"1\":2}", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "type map[int]int has duplicate map keys: duplicate map key"},
+		},
+		{
+			Name: "key not string",
+			Test: typeTestCase[map[string]int]{Codec: cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]()), JSON: "{ 1:2 }", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "SyntaxError at offset 1: jsontext: object member name must be a string after offset 2"},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			t.Run("Marshal", func(t *testing.T) {
+				tc.Test.TestMarshal(t)
+			})
+			t.Run("Unmarshal", func(t *testing.T) {
+				tc.Test.TestUnmarshal(t)
+			})
+		})
+	}
+}
+
+// BenchmarkSort demonstrates that it's worthwhile to separate ComparableMap and OrderedMap.
+// Types that satisfy cmp.Ordered are faster using slices.Sorted than forcing everything onto slices.SortedFunc.
+func BenchmarkSort(b *testing.B) {
+	const size = 1000
+	data := make(map[int64]struct{}, size)
+	for range size {
+		data[rand.Int64()] = struct{}{}
+	}
+	b.Run("ordered loop", func(b *testing.B) {
+		b.ReportAllocs()
+		for b.Loop() {
+			sorted := make([]int64, 0, 1000)
+			for k := range data {
+				sorted = append(sorted, k)
+			}
+			slices.Sort(sorted)
+			_ = sorted
+		}
+	})
+	b.Run("compare loop", func(b *testing.B) {
+		b.ReportAllocs()
+		for b.Loop() {
+			sorted := make([]int64, 0, 1000)
+			for k := range data {
+				sorted = append(sorted, k)
+			}
+			slices.SortFunc(sorted, cmp.Compare)
+			_ = sorted
+		}
+	})
+	b.Run("ordered stream", func(b *testing.B) {
+		b.ReportAllocs()
+		for b.Loop() {
+			sorted := slices.Sorted(maps.Keys(data))
+			_ = sorted
+		}
+	})
+	b.Run("compare stream", func(b *testing.B) {
+		b.ReportAllocs()
+		for b.Loop() {
+			sorted := slices.SortedFunc(maps.Keys(data), cmp.Compare)
+			_ = sorted
+		}
+	})
+}
