@@ -23,8 +23,15 @@ func (anyCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
 }
 
 func (anyCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error {
-	if kind := dec.PeekKind(); kind == jsontext.KindNull {
-		return NewKindMismatchError(dec, kind, "non-optional value")
+	if dec.PeekKind() == jsontext.KindNull {
+		// Consume a single token so the decoder advances past the null,
+		// matching json/v2's default kind-mismatch behavior and the
+		// read-then-validate scalar codecs.
+		tok, err := dec.ReadToken()
+		if err != nil {
+			return WrapSyntaxError(dec, "", err)
+		}
+		return newKindMismatchTokenError(dec, tok, "non-optional value")
 	}
 	return json.UnmarshalDecode(dec, receiver, DefaultOptions)
 }

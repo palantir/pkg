@@ -57,7 +57,7 @@ func (safeLongMapKeyCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver 
 	}
 	i, err := safelong.ParseSafeLong(tok.String())
 	if err != nil {
-		return newInvalidTokenValueError(dec, tok, "", err)
+		return newInvalidTokenValueError(dec, tok, "invalid safelong", err)
 	}
 	*receiver = T(i)
 	return nil

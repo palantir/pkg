@@ -82,7 +82,7 @@ func TestSafeLongMaps(t *testing.T) {
 		{
 			Name: "map_key_rejects_out_of_range",
 			Test: typeTestCase[map[SL]int]{Codec: cj.OrderedMap[map[SL]int](cj.SafeLongMapKey[SL](), cj.Int32[int]()), JSON: `{"9007199254740992":1}`, SkipTestMarshal: true,
-				ErrUnmarshalJSONFrom: "InvalidValueError at offset 19: 9007199254740992 is not a valid value for a SafeLong as it is not safely representable in Javascript: must be between -9007199254740991 and 9007199254740991",
+				ErrUnmarshalJSONFrom: "InvalidValueError at offset 19: invalid safelong: 9007199254740992 is not a valid value for a SafeLong as it is not safely representable in Javascript: must be between -9007199254740991 and 9007199254740991",
 			},
 		},
 	}

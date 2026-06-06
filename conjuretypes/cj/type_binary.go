@@ -29,8 +29,15 @@ func (binaryCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
 }
 
 func (binaryCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error {
-	if kind := dec.PeekKind(); kind != jsontext.KindString {
-		return NewKindMismatchError(dec, kind, "json string")
+	if dec.PeekKind() != jsontext.KindString {
+		// Consume a single token so the decoder advances past the offending
+		// scalar, matching json/v2's default kind-mismatch behavior and the
+		// read-then-validate scalar codecs.
+		tok, err := dec.ReadToken()
+		if err != nil {
+			return WrapSyntaxError(dec, "", err)
+		}
+		return newKindMismatchTokenError(dec, tok, "json string")
 	}
 	val, err := dec.ReadValue()
 	if err != nil {

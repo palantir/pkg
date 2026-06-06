@@ -47,8 +47,13 @@ func (textCodec[T, U]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver U) erro
 func (textCodec[T, U]) Compare(a, b T) int {
 	aText, errA := a.MarshalText()
 	bText, errB := b.MarshalText()
-	if errA != nil || errB != nil {
+	switch {
+	case errA != nil && errB != nil:
 		return 0
+	case errA != nil:
+		return 1 // erroring values sort after marshalable ones
+	case errB != nil:
+		return -1
 	}
 	return bytes.Compare(aText, bText)
 }

@@ -67,12 +67,14 @@ func TestTextCompare(t *testing.T) {
 func TestTextCompareWithError(t *testing.T) {
 	encoder := cj.Text[textWithError]()
 
-	a := textWithError{value: "test", shouldError: true}
-	b := textWithError{value: "other", shouldError: false}
+	ok := textWithError{value: "other", shouldError: false}
+	bad := textWithError{value: "test", shouldError: true}
+	bad2 := textWithError{value: "test2", shouldError: true}
 
-	// When one marshaling fails, Compare returns 0
-	result := encoder.Compare(a, b)
-	assert.Equal(t, 0, result)
+	// Erroring values sort after marshalable ones; two erroring values are unordered (0).
+	assert.Equal(t, 1, encoder.Compare(bad, ok))
+	assert.Equal(t, -1, encoder.Compare(ok, bad))
+	assert.Equal(t, 0, encoder.Compare(bad, bad2))
 }
 
 type textWithError struct {
