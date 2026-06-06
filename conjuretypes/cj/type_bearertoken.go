@@ -5,7 +5,6 @@
 package cj
 
 import (
-	"sync"
 	"unicode/utf8"
 
 	"github.com/go-json-experiment/json/jsontext"
@@ -32,9 +31,8 @@ func (bearerTokenCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T)
 	// Per RFC 6750 section 2.1, a bearer token is one or more base64 characters
 	// followed by optional '=' padding: 1*( b64char ) *"=". The '=' padding is
 	// only valid as a trailing suffix, not interspersed within the token.
-	chars := validBearerTokenChars()
 	i := 0
-	for i < len(str) && str[i] < utf8.RuneSelf && chars[str[i]] {
+	for i < len(str) && str[i] < utf8.RuneSelf && validBearerTokenChars[str[i]] {
 		i++
 	}
 	if i == 0 {
@@ -54,7 +52,9 @@ func (bearerTokenCodec[T]) Equal(a, b T) bool {
 	return a == b
 }
 
-var validBearerTokenChars = sync.OnceValue(func() [utf8.RuneSelf]bool {
+// validBearerTokenChars marks the ASCII bytes permitted in a bearer token: the
+// base64 alphabet plus the RFC 6750 extras. It is indexed directly by byte value.
+var validBearerTokenChars = func() [utf8.RuneSelf]bool {
 	var chars [utf8.RuneSelf]bool
 	for i := '0'; i <= '9'; i++ {
 		chars[i] = true
@@ -72,4 +72,4 @@ var validBearerTokenChars = sync.OnceValue(func() [utf8.RuneSelf]bool {
 	chars['_'] = true
 	chars['~'] = true
 	return chars
-})
+}()

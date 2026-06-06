@@ -5,7 +5,9 @@
 package cj
 
 import (
+	"cmp"
 	"math"
+	"slices"
 	"strconv"
 
 	"github.com/go-json-experiment/json/jsontext"
@@ -67,28 +69,15 @@ func (floatMapKeyCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) erro
 	case math.IsInf(float64(receiver), -1):
 		return enc.WriteToken(jsontext.String("-Infinity"))
 	default:
-		return enc.WriteToken(jsontext.String(string(appendShortestFloat(nil, float64(receiver)))))
+		// Append the quoted shortest representation directly into the encoder's
+		// buffer to avoid an intermediate []byte and string allocation. A float64
+		// in shortest form is at most 24 bytes, plus the two surrounding quotes.
+		dst := slices.Grow(enc.AvailableBuffer(), 32)
+		dst = append(dst, '"')
+		dst = jsontext.AppendFloat(dst, float64(receiver), 64)
+		dst = append(dst, '"')
+		return enc.WriteValue(dst)
 	}
-}
-
-// appendShortestFloat formats f using the same shortest round-trip representation
-// as jsontext.Float (ECMA-262, 10th edition, section 7.1.12.1 and RFC 8785,
-// section 3.2.2.3), so a float serializes identically whether used as a value or
-// a map key. It mirrors the unexported jsonwire.AppendFloat for 64-bit floats.
-func appendShortestFloat(dst []byte, f float64) []byte {
-	format := byte('f')
-	if abs := math.Abs(f); abs != 0 && (abs < 1e-6 || abs >= 1e21) {
-		format = 'e'
-	}
-	dst = strconv.AppendFloat(dst, f, format, -1, 64)
-	if format == 'e' {
-		// Clean up "e-09" to "e-9" to match jsontext formatting.
-		if n := len(dst); n >= 4 && dst[n-4] == 'e' && dst[n-3] == '-' && dst[n-2] == '0' {
-			dst[n-2] = dst[n-1]
-			dst = dst[:n-1]
-		}
-	}
-	return dst
 }
 
 func (floatMapKeyCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error {
@@ -117,24 +106,7 @@ func (floatMapKeyCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T)
 }
 
 func (floatMapKeyCodec[T]) Compare(a, b T) int {
-	// Handle special cases first
-	if math.IsNaN(float64(a)) || math.IsNaN(float64(b)) {
-		// NaN comparison is undefined, but for sorting we need consistent behavior
-		if math.IsNaN(float64(a)) && math.IsNaN(float64(b)) {
-			return 0
-		}
-		if math.IsNaN(float64(a)) {
-			return -1 // or 1, but be consistent
-		}
-		return 1
-	}
-	if float64(a) < float64(b) {
-		return -1
-	}
-	if float64(a) > float64(b) {
-		return 1
-	}
-	return 0
+	return cmp.Compare(a, b)
 }
 
 func (floatMapKeyCodec[T]) Equal(a, b T) bool {

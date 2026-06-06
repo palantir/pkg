@@ -5,6 +5,8 @@
 package cj
 
 import (
+	"slices"
+
 	"github.com/go-json-experiment/json"
 	"github.com/go-json-experiment/json/jsontext"
 )
@@ -58,13 +60,5 @@ func (listCodec[T, U, ITEM]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *
 }
 
 func (listCodec[T, U, ITEM]) Equal(a, b T) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if !(*new(ITEM)).Equal(a[i], b[i]) {
-			return false
-		}
-	}
-	return true
+	return slices.EqualFunc(a, b, (*new(ITEM)).Equal)
 }

@@ -22,43 +22,9 @@ import (
 type orderedMapCodec[T ~map[K]V, K cmp.Ordered, V any, KEY Codec[K], VAL Codec[V]] struct{}
 
 func (orderedMapCodec[T, K, V, KEY, VAL]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
-	if receiver == nil && getOptionOrFalse(enc.Options(), json.FormatNilMapAsNull) {
-		if err := enc.WriteToken(jsontext.Null); err != nil {
-			return WrapEncodeError(enc, "", err)
-		}
-		return nil
-	}
-	if err := enc.WriteToken(jsontext.BeginObject); err != nil {
-		return WrapEncodeError(enc, "", err)
-	}
-	if getOptionOrTrue(enc.Options(), json.Deterministic) {
-		sortedKeys := make([]K, 0, len(receiver))
-		for k := range receiver {
-			sortedKeys = append(sortedKeys, k)
-		}
-		slices.Sort(sortedKeys)
-		for _, k := range sortedKeys {
-			if err := (*new(KEY)).MarshalJSONTo(enc, k); err != nil {
-				return err
-			}
-			if err := (*new(VAL)).MarshalJSONTo(enc, receiver[k]); err != nil {
-				return err
-			}
-		}
-	} else {
-		for k, v := range receiver {
-			if err := (*new(KEY)).MarshalJSONTo(enc, k); err != nil {
-				return err
-			}
-			if err := (*new(VAL)).MarshalJSONTo(enc, v); err != nil {
-				return err
-			}
-		}
-	}
-	if err := enc.WriteToken(jsontext.EndObject); err != nil {
-		return WrapEncodeError(enc, "", err)
-	}
-	return nil
+	return mapMarshalJSONTo[T, K, V, KEY, VAL](enc, receiver, func(keys []K) {
+		slices.Sort(keys)
+	})
 }
 
 func (orderedMapCodec[T, K, V, KEY, VAL]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error {
@@ -80,6 +46,23 @@ func (orderedMapCodec[T, K, V, KEY, VAL]) Equal(a, b T) bool {
 type comparableMapCodec[T ~map[K]V, K comparable, V any, KEY MapKeyCodec[K], VAL Codec[V]] struct{}
 
 func (comparableMapCodec[T, K, V, KEY, VAL]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
+	return mapMarshalJSONTo[T, K, V, KEY, VAL](enc, receiver, func(keys []K) {
+		slices.SortFunc(keys, (*new(KEY)).Compare)
+	})
+}
+
+func (comparableMapCodec[T, K, V, KEY, VAL]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error {
+	return mapUnmarshalJSONFrom[T, K, V, KEY, VAL](dec, receiver)
+}
+
+func (comparableMapCodec[T, K, V, KEY, VAL]) Equal(a, b T) bool {
+	return maps.EqualFunc(a, b, (*new(VAL)).Equal)
+}
+
+// mapMarshalJSONTo provides JSON marshaling for maps, using nested KEY and VAL encoders for keys and values.
+// When deterministic encoding is enabled, keys are materialized and ordered with sortKeys before writing;
+// otherwise the map is iterated in Go's native order.
+func mapMarshalJSONTo[T ~map[K]V, K comparable, V any, KEY Codec[K], VAL Codec[V]](enc *jsontext.Encoder, receiver T, sortKeys func([]K)) error {
 	if receiver == nil && getOptionOrFalse(enc.Options(), json.FormatNilMapAsNull) {
 		if err := enc.WriteToken(jsontext.Null); err != nil {
 			return WrapEncodeError(enc, "", err)
@@ -94,7 +77,7 @@ func (comparableMapCodec[T, K, V, KEY, VAL]) MarshalJSONTo(enc *jsontext.Encoder
 		for k := range receiver {
 			sortedKeys = append(sortedKeys, k)
 		}
-		slices.SortFunc(sortedKeys, (*new(KEY)).Compare)
+		sortKeys(sortedKeys)
 		for _, k := range sortedKeys {
 			if err := (*new(KEY)).MarshalJSONTo(enc, k); err != nil {
 				return err
@@ -117,14 +100,6 @@ func (comparableMapCodec[T, K, V, KEY, VAL]) MarshalJSONTo(enc *jsontext.Encoder
 		return WrapEncodeError(enc, "", err)
 	}
 	return nil
-}
-
-func (comparableMapCodec[T, K, V, KEY, VAL]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error {
-	return mapUnmarshalJSONFrom[T, K, V, KEY, VAL](dec, receiver)
-}
-
-func (comparableMapCodec[T, K, V, KEY, VAL]) Equal(a, b T) bool {
-	return maps.EqualFunc(a, b, (*new(VAL)).Equal)
 }
 
 // mapUnmarshalJSONFrom provides JSON unmarshaling for maps, using nested KEY and VAL decoders for keys and values.

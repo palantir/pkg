@@ -34,14 +34,7 @@ func (dateTimeCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) er
 }
 
 func (dateTimeCodec[T]) Compare(a, b T) int {
-	aTime, bTime := time.Time(a), time.Time(b)
-	if aTime.After(bTime) {
-		return 1
-	}
-	if aTime.Before(bTime) {
-		return -1
-	}
-	return 0
+	return time.Time(a).Compare(time.Time(b))
 }
 
 func (dateTimeCodec[T]) Equal(a, b T) bool {

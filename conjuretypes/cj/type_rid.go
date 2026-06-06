@@ -5,6 +5,7 @@
 package cj
 
 import (
+	"cmp"
 	"strings"
 
 	"github.com/go-json-experiment/json/jsontext"
@@ -48,19 +49,12 @@ func (ridCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error {
 
 func (ridCodec[T]) Compare(a, b T) int {
 	ra, rb := rid.ResourceIdentifier(a), rid.ResourceIdentifier(b)
-	if cmp := strings.Compare(ra.Service, rb.Service); cmp != 0 {
-		return cmp
-	}
-	if cmp := strings.Compare(ra.Instance, rb.Instance); cmp != 0 {
-		return cmp
-	}
-	if cmp := strings.Compare(ra.Type, rb.Type); cmp != 0 {
-		return cmp
-	}
-	if cmp := strings.Compare(ra.Locator, rb.Locator); cmp != 0 {
-		return cmp
-	}
-	return 0
+	return cmp.Or(
+		strings.Compare(ra.Service, rb.Service),
+		strings.Compare(ra.Instance, rb.Instance),
+		strings.Compare(ra.Type, rb.Type),
+		strings.Compare(ra.Locator, rb.Locator),
+	)
 }
 
 func (ridCodec[T]) Equal(a, b T) bool {

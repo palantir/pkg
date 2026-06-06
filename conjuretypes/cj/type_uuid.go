@@ -5,6 +5,8 @@
 package cj
 
 import (
+	"bytes"
+
 	"github.com/go-json-experiment/json/jsontext"
 	"github.com/palantir/pkg/uuid"
 )
@@ -32,14 +34,8 @@ func (uuidCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error 
 	return nil
 }
 
-func (t uuidCodec[T]) Compare(a, b T) int {
-	// UUIDs are 16 bytes, so we can compare them directly
-	for i := 0; i < len(a); i++ {
-		if a[i] != b[i] {
-			return int(a[i]) - int(b[i])
-		}
-	}
-	return 0
+func (uuidCodec[T]) Compare(a, b T) int {
+	return bytes.Compare(a[:], b[:])
 }
 
 func (uuidCodec[T]) Equal(a, b T) bool {
