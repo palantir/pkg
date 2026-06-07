@@ -83,7 +83,7 @@ Use `Marshal` and `Unmarshal` when the top-level value needs a Conjure codec:
 values := []string{"a", "b"}
 codec := cj.List[[]string](cj.String[string]())
 
-data, err := cj.Marshal(&values, codec)
+data, err := cj.Marshal(values, codec)
 if err != nil {
     return err
 }
@@ -139,7 +139,7 @@ type Person struct {
 }
 
 func (p Person) MarshalJSON() ([]byte, error) {
-    return cj.Marshal(&p, cj.Struct[Person]())
+    return cj.Marshal(p, cj.Struct[Person]())
 }
 
 func (p *Person) UnmarshalJSON(data []byte) error {

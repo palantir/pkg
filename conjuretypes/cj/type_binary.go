@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"slices"
-	"strings"
 
 	"github.com/go-json-experiment/json/jsontext"
 	"github.com/palantir/pkg/binary"
@@ -77,10 +76,6 @@ type binaryMapKeyCodec[T binary.Binary] struct{}
 
 func (binaryMapKeyCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
 	return (stringCodec[binary.Binary]{}).MarshalJSONTo(enc, binary.Binary(receiver))
-}
-
-func (binaryMapKeyCodec[T]) Compare(a, b T) int {
-	return strings.Compare(string(a), string(b))
 }
 
 func (binaryMapKeyCodec[T]) Equal(a, b T) bool {

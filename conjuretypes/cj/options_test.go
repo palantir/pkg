@@ -15,25 +15,25 @@ import (
 
 func TestFormatNilSliceAsNull(t *testing.T) {
 	t.Run("default_behavior_empty_array", func(t *testing.T) {
-		data, err := cj.Marshal(new([]int), cj.List[[]int](cj.Int32[int]()))
+		data, err := cj.Marshal(*new([]int), cj.List[[]int](cj.Int32[int]()))
 		require.NoError(t, err)
 		assert.Equal(t, "[]", string(data))
 	})
 
 	t.Run("format_as_null_enabled", func(t *testing.T) {
-		data, err := cj.Marshal(new([]int), cj.List[[]int](cj.Int32[int]()), json.FormatNilSliceAsNull(true))
+		data, err := cj.Marshal(*new([]int), cj.List[[]int](cj.Int32[int]()), json.FormatNilSliceAsNull(true))
 		require.NoError(t, err)
 		assert.Equal(t, "null", string(data))
 	})
 
 	t.Run("format_as_null_disabled", func(t *testing.T) {
-		data, err := cj.Marshal(new([]int), cj.List[[]int](cj.Int32[int]()), json.FormatNilSliceAsNull(false))
+		data, err := cj.Marshal(*new([]int), cj.List[[]int](cj.Int32[int]()), json.FormatNilSliceAsNull(false))
 		require.NoError(t, err)
 		assert.Equal(t, "[]", string(data))
 	})
 
 	t.Run("non_nil_slice_unaffected", func(t *testing.T) {
-		data, err := cj.Marshal(&[]int{}, cj.List[[]int](cj.Int32[int]()), json.FormatNilSliceAsNull(true))
+		data, err := cj.Marshal([]int{}, cj.List[[]int](cj.Int32[int]()), json.FormatNilSliceAsNull(true))
 		require.NoError(t, err)
 		assert.Equal(t, "[]", string(data))
 	})
@@ -41,25 +41,25 @@ func TestFormatNilSliceAsNull(t *testing.T) {
 
 func TestFormatNilMapAsNull(t *testing.T) {
 	t.Run("default_behavior_empty_object", func(t *testing.T) {
-		data, err := cj.Marshal(new(map[string]int), cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]()))
+		data, err := cj.Marshal(*new(map[string]int), cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]()))
 		require.NoError(t, err)
 		assert.Equal(t, "{}", string(data))
 	})
 
 	t.Run("format_as_null_enabled", func(t *testing.T) {
-		data, err := cj.Marshal(new(map[string]int), cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]()), json.FormatNilMapAsNull(true))
+		data, err := cj.Marshal(*new(map[string]int), cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]()), json.FormatNilMapAsNull(true))
 		require.NoError(t, err)
 		assert.Equal(t, "null", string(data))
 	})
 
 	t.Run("format_as_null_disabled", func(t *testing.T) {
-		data, err := cj.Marshal(new(map[string]int), cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]()), json.FormatNilMapAsNull(false))
+		data, err := cj.Marshal(*new(map[string]int), cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]()), json.FormatNilMapAsNull(false))
 		require.NoError(t, err)
 		assert.Equal(t, "{}", string(data))
 	})
 
 	t.Run("non_nil_map_unaffected", func(t *testing.T) {
-		data, err := cj.Marshal(&map[string]int{}, cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]()), json.FormatNilMapAsNull(true))
+		data, err := cj.Marshal(map[string]int{}, cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]()), json.FormatNilMapAsNull(true))
 		require.NoError(t, err)
 		assert.Equal(t, "{}", string(data))
 	})
@@ -69,19 +69,19 @@ func TestDeterministicOrdering(t *testing.T) {
 	originalMap := map[string]int{"z": 1, "a": 2, "m": 3}
 
 	t.Run("deterministic_by_default", func(t *testing.T) {
-		data, err := cj.Marshal(&originalMap, cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]()))
+		data, err := cj.Marshal(originalMap, cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]()))
 		require.NoError(t, err)
 		assert.Equal(t, `{"a":2,"m":3,"z":1}`, string(data))
 	})
 
 	t.Run("deterministic_explicitly_enabled", func(t *testing.T) {
-		data, err := cj.Marshal(&originalMap, cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]()), json.Deterministic(true))
+		data, err := cj.Marshal(originalMap, cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]()), json.Deterministic(true))
 		require.NoError(t, err)
 		assert.Equal(t, `{"a":2,"m":3,"z":1}`, string(data))
 	})
 
 	t.Run("deterministic_disabled", func(t *testing.T) {
-		data, err := cj.Marshal(&originalMap, cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]()), json.Deterministic(false))
+		data, err := cj.Marshal(originalMap, cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]()), json.Deterministic(false))
 		require.NoError(t, err)
 		// Result should still be valid JSON, but order may vary
 		// We can't assert exact order, but we can verify it parses correctly

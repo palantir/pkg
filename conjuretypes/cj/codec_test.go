@@ -16,7 +16,7 @@ import (
 func TestMarshalAndUnmarshal(t *testing.T) {
 	value := []string{"a", "b", "c"}
 
-	data, err := cj.Marshal(&value, cj.List[[]string](cj.String[string]()))
+	data, err := cj.Marshal(value, cj.List[[]string](cj.String[string]()))
 	require.NoError(t, err)
 	assert.Equal(t, `["a","b","c"]`, string(data))
 

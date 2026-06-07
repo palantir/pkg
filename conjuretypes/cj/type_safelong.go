@@ -16,6 +16,9 @@ import (
 type safeLongCodec[T ~int | ~int8 | ~int16 | ~int32 | ~int64] struct{}
 
 func (safeLongCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
+	if _, err := safelong.NewSafeLong(int64(receiver)); err != nil {
+		return WrapEncodeError(enc, "invalid safelong", err)
+	}
 	return enc.WriteToken(jsontext.Int(int64(receiver)))
 }
 
@@ -44,6 +47,9 @@ func (safeLongCodec[T]) Equal(a, b T) bool {
 type safeLongMapKeyCodec[T ~int | ~int8 | ~int16 | ~int32 | ~int64] struct{}
 
 func (safeLongMapKeyCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
+	if _, err := safelong.NewSafeLong(int64(receiver)); err != nil {
+		return WrapEncodeError(enc, "invalid safelong", err)
+	}
 	return enc.WriteToken(jsontext.String(strconv.FormatInt(int64(receiver), 10)))
 }
 

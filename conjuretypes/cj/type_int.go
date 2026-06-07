@@ -5,6 +5,8 @@
 package cj
 
 import (
+	"fmt"
+	"math"
 	"strconv"
 
 	"github.com/go-json-experiment/json/jsontext"
@@ -15,6 +17,9 @@ import (
 type int32Codec[T ~int | ~int8 | ~int16 | ~int32 | ~int64] struct{}
 
 func (int32Codec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
+	if int64(receiver) < math.MinInt32 || int64(receiver) > math.MaxInt32 {
+		return WrapEncodeError(enc, "invalid int32", fmt.Errorf("value %d is out of range for a 32-bit signed integer", int64(receiver)))
+	}
 	return enc.WriteToken(jsontext.Int(int64(receiver)))
 }
 
@@ -43,6 +48,9 @@ func (int32Codec[T]) Equal(a, b T) bool {
 type int32MapKeyCodec[T ~int | ~int8 | ~int16 | ~int32 | ~int64] struct{}
 
 func (int32MapKeyCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
+	if int64(receiver) < math.MinInt32 || int64(receiver) > math.MaxInt32 {
+		return WrapEncodeError(enc, "invalid int32", fmt.Errorf("value %d is out of range for a 32-bit signed integer", int64(receiver)))
+	}
 	return enc.WriteToken(jsontext.String(strconv.FormatInt(int64(receiver), 10)))
 }
 

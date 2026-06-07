@@ -24,7 +24,9 @@ type Codec[T any] interface {
 
 // MapKeyCodec is implemented by types that can be used as map keys in Conjure types
 // but do not implement cmp.Ordered. The encoder's Compare method is used to sort map keys in a deterministic order.
-// This is used for types like UUID, binary, datetime, etc. that need custom comparison logic for ordering.
+// This is used for types like UUID, datetime, and boolean that need custom comparison logic for ordering.
+// Key types that satisfy cmp.Ordered (e.g. integer, safelong, double, and binary which is a string) instead use
+// OrderedMap, whose slices.Sort path is faster than forcing them through Compare.
 type MapKeyCodec[K comparable] interface {
 	Codec[K]
 	// Compare returns -1 if a < b, 0 if a == b, and 1 if a > b.

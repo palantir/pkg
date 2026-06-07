@@ -5,7 +5,6 @@
 package cj
 
 import (
-	"cmp"
 	"math"
 	"slices"
 	"strconv"
@@ -103,10 +102,6 @@ func (floatMapKeyCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T)
 		*receiver = T(f)
 	}
 	return nil
-}
-
-func (floatMapKeyCodec[T]) Compare(a, b T) int {
-	return cmp.Compare(a, b)
 }
 
 func (floatMapKeyCodec[T]) Equal(a, b T) bool {
