@@ -17,11 +17,13 @@ import (
 type listCodec[T ~[]U, U any, ITEM Codec[U]] struct{}
 
 func (listCodec[T, U, ITEM]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
-	if receiver == nil && getOptionOrFalse(enc.Options(), json.FormatNilSliceAsNull) {
-		if err := enc.WriteToken(jsontext.Null); err != nil {
-			return WrapEncodeError(enc, "", err)
+	if receiver == nil {
+		if formatNull, ok := json.GetOption(enc.Options(), json.FormatNilSliceAsNull); ok && formatNull {
+			if err := enc.WriteToken(jsontext.Null); err != nil {
+				return WrapEncodeError(enc, "", err)
+			}
+			return nil
 		}
-		return nil
 	}
 	if err := enc.WriteToken(jsontext.BeginArray); err != nil {
 		return WrapEncodeError(enc, "", err)
@@ -49,14 +51,26 @@ func (listCodec[T, U, ITEM]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *
 		}
 		return nil
 	}
-	return VisitJSONListFields(dec, func(dec *jsontext.Decoder) error {
+	tok, err := dec.ReadToken()
+	if err != nil {
+		return WrapSyntaxError(dec, "", err)
+	}
+	if tok.Kind() != jsontext.KindBeginArray {
+		return newKindMismatchTokenError(dec, tok, "list opening bracket")
+	}
+	for {
+		if dec.PeekKind() == jsontext.KindEndArray {
+			if _, err := dec.ReadToken(); err != nil {
+				return WrapSyntaxError(dec, "", err)
+			}
+			return nil
+		}
 		item := *new(U)
 		if err := (*new(ITEM)).UnmarshalJSONFrom(dec, &item); err != nil {
 			return err
 		}
 		*receiver = append(*receiver, item)
-		return nil
-	})
+	}
 }
 
 func (listCodec[T, U, ITEM]) Equal(a, b T) bool {

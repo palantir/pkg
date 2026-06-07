@@ -10,6 +10,7 @@ import (
 	"github.com/palantir/pkg/conjuretypes/cj"
 	"github.com/palantir/pkg/datetime"
 	"github.com/palantir/pkg/uuid"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSet(t *testing.T) {
@@ -109,6 +110,31 @@ func TestSet(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			t.Run("Marshal", tc.Test.TestMarshal)
 			t.Run("Unmarshal", tc.Test.TestUnmarshal)
+		})
+	}
+}
+
+func TestSetEqual(t *testing.T) {
+	// Set equality ignores order and multiplicity: two sets are equal iff they
+	// contain the same distinct elements (consistent with marshal dropping duplicates).
+	codec := cj.Set[[]int](cj.Int32[int]())
+	for _, tc := range []struct {
+		Name  string
+		A, B  []int
+		Equal bool
+	}{
+		{Name: "same elements same order", A: []int{1, 2, 3}, B: []int{1, 2, 3}, Equal: true},
+		{Name: "same elements different order", A: []int{1, 2}, B: []int{2, 1}, Equal: true},
+		{Name: "different elements", A: []int{1, 2}, B: []int{1, 3}, Equal: false},
+		{Name: "differing multiplicities, same set", A: []int{1, 1, 2}, B: []int{1, 2, 2}, Equal: true},
+		{Name: "duplicate vs distinct, same set", A: []int{1, 1, 2}, B: []int{1, 2}, Equal: true},
+		{Name: "proper subset is not equal", A: []int{1, 2}, B: []int{1, 2, 3}, Equal: false},
+		{Name: "empty sets", A: []int{}, B: []int{}, Equal: true},
+		{Name: "empty vs non-empty", A: []int{}, B: []int{1}, Equal: false},
+	} {
+		t.Run(tc.Name, func(t *testing.T) {
+			assert.Equal(t, tc.Equal, codec.Equal(tc.A, tc.B))
+			assert.Equal(t, tc.Equal, codec.Equal(tc.B, tc.A), "Equal should be symmetric")
 		})
 	}
 }

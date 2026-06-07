@@ -12,10 +12,8 @@ import (
 	"github.com/go-json-experiment/json/jsontext"
 )
 
-// anyCodec provides generic JSON marshaling and unmarshaling for any Go type T.
-// It is a fallback encoder/decoder for types not otherwise handled by more specific
-// implementations. Use this when you want to delegate to the default Go JSON logic,
-// but still participate in the MarshalerTo/UnmarshalerFrom interfaces.
+// anyCodec delegates JSON encoding and decoding to the default json/v2 logic.
+// Use it as a fallback for types without a more specific codec.
 type anyCodec[T any] struct{}
 
 func (anyCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
@@ -24,9 +22,12 @@ func (anyCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
 
 func (anyCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error {
 	if dec.PeekKind() == jsontext.KindNull {
-		// Consume a single token so the decoder advances past the null,
-		// matching json/v2's default kind-mismatch behavior and the
-		// read-then-validate scalar codecs.
+		// Conjure's null-coercion rule (wire spec 5.6.1) initializes only
+		// optional, list, set, and map from a null/absent value; coercing null
+		// to any other type -- including a non-optional any -- is an error.
+		// Model a nullable any as optional<any>. (Nulls nested within an any
+		// value are still accepted by the delegated decode below; this guard
+		// rejects only a top-level null.)
 		tok, err := dec.ReadToken()
 		if err != nil {
 			return WrapSyntaxError(dec, "", err)

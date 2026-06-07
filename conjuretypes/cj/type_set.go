@@ -35,7 +35,20 @@ func (setCodec[T, U, ITEM]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T
 		}
 		return nil
 	}
-	return VisitJSONListFields(dec, func(dec *jsontext.Decoder) error {
+	tok, err := dec.ReadToken()
+	if err != nil {
+		return WrapSyntaxError(dec, "", err)
+	}
+	if tok.Kind() != jsontext.KindBeginArray {
+		return newKindMismatchTokenError(dec, tok, "set opening bracket")
+	}
+	for {
+		if dec.PeekKind() == jsontext.KindEndArray {
+			if _, err := dec.ReadToken(); err != nil {
+				return WrapSyntaxError(dec, "", err)
+			}
+			return nil
+		}
 		item := *new(U)
 		if err := (*new(ITEM)).UnmarshalJSONFrom(dec, &item); err != nil {
 			return err
@@ -46,16 +59,17 @@ func (setCodec[T, U, ITEM]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T
 			return NewDuplicateSetItemError(dec, reflect.TypeFor[U]().String(), len(*receiver))
 		}
 		*receiver = append(*receiver, item)
-		return nil
-	})
+	}
 }
 
 func (setCodec[T, U, ITEM]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
-	if receiver == nil && getOptionOrFalse(enc.Options(), json.FormatNilSliceAsNull) {
-		if err := enc.WriteToken(jsontext.Null); err != nil {
-			return WrapEncodeError(enc, "", err)
+	if receiver == nil {
+		if formatNull, ok := json.GetOption(enc.Options(), json.FormatNilSliceAsNull); ok && formatNull {
+			if err := enc.WriteToken(jsontext.Null); err != nil {
+				return WrapEncodeError(enc, "", err)
+			}
+			return nil
 		}
-		return nil
 	}
 	if err := enc.WriteToken(jsontext.BeginArray); err != nil {
 		return WrapEncodeError(enc, "", err)
@@ -78,15 +92,19 @@ func (setCodec[T, U, ITEM]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) err
 }
 
 func (setCodec[T, U, ITEM]) Equal(a, b T) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for _, av := range a {
-		if !slices.ContainsFunc(b, func(bv U) bool {
-			return (*new(ITEM)).Equal(av, bv)
-		}) {
-			return false
+	// Set equality is independent of order and multiplicity: two sets are equal
+	// iff they contain the same distinct elements. This matches the codec, which
+	// drops duplicates on marshal and rejects them on decode, so a duplicate-bearing
+	// slice represents the same set as its deduplicated form.
+	containsAll := func(haystack, needles T) bool {
+		for _, n := range needles {
+			if !slices.ContainsFunc(haystack, func(h U) bool {
+				return (*new(ITEM)).Equal(n, h)
+			}) {
+				return false
+			}
 		}
+		return true
 	}
-	return true
+	return containsAll(a, b) && containsAll(b, a)
 }

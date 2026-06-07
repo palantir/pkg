@@ -54,6 +54,14 @@ func DateTime[T time.Time | datetime.DateTime]() dateTimeCodec[T] {
 	return dateTimeCodec[T]{}
 }
 
+// DateTimeMapKey returns a codec for Conjure datetime values used as map keys.
+// It orders and compares keys by their wire representation rather than by
+// instant, so deterministic map output is stable even for keys that denote the
+// same instant in different time zones.
+func DateTimeMapKey[T time.Time | datetime.DateTime]() dateTimeMapKeyCodec[T] {
+	return dateTimeMapKeyCodec[T]{}
+}
+
 // Float returns a codec for Conjure double values.
 func Float[T ~float64]() floatCodec[T] {
 	return floatCodec[T]{}

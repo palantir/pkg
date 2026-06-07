@@ -89,7 +89,11 @@ func (floatMapKeyCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T)
 	}
 	switch s := tok.String(); s {
 	case "NaN":
-		return newInvalidTokenValueError(dec, tok, "cannot use NaN as map key", nil)
+		// Conjure permits NaN as a double map key on the wire (matching the value
+		// codec and the marshal side, which writes "NaN"). A Go map cannot dedup
+		// NaN keys (NaN != NaN), so a pathological duplicate "NaN" member will not
+		// raise DuplicateMapKeyError.
+		*receiver = T(math.NaN())
 	case "Infinity":
 		*receiver = T(math.Inf(1))
 	case "-Infinity":

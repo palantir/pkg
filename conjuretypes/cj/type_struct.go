@@ -11,12 +11,9 @@ import (
 	"github.com/go-json-experiment/json/jsontext"
 )
 
-// structCodec provides JSON marshaling for types that implement json.MarshalerTo.
-// Delegates marshaling to the type's MarshalJSONTo method.
-//
-// structCodec provides JSON unmarshaling for types that implement json.UnmarshalerFrom.
-// Delegates unmarshaling to the type's UnmarshalJSONFrom method.
-// Type U is the pointer to T that implements UnmarshalerFrom.
+// structCodec marshals and unmarshals types that implement the JSON v2
+// MarshalerTo/UnmarshalerFrom methods, delegating to them. U is the pointer to
+// T that implements UnmarshalerFrom.
 type structCodec[T json.MarshalerTo, U interface {
 	*T
 	json.UnmarshalerFrom
@@ -30,6 +27,11 @@ func (structCodec[T, U]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver U) er
 	return receiver.UnmarshalJSONFrom(dec)
 }
 
+// Equal compares via reflect.DeepEqual (generated structs expose no field-wise
+// Equal). This compares Go representation, not Conjure semantic value, so it can
+// diverge from the component codecs and report false inequality: same-instant
+// datetimes with a different monotonic reading or *Location, and a nil vs empty
+// []byte, are unequal here though dateTimeCodec/binaryCodec treat them as equal.
 func (structCodec[T, U]) Equal(a, b T) bool {
 	return reflect.DeepEqual(a, b)
 }

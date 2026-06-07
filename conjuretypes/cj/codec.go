@@ -105,9 +105,15 @@ func (defaultEncoder[T, E]) ContentType() string {
 }
 
 func (defaultEncoder[T, E]) Encode(w io.Writer, v any) error {
+	if value, ok := v.(T); ok {
+		return MarshalWrite(w, value, *new(E))
+	}
 	return json.MarshalWrite(w, v, json.WithMarshalers(defaultMarshalers))
 }
 
 func (defaultEncoder[T, E]) Marshal(v any) ([]byte, error) {
+	if value, ok := v.(T); ok {
+		return Marshal(value, *new(E))
+	}
 	return json.Marshal(v, json.WithMarshalers(defaultMarshalers))
 }

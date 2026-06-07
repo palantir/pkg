@@ -91,3 +91,19 @@ func TestClientEncoderWrite(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, `"hello"`, buf.String())
 }
+
+// TestClientEncoderUsesCodec ensures the encoder routes through the provided
+// codec rather than falling back to plain json: the set codec drops duplicate
+// items on marshal, which json.Marshal of a []int would not do.
+func TestClientEncoderUsesCodec(t *testing.T) {
+	encoder := cj.ClientEncoder(cj.Set[[]int](cj.Int32[int]()))
+
+	data, err := encoder.Marshal([]int{1, 1, 2})
+	require.NoError(t, err)
+	assert.Equal(t, `[1,2]`, string(data))
+
+	var buf bytes.Buffer
+	err = encoder.Encode(&buf, []int{3, 3, 4})
+	require.NoError(t, err)
+	assert.Equal(t, `[3,4]`, buf.String())
+}

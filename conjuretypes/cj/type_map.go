@@ -63,16 +63,18 @@ func (comparableMapCodec[T, K, V, KEY, VAL]) Equal(a, b T) bool {
 // When deterministic encoding is enabled, keys are materialized and ordered with sortKeys before writing;
 // otherwise the map is iterated in Go's native order.
 func mapMarshalJSONTo[T ~map[K]V, K comparable, V any, KEY Codec[K], VAL Codec[V]](enc *jsontext.Encoder, receiver T, sortKeys func([]K)) error {
-	if receiver == nil && getOptionOrFalse(enc.Options(), json.FormatNilMapAsNull) {
-		if err := enc.WriteToken(jsontext.Null); err != nil {
-			return WrapEncodeError(enc, "", err)
+	if receiver == nil {
+		if formatNull, ok := json.GetOption(enc.Options(), json.FormatNilMapAsNull); ok && formatNull {
+			if err := enc.WriteToken(jsontext.Null); err != nil {
+				return WrapEncodeError(enc, "", err)
+			}
+			return nil
 		}
-		return nil
 	}
 	if err := enc.WriteToken(jsontext.BeginObject); err != nil {
 		return WrapEncodeError(enc, "", err)
 	}
-	if getOptionOrTrue(enc.Options(), json.Deterministic) {
+	if deterministic, ok := json.GetOption(enc.Options(), json.Deterministic); deterministic || !ok {
 		sortedKeys := make([]K, 0, len(receiver))
 		for k := range receiver {
 			sortedKeys = append(sortedKeys, k)
@@ -116,7 +118,20 @@ func mapUnmarshalJSONFrom[T ~map[K]V, K comparable, V any, KEY Codec[K], VAL Cod
 		}
 		return nil
 	}
-	return VisitJSONObjectFields(dec, func(dec *jsontext.Decoder) error {
+	tok, err := dec.ReadToken()
+	if err != nil {
+		return WrapSyntaxError(dec, "", err)
+	}
+	if tok.Kind() != jsontext.KindBeginObject {
+		return newKindMismatchTokenError(dec, tok, "object opening brace")
+	}
+	for {
+		if dec.PeekKind() == jsontext.KindEndObject {
+			if _, err := dec.ReadToken(); err != nil {
+				return WrapSyntaxError(dec, "", err)
+			}
+			return nil
+		}
 		key := *new(K)
 		if err := (*new(KEY)).UnmarshalJSONFrom(dec, &key); err != nil {
 			return err
@@ -129,6 +144,5 @@ func mapUnmarshalJSONFrom[T ~map[K]V, K comparable, V any, KEY Codec[K], VAL Cod
 			return NewDuplicateMapKeyError(dec, reflect.TypeFor[T]().String())
 		}
 		(*receiver)[key] = val
-		return nil
-	})
+	}
 }

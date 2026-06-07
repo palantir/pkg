@@ -55,11 +55,10 @@ func TestFloat(t *testing.T) {
 			},
 		},
 		{
-			Name: "nan_as_map_key_rejected",
-			Test: typeTestCase[float64]{Codec: cj.FloatMapKey[float64](), JSON: `"NaN"`,
-				SkipTestMarshal:      true,
-				ErrUnmarshalJSONFrom: "InvalidValueError at offset 5: cannot use NaN as map key",
-			},
+			// Conjure permits NaN as a double map key; see receiveMapDoubleAliasExample
+			// in the conjure verifier. It round-trips like the double value codec.
+			Name: "nan_as_map_key",
+			Test: typeTestCase[float64]{Codec: cj.FloatMapKey[float64](), Value: math.NaN(), JSON: `"NaN"`},
 		},
 	}
 	for _, tc := range tests {
