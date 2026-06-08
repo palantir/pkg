@@ -6,6 +6,7 @@ package cj
 
 import (
 	"cmp"
+	"slices"
 	"time"
 
 	"github.com/go-json-experiment/json/jsontext"
@@ -40,6 +41,10 @@ func (dateTimeCodec[T]) Equal(a, b T) bool {
 	return time.Time(a).Equal(time.Time(b))
 }
 
+func (c dateTimeCodec[T]) Contains(set []T, item T) bool {
+	return slices.ContainsFunc(set, func(x T) bool { return c.Equal(item, x) })
+}
+
 // dateTimeMapKeyCodec orders and compares datetime map keys by their wire string
 // (RFC3339Nano), not by instant: a JSON object member's identity and order are
 // defined by the emitted key, matching json/v2. Comparing by instant would tie
@@ -58,6 +63,12 @@ func (dateTimeMapKeyCodec[T]) Compare(a, b T) int {
 	return cmp.Compare(datetime.DateTime(a).String(), datetime.DateTime(b).String())
 }
 
+func (c dateTimeMapKeyCodec[T]) Sort(keys []T) { slices.SortFunc(keys, c.Compare) }
+
 func (dateTimeMapKeyCodec[T]) Equal(a, b T) bool {
 	return datetime.DateTime(a).String() == datetime.DateTime(b).String()
+}
+
+func (c dateTimeMapKeyCodec[T]) Contains(set []T, item T) bool {
+	return slices.ContainsFunc(set, func(x T) bool { return c.Equal(item, x) })
 }

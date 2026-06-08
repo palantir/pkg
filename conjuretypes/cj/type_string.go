@@ -10,7 +10,7 @@ import (
 
 // stringCodec provides JSON marshaling and unmarshaling for string-like types.
 // Encodes values as JSON strings, and decodes JSON strings into the underlying type.
-type stringCodec[T ~string] struct{ comparableCodec[T] }
+type stringCodec[T ~string] struct{ orderedKeyCodec[T] }
 
 func (stringCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
 	return enc.WriteToken(jsontext.String(string(receiver)))

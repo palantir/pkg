@@ -6,6 +6,7 @@ package cj
 
 import (
 	"cmp"
+	"slices"
 	"strings"
 
 	"github.com/go-json-experiment/json/jsontext"
@@ -56,3 +57,5 @@ func (ridCodec[T]) Compare(a, b T) int {
 		strings.Compare(ra.Locator, rb.Locator),
 	)
 }
+
+func (c ridCodec[T]) Sort(keys []T) { slices.SortFunc(keys, c.Compare) }

@@ -73,15 +73,15 @@ func TestSafeLongMaps(t *testing.T) {
 	}{
 		{
 			Name: "map_value",
-			Test: typeTestCase[map[string]SL]{Codec: cj.OrderedMap[map[string]SL](cj.String[string](), cj.SafeLong[SL]()), Value: map[string]SL{"a": 42, "b": -42}, JSON: `{"a":42,"b":-42}`},
+			Test: typeTestCase[map[string]SL]{Codec: cj.Map[map[string]SL](cj.String[string](), cj.SafeLong[SL]()), Value: map[string]SL{"a": 42, "b": -42}, JSON: `{"a":42,"b":-42}`},
 		},
 		{
 			Name: "map_key",
-			Test: typeTestCase[map[SL]int]{Codec: cj.OrderedMap[map[SL]int](cj.SafeLongMapKey[SL](), cj.Int32[int]()), Value: map[SL]int{100: 1, -200: -2}, JSON: `{"-200":-2,"100":1}`},
+			Test: typeTestCase[map[SL]int]{Codec: cj.Map[map[SL]int](cj.SafeLongMapKey[SL](), cj.Int32[int]()), Value: map[SL]int{100: 1, -200: -2}, JSON: `{"-200":-2,"100":1}`},
 		},
 		{
 			Name: "map_key_rejects_out_of_range",
-			Test: typeTestCase[map[SL]int]{Codec: cj.OrderedMap[map[SL]int](cj.SafeLongMapKey[SL](), cj.Int32[int]()), JSON: `{"9007199254740992":1}`, SkipTestMarshal: true,
+			Test: typeTestCase[map[SL]int]{Codec: cj.Map[map[SL]int](cj.SafeLongMapKey[SL](), cj.Int32[int]()), JSON: `{"9007199254740992":1}`, SkipTestMarshal: true,
 				ErrUnmarshalJSONFrom: "json: cannot unmarshal JSON string \"9007199254740992\" into Go map[safelong.SafeLong]int within \"/9007199254740992\": invalid safelong: 9007199254740992 is not a valid value for a SafeLong as it is not safely representable in Javascript: must be between -9007199254740991 and 9007199254740991",
 			},
 		},

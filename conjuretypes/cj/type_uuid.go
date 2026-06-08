@@ -6,6 +6,7 @@ package cj
 
 import (
 	"bytes"
+	"slices"
 
 	"github.com/go-json-experiment/json/jsontext"
 	"github.com/palantir/pkg/uuid"
@@ -37,3 +38,5 @@ func (uuidCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error 
 func (uuidCodec[T]) Compare(a, b T) int {
 	return bytes.Compare(a[:], b[:])
 }
+
+func (c uuidCodec[T]) Sort(keys []T) { slices.SortFunc(keys, c.Compare) }

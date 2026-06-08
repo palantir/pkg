@@ -190,7 +190,7 @@ func TestErrorIntegrationWithCodec(t *testing.T) {
 
 	t.Run("duplicate_map_key", func(t *testing.T) {
 		var result map[int]int
-		err := cj.ClientDecoder(cj.OrderedMap[map[int]int](cj.Int32MapKey[int](), cj.Int32[int]())).Unmarshal([]byte(`{"01":1,"1":2}`), &result)
+		err := cj.ClientDecoder(cj.Map[map[int]int](cj.Int32MapKey[int](), cj.Int32[int]())).Unmarshal([]byte(`{"01":1,"1":2}`), &result)
 		require.Error(t, err)
 
 		var semantic *json.SemanticError
@@ -218,7 +218,7 @@ func TestDirectCodecSemanticErrorPointer(t *testing.T) {
 		dec := jsontext.NewDecoder(strings.NewReader(`{"01":1,"1":2}`), cj.DefaultOptions, jsontext.AllowDuplicateNames(true))
 		var result map[int]int
 
-		err := cj.OrderedMap[map[int]int](cj.Int32MapKey[int](), cj.Int32[int]()).UnmarshalJSONFrom(dec, &result)
+		err := cj.Map[map[int]int](cj.Int32MapKey[int](), cj.Int32[int]()).UnmarshalJSONFrom(dec, &result)
 
 		var semantic *json.SemanticError
 		require.ErrorAs(t, err, &semantic)

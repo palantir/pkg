@@ -32,7 +32,7 @@ func TestUnmarshalAllowsCodecDuplicateDetection(t *testing.T) {
 	err := cj.Unmarshal(
 		[]byte(`{"a":1,"a":2}`),
 		&decoded,
-		cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]()),
+		cj.Map[map[string]int](cj.String[string](), cj.Int32[int]()),
 	)
 
 	require.Error(t, err)
@@ -54,7 +54,7 @@ func TestClientEncoderAndDecoder(t *testing.T) {
 
 func TestClientDecoderAllowsCodecDuplicateDetection(t *testing.T) {
 	var decoded map[string]int
-	decoder := cj.ClientDecoder(cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]()))
+	decoder := cj.ClientDecoder(cj.Map[map[string]int](cj.String[string](), cj.Int32[int]()))
 
 	err := decoder.Unmarshal([]byte(`{"a":1,"a":2}`), &decoded)
 

@@ -72,7 +72,11 @@ func (binaryCodec[T]) Equal(a, b T) bool {
 	return bytes.Equal(a, b)
 }
 
-type binaryMapKeyCodec[T binary.Binary] struct{ comparableCodec[T] }
+func (c binaryCodec[T]) Contains(set []T, item T) bool {
+	return slices.ContainsFunc(set, func(x T) bool { return c.Equal(item, x) })
+}
+
+type binaryMapKeyCodec[T binary.Binary] struct{ orderedKeyCodec[T] }
 
 func (binaryMapKeyCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
 	return (stringCodec[binary.Binary]{}).MarshalJSONTo(enc, binary.Binary(receiver))

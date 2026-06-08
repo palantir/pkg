@@ -7,6 +7,7 @@ package cj
 import (
 	"bytes"
 	"encoding"
+	"slices"
 
 	"github.com/go-json-experiment/json/jsontext"
 )
@@ -55,6 +56,8 @@ func (textCodec[T, U]) Compare(a, b T) int {
 	return bytes.Compare(aText, bText)
 }
 
+func (c textCodec[T, U]) Sort(keys []T) { slices.SortFunc(keys, c.Compare) }
+
 func (textCodec[T, U]) Equal(a, b T) bool {
 	aText, errA := a.MarshalText()
 	bText, errB := b.MarshalText()
@@ -62,4 +65,8 @@ func (textCodec[T, U]) Equal(a, b T) bool {
 		return false
 	}
 	return bytes.Equal(aText, bText)
+}
+
+func (c textCodec[T, U]) Contains(set []T, item T) bool {
+	return slices.ContainsFunc(set, func(x T) bool { return c.Equal(item, x) })
 }

@@ -5,10 +5,12 @@
 package cj
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"io"
 	"reflect"
+	"slices"
 
 	"github.com/go-json-experiment/json"
 	"github.com/go-json-experiment/json/jsontext"
@@ -28,17 +30,33 @@ type Codec[T any] interface {
 	Equal(T, T) bool
 }
 
-// MapKeyCodec is implemented by types that can be used as map keys in Conjure types
-// but do not implement cmp.Ordered. The encoder's Compare method is used to sort map keys in a deterministic order.
-// This is used for types like UUID, datetime, and boolean that need custom comparison logic for ordering.
-// Key types that satisfy cmp.Ordered (e.g. integer, safelong, double, and binary which is a string) instead use
-// OrderedMap, whose slices.Sort path is faster than forcing them through Compare.
+// MapKeyCodec is implemented by codecs for types used as Conjure map keys.
+// Sort orders a slice of keys in place to produce deterministic map output.
+//
+// Sort lives on the codec so a single map codec can serve every key type without
+// losing performance: cmp.Ordered keys (integer, safelong, double, string-backed
+// binary) sort via the fast slices.Sort path, while keys that are comparable but
+// not ordered (uuid, datetime, boolean) sort via their own comparison. A map
+// codec parameterized only by K comparable could not call slices.Sort itself, so
+// it would otherwise be forced onto the slower comparator path for every key.
 type MapKeyCodec[K comparable] interface {
 	Codec[K]
-	// Compare returns -1 if a < b, 0 if a == b, and 1 if a > b.
-	// This is used to sort map keys and set elements in a deterministic order for types that are comparable
-	// but don't support ordering operators like <, >, ==.
-	Compare(K, K) int
+	// Sort orders keys in place so that map encoding is deterministic.
+	Sort(keys []K)
+}
+
+// SetItemCodec is implemented by codecs for types used as Conjure set elements.
+// Sets deduplicate on both encode and decode, an O(n^2) scan, so Contains lives
+// on the codec rather than the set: an element type whose equality is Go's ==
+// (every comparableCodec) deduplicates via slices.Contains with an inlined ==,
+// while types with a custom Equal (datetime, binary, struct, ...) fall back to a
+// scan over that Equal. A set codec parameterized only by U could not reach
+// slices.Contains itself, so it would be forced onto the slower Equal path for
+// every element. This mirrors MapKeyCodec.Sort.
+type SetItemCodec[T any] interface {
+	Codec[T]
+	// Contains reports whether set already holds item, used to drop duplicates.
+	Contains(set []T, item T) bool
 }
 
 // fillGoType records T on a SemanticError that does not yet name a Go type.
@@ -178,12 +196,23 @@ func (defaultEncoder[T, E]) Marshal(v any) ([]byte, error) {
 
 // comparableCodec is embedded by scalar codecs whose values are equal exactly
 // when Go's == says so (numbers, bool, string, and the like). It supplies the
-// Codec[T].Equal method so each codec does not repeat the same one-liner.
+// Equal method (==) and the SetItemCodec.Contains method (slices.Contains, an
+// inlined == scan) so each codec does not repeat the same one-liners.
 //
 // There is deliberately no cmp.Ordered-based Compare mixin: ordered keys sort
-// through OrderedMap's slices.Sort path (see MapKeyCodec), and the key types
-// that do need a Compare method (datetime, uuid, boolean, ...) all define a
-// custom one, so a cmp.Compare wrapper would never be used.
+// through orderedKeyCodec's slices.Sort path (see MapKeyCodec), and the key
+// types that do need a Compare method (datetime, uuid, boolean, ...) all define
+// a custom one, so a cmp.Compare wrapper would never be used.
 type comparableCodec[T comparable] struct{}
 
 func (comparableCodec[T]) Equal(a, b T) bool { return a == b }
+
+func (comparableCodec[T]) Contains(set []T, item T) bool { return slices.Contains(set, item) }
+
+// orderedKeyCodec is embedded by map-key codecs whose key type is cmp.Ordered.
+// It supplies Equal (via comparableCodec) and the MapKeyCodec.Sort method backed
+// by slices.Sort, which is faster than a comparator-driven sort. Key types that
+// are comparable but not ordered implement Sort themselves over their Compare.
+type orderedKeyCodec[K cmp.Ordered] struct{ comparableCodec[K] }
+
+func (orderedKeyCodec[K]) Sort(keys []K) { slices.Sort(keys) }

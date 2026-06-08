@@ -5,7 +5,6 @@
 package cj
 
 import (
-	"cmp"
 	"maps"
 	"slices"
 
@@ -13,53 +12,17 @@ import (
 	"github.com/go-json-experiment/json/jsontext"
 )
 
-// orderedMapCodec provides JSON marshaling for maps with ordered keys (strings and numbers).
-// Encodes maps as JSON objects, sorting keys using Go's cmp.Ordered rules, and delegates encoding of keys and values.
+// mapCodec provides JSON marshaling for Conjure maps. Encodes maps as JSON
+// objects; when deterministic encoding is enabled, keys are sorted in place by
+// the key codec's Sort method (see MapKeyCodec) before writing.
 //
 // Disable sorting with json.Deterministic(false).
 // Format nil maps as 'null' with json.FormatNilMapAsNull(true).
-type orderedMapCodec[T ~map[K]V, K cmp.Ordered, V any, KEY Codec[K], VAL Codec[V]] struct{}
+type mapCodec[T ~map[K]V, K comparable, V any, KEY MapKeyCodec[K], VAL Codec[V]] struct{}
 
-func (orderedMapCodec[T, K, V, KEY, VAL]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
-	return mapMarshalJSONTo[T, K, V, KEY, VAL](enc, receiver, slices.Sort)
-}
-
-func (orderedMapCodec[T, K, V, KEY, VAL]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error {
-	return mapUnmarshalJSONFrom[T, K, V, KEY, VAL](dec, receiver)
-}
-
-func (orderedMapCodec[T, K, V, KEY, VAL]) Equal(a, b T) bool {
-	return maps.EqualFunc(a, b, (*new(VAL)).Equal)
-}
-
-// comparableMapCodec provides JSON marshaling for maps using a custom key comparison function.
-// Encodes maps as JSON objects, sorting keys using cj.MapKeyCodec's Compare method from KEY,
-// and delegates encoding of keys and values.
-//
-// Types compatible with OrderedMap should likely use that unless non-standard sorting is required.
-//
-// Disable sorting with json.Deterministic(false).
-// Format nil maps as 'null' with json.FormatNilMapAsNull(true).
-type comparableMapCodec[T ~map[K]V, K comparable, V any, KEY MapKeyCodec[K], VAL Codec[V]] struct{}
-
-func (comparableMapCodec[T, K, V, KEY, VAL]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
-	return mapMarshalJSONTo[T, K, V, KEY, VAL](enc, receiver, func(keys []K) {
-		slices.SortFunc(keys, (*new(KEY)).Compare)
-	})
-}
-
-func (comparableMapCodec[T, K, V, KEY, VAL]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error {
-	return mapUnmarshalJSONFrom[T, K, V, KEY, VAL](dec, receiver)
-}
-
-func (comparableMapCodec[T, K, V, KEY, VAL]) Equal(a, b T) bool {
-	return maps.EqualFunc(a, b, (*new(VAL)).Equal)
-}
-
-// mapMarshalJSONTo provides JSON marshaling for maps, using nested KEY and VAL encoders for keys and values.
-// When deterministic encoding is enabled, keys are materialized and ordered with sortKeys before writing;
-// otherwise the map is iterated in Go's native order.
-func mapMarshalJSONTo[T ~map[K]V, K comparable, V any, KEY Codec[K], VAL Codec[V]](enc *jsontext.Encoder, receiver T, sortKeys func([]K)) error {
+// When deterministic encoding is enabled, keys are materialized and ordered with the key codec's Sort
+// before writing; otherwise the map is iterated in Go's native order.
+func (mapCodec[T, K, V, KEY, VAL]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
 	if receiver == nil {
 		if formatNull, _ := json.GetOption(enc.Options(), json.FormatNilMapAsNull); formatNull {
 			if err := enc.WriteToken(jsontext.Null); err != nil {
@@ -76,7 +39,7 @@ func mapMarshalJSONTo[T ~map[K]V, K comparable, V any, KEY Codec[K], VAL Codec[V
 		for k := range receiver {
 			sortedKeys = append(sortedKeys, k)
 		}
-		sortKeys(sortedKeys)
+		(*new(KEY)).Sort(sortedKeys)
 		for _, k := range sortedKeys {
 			if err := (*new(KEY)).MarshalJSONTo(enc, k); err != nil {
 				return err
@@ -101,9 +64,7 @@ func mapMarshalJSONTo[T ~map[K]V, K comparable, V any, KEY Codec[K], VAL Codec[V
 	return nil
 }
 
-// mapUnmarshalJSONFrom provides JSON unmarshaling for maps, using nested KEY and VAL decoders for keys and values.
-// Decodes JSON objects into Go maps of the specified types.
-func mapUnmarshalJSONFrom[T ~map[K]V, K comparable, V any, KEY Codec[K], VAL Codec[V]](dec *jsontext.Decoder, receiver *T) error {
+func (mapCodec[T, K, V, KEY, VAL]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error {
 	if *receiver == nil {
 		*receiver = make(T)
 	} else {
@@ -148,4 +109,12 @@ func mapUnmarshalJSONFrom[T ~map[K]V, K comparable, V any, KEY Codec[K], VAL Cod
 		}
 		(*receiver)[key] = val
 	}
+}
+
+func (mapCodec[T, K, V, KEY, VAL]) Equal(a, b T) bool {
+	return maps.EqualFunc(a, b, (*new(VAL)).Equal)
+}
+
+func (c mapCodec[T, K, V, KEY, VAL]) Contains(set []T, item T) bool {
+	return slices.ContainsFunc(set, func(x T) bool { return c.Equal(item, x) })
 }

@@ -14,13 +14,13 @@ import (
 // setCodec provides json marshaling for sets of type T using a nested encoder ITEM.
 // It writes a json array, delegating encoding of each element to ITEM.
 //
-// Encoded duplicate items in the receiver slice (as determined by ITEM.Equal) are skipped.
+// Encoded duplicate items in the receiver slice (as determined by ITEM.Contains) are skipped.
 // The emitted JSON list's elements will otherwise be in the same order as the original.
 //
-// Decoded duplicate items (as determined by ITEM.Equal) result in an error wrapping ErrDuplicateSetItem.
+// Decoded duplicate items (as determined by ITEM.Contains) result in an error wrapping ErrDuplicateSetItem.
 //
 // If the receiver is nil and json.FormatNilSliceAsNull is true, the JSON null value is written.
-type setCodec[T ~[]U, U any, ITEM Codec[U]] struct{}
+type setCodec[T ~[]U, U any, ITEM SetItemCodec[U]] struct{}
 
 func (setCodec[T, U, ITEM]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error {
 	if *receiver == nil {
@@ -55,9 +55,7 @@ func (setCodec[T, U, ITEM]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T
 		if err := (*new(ITEM)).UnmarshalJSONFrom(dec, item); err != nil {
 			return err
 		}
-		if slices.ContainsFunc((*receiver)[:len(*receiver)-1], func(next U) bool {
-			return (*new(ITEM)).Equal(*item, next)
-		}) {
+		if (*new(ITEM)).Contains((*receiver)[:len(*receiver)-1], *item) {
 			return NewDuplicateSetItemError(dec)
 		}
 	}
@@ -76,9 +74,7 @@ func (setCodec[T, U, ITEM]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) err
 		return WrapEncodeError(enc, "", err)
 	}
 	for i, item := range receiver {
-		if slices.ContainsFunc(receiver[0:i], func(next U) bool {
-			return (*new(ITEM)).Equal(item, next)
-		}) {
+		if (*new(ITEM)).Contains(receiver[0:i], item) {
 			continue
 		}
 		if err := (*new(ITEM)).MarshalJSONTo(enc, item); err != nil {
@@ -98,13 +94,15 @@ func (setCodec[T, U, ITEM]) Equal(a, b T) bool {
 	// slice represents the same set as its deduplicated form.
 	containsAll := func(haystack, needles T) bool {
 		for _, n := range needles {
-			if !slices.ContainsFunc(haystack, func(h U) bool {
-				return (*new(ITEM)).Equal(n, h)
-			}) {
+			if !(*new(ITEM)).Contains(haystack, n) {
 				return false
 			}
 		}
 		return true
 	}
 	return containsAll(a, b) && containsAll(b, a)
+}
+
+func (c setCodec[T, U, ITEM]) Contains(set []T, item T) bool {
+	return slices.ContainsFunc(set, func(x T) bool { return c.Equal(item, x) })
 }

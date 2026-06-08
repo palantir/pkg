@@ -5,6 +5,7 @@
 package cj
 
 import (
+	"slices"
 	"strconv"
 
 	"github.com/go-json-experiment/json/jsontext"
@@ -73,3 +74,5 @@ func (booleanMapKeyCodec[T]) Compare(a, b T) int {
 	}
 	return -1
 }
+
+func (c booleanMapKeyCodec[T]) Sort(keys []T) { slices.SortFunc(keys, c.Compare) }

@@ -41,7 +41,7 @@ func (int32Codec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error
 
 // int32MapKeyCodec provides JSON marshaling and unmarshaling for signed integer types used as map keys.
 // Encodes integer keys as JSON strings to comply with JSON map key requirements.
-type int32MapKeyCodec[T ~int | ~int8 | ~int16 | ~int32 | ~int64] struct{ comparableCodec[T] }
+type int32MapKeyCodec[T ~int | ~int8 | ~int16 | ~int32 | ~int64] struct{ orderedKeyCodec[T] }
 
 func (int32MapKeyCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
 	if int64(receiver) < math.MinInt32 || int64(receiver) > math.MaxInt32 {

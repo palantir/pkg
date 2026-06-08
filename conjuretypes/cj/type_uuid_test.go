@@ -39,7 +39,7 @@ func TestUUID(t *testing.T) {
 		},
 		{
 			Name: "map",
-			Test: typeTestCase[map[uuid.UUID]string]{Codec: cj.ComparableMap[map[uuid.UUID]string](cj.UUID[uuid.UUID](), cj.String[string]()), Value: map[uuid.UUID]string{
+			Test: typeTestCase[map[uuid.UUID]string]{Codec: cj.Map[map[uuid.UUID]string](cj.UUID[uuid.UUID](), cj.String[string]()), Value: map[uuid.UUID]string{
 				must(uuid.ParseUUID("00101010-1010-1010-1010-101010101010")): "foo",
 				must(uuid.ParseUUID("00202020-2020-2020-2020-202020202020")): "bar",
 			},

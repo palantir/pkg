@@ -43,7 +43,7 @@ func TestBinary(t *testing.T) {
 		},
 		{
 			Name: "map",
-			Test: typeTestCase[map[binary.Binary]string]{Codec: cj.OrderedMap[map[binary.Binary]string](cj.BinaryMapKey[binary.Binary](), cj.String[string]()), Value: map[binary.Binary]string{
+			Test: typeTestCase[map[binary.Binary]string]{Codec: cj.Map[map[binary.Binary]string](cj.BinaryMapKey[binary.Binary](), cj.String[string]()), Value: map[binary.Binary]string{
 				binary.Binary(base64.StdEncoding.EncodeToString([]byte("a"))): "a",
 				binary.Binary(base64.StdEncoding.EncodeToString([]byte("b"))): "b",
 				binary.Binary(base64.StdEncoding.EncodeToString([]byte("c"))): "c",

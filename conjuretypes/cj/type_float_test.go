@@ -50,7 +50,7 @@ func TestFloat(t *testing.T) {
 		},
 		{
 			Name: "map",
-			Test: typeTestCase[map[float64]float64]{Codec: cj.OrderedMap[map[float64]float64](cj.FloatMapKey[float64](), cj.Float[float64]()), Value: map[float64]float64{0.0: 0.0, 123.456: 123.456, -42.5: -42.5, 1e30: 1e30, 1e-18: 1e-18, math.Inf(1): math.Inf(1), math.Inf(-1): math.Inf(-1)},
+			Test: typeTestCase[map[float64]float64]{Codec: cj.Map[map[float64]float64](cj.FloatMapKey[float64](), cj.Float[float64]()), Value: map[float64]float64{0.0: 0.0, 123.456: 123.456, -42.5: -42.5, 1e30: 1e30, 1e-18: 1e-18, math.Inf(1): math.Inf(1), math.Inf(-1): math.Inf(-1)},
 				JSON: `{"-Infinity":"-Infinity","-42.5":-42.5,"0":0,"1e-18":1e-18,"123.456":123.456,"1e+30":1e+30,"Infinity":"Infinity"}`,
 			},
 		},

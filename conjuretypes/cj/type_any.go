@@ -7,6 +7,7 @@ package cj
 import (
 	stdjson "encoding/json"
 	"reflect"
+	"slices"
 
 	"github.com/go-json-experiment/json"
 	"github.com/go-json-experiment/json/jsontext"
@@ -39,6 +40,10 @@ func (anyCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error {
 
 func (anyCodec[T]) Equal(a, b T) bool {
 	return reflect.DeepEqual(a, b)
+}
+
+func (c anyCodec[T]) Contains(set []T, item T) bool {
+	return slices.ContainsFunc(set, func(x T) bool { return c.Equal(item, x) })
 }
 
 var (

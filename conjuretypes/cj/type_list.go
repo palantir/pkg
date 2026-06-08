@@ -77,3 +77,7 @@ func (listCodec[T, U, ITEM]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *
 func (listCodec[T, U, ITEM]) Equal(a, b T) bool {
 	return slices.EqualFunc(a, b, (*new(ITEM)).Equal)
 }
+
+func (c listCodec[T, U, ITEM]) Contains(set []T, item T) bool {
+	return slices.ContainsFunc(set, func(x T) bool { return c.Equal(item, x) })
+}

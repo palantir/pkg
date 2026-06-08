@@ -53,7 +53,7 @@ func (floatCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error
 // floatMapKeyCodec provides JSON marshaling and unmarshaling for float64-like types used as map keys.
 // Encodes float keys as JSON strings to comply with JSON map key requirements, supporting
 // special values like "NaN", "Infinity", and "-Infinity".
-type floatMapKeyCodec[T ~float64] struct{ comparableCodec[T] }
+type floatMapKeyCodec[T ~float64] struct{ orderedKeyCodec[T] }
 
 func (floatMapKeyCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
 	switch {

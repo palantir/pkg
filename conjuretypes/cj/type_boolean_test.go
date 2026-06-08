@@ -42,7 +42,7 @@ func TestBoolean(t *testing.T) {
 		},
 		{
 			Name: "map_keys",
-			Test: typeTestCase[map[bool]bool]{Codec: cj.ComparableMap[map[bool]bool](cj.BooleanMapKey[bool](), cj.Boolean[bool]()), Value: map[bool]bool{true: true, false: false},
+			Test: typeTestCase[map[bool]bool]{Codec: cj.Map[map[bool]bool](cj.BooleanMapKey[bool](), cj.Boolean[bool]()), Value: map[bool]bool{true: true, false: false},
 				JSON: "{\"false\":false,\"true\":true}",
 			},
 		},

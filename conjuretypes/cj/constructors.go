@@ -5,7 +5,6 @@
 package cj
 
 import (
-	"cmp"
 	"encoding"
 	"time"
 
@@ -42,11 +41,6 @@ func Boolean[T ~bool]() booleanCodec[T] {
 // BooleanMapKey returns a codec for Conjure boolean values used as map keys.
 func BooleanMapKey[T ~bool]() booleanMapKeyCodec[T] {
 	return booleanMapKeyCodec[T]{}
-}
-
-// ComparableMap returns a codec for maps whose keys need a custom deterministic ordering.
-func ComparableMap[T ~map[K]V, K comparable, V any, KEY MapKeyCodec[K], VAL Codec[V]](_ KEY, _ VAL) comparableMapCodec[T, K, V, KEY, VAL] {
-	return comparableMapCodec[T, K, V, KEY, VAL]{}
 }
 
 // DateTime returns a codec for Conjure datetime values.
@@ -87,14 +81,14 @@ func List[T ~[]U, U any, ITEM Codec[U]](_ ITEM) listCodec[T, U, ITEM] {
 	return listCodec[T, U, ITEM]{}
 }
 
+// Map returns a codec for maps.
+func Map[T ~map[K]V, K comparable, V any, KEY MapKeyCodec[K], VAL Codec[V]](_ KEY, _ VAL) mapCodec[T, K, V, KEY, VAL] {
+	return mapCodec[T, K, V, KEY, VAL]{}
+}
+
 // Optional returns a codec for Conjure optional values represented as pointers.
 func Optional[T *U, U any, ITEM Codec[U]](_ ITEM) optionalCodec[T, U, ITEM] {
 	return optionalCodec[T, U, ITEM]{}
-}
-
-// OrderedMap returns a codec for maps whose keys can be sorted with cmp.Ordered.
-func OrderedMap[T ~map[K]V, K cmp.Ordered, V any, KEY Codec[K], VAL Codec[V]](_ KEY, _ VAL) orderedMapCodec[T, K, V, KEY, VAL] {
-	return orderedMapCodec[T, K, V, KEY, VAL]{}
 }
 
 // RID returns a codec for Conjure resource identifiers.
@@ -113,7 +107,7 @@ func SafeLongMapKey[T ~int | ~int8 | ~int16 | ~int32 | ~int64]() safeLongMapKeyC
 }
 
 // Set returns a codec for Conjure set values represented as slices.
-func Set[T ~[]U, U any, ITEM Codec[U]](_ ITEM) setCodec[T, U, ITEM] {
+func Set[T ~[]U, U any, ITEM SetItemCodec[U]](_ ITEM) setCodec[T, U, ITEM] {
 	return setCodec[T, U, ITEM]{}
 }
 

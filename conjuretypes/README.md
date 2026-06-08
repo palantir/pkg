@@ -25,13 +25,21 @@ type Codec[T any] interface {
 }
 ```
 
-`MapKeyCodec[K]` is for comparable key types that need a custom deterministic
-ordering:
+`MapKeyCodec[K]` adds in-place key sorting so map encoding is deterministic;
+`SetItemCodec[T]` adds a membership test used to drop duplicate set elements.
+Each keeps its extra method off the base `Codec` so a single map or set codec
+serves every element type at full speed (see the Map Ordering and Performance
+sections):
 
 ```go
 type MapKeyCodec[K comparable] interface {
     Codec[K]
-    Compare(K, K) int
+    Sort(keys []K)
+}
+
+type SetItemCodec[T any] interface {
+    Codec[T]
+    Contains(set []T, item T) bool
 }
 ```
 
@@ -66,8 +74,7 @@ Container and delegation codec call shapes:
 - `Optional[*T](itemCodec)`
 - `List[[]T](itemCodec)`
 - `Set[[]T](itemCodec)`
-- `OrderedMap[map[K]V](keyCodec, valueCodec)`
-- `ComparableMap[map[K]V](keyCodec, valueCodec)`
+- `Map[map[K]V](keyCodec, valueCodec)`
 - `Struct[T json.MarshalerTo]()`
 - `Text[T encoding.TextMarshaler]()`
 
@@ -118,7 +125,7 @@ cj.List[[]string](cj.String[string]())
 A `map[string]*CustomObject` value uses a nested chain:
 
 ```go
-cj.OrderedMap[map[string]*CustomObject](
+cj.Map[map[string]*CustomObject](
     cj.String[string](),
     cj.Optional[*CustomObject](cj.Struct[CustomObject]()),
 )
@@ -341,19 +348,14 @@ to nil.
 
 ## Map Ordering
 
-Map encoding is deterministic by default.
-
-`OrderedMap` sorts keys with Go's built-in ordering for `cmp.Ordered` key types:
-
-```go
-cj.OrderedMap[map[string]Value](cj.String[string](), ValueCodec())
-```
-
-`ComparableMap` sorts keys with `KEY.Compare` for comparable types that do not
-support `<`:
+Map encoding is deterministic by default. `Map` sorts keys via the key codec's
+`Sort` method, so each key type sorts as fast as it can: `cmp.Ordered` key types
+(integer, safelong, double, string) use Go's built-in ordering, while comparable
+types that do not support `<` (uuid, datetime, boolean) sort by `KEY.Compare`.
 
 ```go
-cj.ComparableMap[map[CustomKey]Value](CustomKeyCodec(), ValueCodec())
+cj.Map[map[string]Value](cj.String[string](), ValueCodec())
+cj.Map[map[CustomKey]Value](CustomKeyCodec(), ValueCodec())
 ```
 
 Pass `json.Deterministic(false)` to allow the encoder to use Go's map iteration

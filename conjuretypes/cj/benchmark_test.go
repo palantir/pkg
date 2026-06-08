@@ -137,6 +137,29 @@ func BenchmarkUnmarshalList(b *testing.B) {
 	runBenchUnmarshal(b, data, codec)
 }
 
+// BenchmarkMarshalSet and BenchmarkUnmarshalSet exercise the set codec's O(n^2)
+// deduplication scan, which routes through SetItemCodec.Contains. For a string
+// element (a comparableCodec) Contains is slices.Contains with an inlined ==.
+func BenchmarkMarshalSet(b *testing.B) {
+	data := make([]string, 100)
+	for i := range data {
+		data[i] = "item-" + strconv.Itoa(i)
+	}
+	codec := cj.Set[[]string](cj.String[string]())
+	runBenchMarshal(b, data, codec)
+}
+
+func BenchmarkUnmarshalSet(b *testing.B) {
+	src := make([]string, 100)
+	for i := range src {
+		src[i] = "item-" + strconv.Itoa(i)
+	}
+	codec := cj.Set[[]string](cj.String[string]())
+	data, err := cj.Marshal(src, codec)
+	require.NoError(b, err)
+	runBenchUnmarshal(b, data, codec)
+}
+
 // mapBenchSize is large enough to overflow json/v2's 256-entry string-interning
 // cache, so the benchmark reflects arbitrary-key traffic (where each key is
 // decoded fresh) rather than the best case where every key stays cached.
@@ -151,12 +174,12 @@ func benchMap() map[string]int {
 }
 
 func BenchmarkMarshalMap(b *testing.B) {
-	codec := cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]())
+	codec := cj.Map[map[string]int](cj.String[string](), cj.Int32[int]())
 	runBenchMarshal(b, benchMap(), codec)
 }
 
 func BenchmarkUnmarshalMap(b *testing.B) {
-	codec := cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]())
+	codec := cj.Map[map[string]int](cj.String[string](), cj.Int32[int]())
 	data, err := cj.Marshal(benchMap(), codec)
 	require.NoError(b, err)
 	runBenchUnmarshal(b, data, codec)
@@ -396,7 +419,7 @@ func (p benchPerson) MarshalJSONTo(enc *jsontext.Encoder) error {
 	if err := enc.WriteToken(jsontext.String("attributes")); err != nil {
 		return err
 	}
-	if err := cj.OrderedMap[map[string]string](cj.String[string](), cj.String[string]()).MarshalJSONTo(enc, p.Attributes); err != nil {
+	if err := cj.Map[map[string]string](cj.String[string](), cj.String[string]()).MarshalJSONTo(enc, p.Attributes); err != nil {
 		return err
 	}
 	return enc.WriteToken(jsontext.EndObject)
@@ -461,7 +484,7 @@ func (p *benchPerson) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 			if seenAttributes {
 				return cj.NewDuplicateFieldKeyError(dec)
 			}
-			if err := cj.OrderedMap[map[string]string](cj.String[string](), cj.String[string]()).UnmarshalJSONFrom(dec, &p.Attributes); err != nil {
+			if err := cj.Map[map[string]string](cj.String[string](), cj.String[string]()).UnmarshalJSONFrom(dec, &p.Attributes); err != nil {
 				return err
 			}
 			seenAttributes = true

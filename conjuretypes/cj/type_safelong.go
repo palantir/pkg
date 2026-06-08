@@ -40,7 +40,7 @@ func (safeLongCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) er
 
 // safeLongMapKeyCodec provides JSON marshaling and unmarshaling for signed integer types used as map keys.
 // Encodes integer keys as JSON strings to comply with JSON map key requirements.
-type safeLongMapKeyCodec[T ~int | ~int8 | ~int16 | ~int32 | ~int64] struct{ comparableCodec[T] }
+type safeLongMapKeyCodec[T ~int | ~int8 | ~int16 | ~int32 | ~int64] struct{ orderedKeyCodec[T] }
 
 func (safeLongMapKeyCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
 	if _, err := safelong.NewSafeLong(int64(receiver)); err != nil {

@@ -6,6 +6,7 @@ package cj
 
 import (
 	"reflect"
+	"slices"
 
 	"github.com/go-json-experiment/json"
 	"github.com/go-json-experiment/json/jsontext"
@@ -34,4 +35,8 @@ func (structCodec[T, U]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver U) er
 // []byte, are unequal here though dateTimeCodec/binaryCodec treat them as equal.
 func (structCodec[T, U]) Equal(a, b T) bool {
 	return reflect.DeepEqual(a, b)
+}
+
+func (c structCodec[T, U]) Contains(set []T, item T) bool {
+	return slices.ContainsFunc(set, func(x T) bool { return c.Equal(item, x) })
 }
