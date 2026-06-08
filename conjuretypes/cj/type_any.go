@@ -30,7 +30,7 @@ func (anyCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error {
 		// rejects only a top-level null.)
 		tok, err := dec.ReadToken()
 		if err != nil {
-			return WrapSyntaxError(dec, "", err)
+			return WrapSyntaxError(dec, err)
 		}
 		return newKindMismatchTokenError(dec, tok, "non-optional value")
 	}

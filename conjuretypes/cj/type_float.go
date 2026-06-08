@@ -24,7 +24,7 @@ func (floatCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
 func (floatCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error {
 	tok, err := dec.ReadToken()
 	if err != nil {
-		return WrapSyntaxError(dec, "", err)
+		return WrapSyntaxError(dec, err)
 	}
 	switch kind := tok.Kind(); kind {
 	case jsontext.KindNumber:
@@ -82,7 +82,7 @@ func (floatMapKeyCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) erro
 func (floatMapKeyCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error {
 	tok, err := dec.ReadToken()
 	if err != nil {
-		return WrapSyntaxError(dec, "", err)
+		return WrapSyntaxError(dec, err)
 	}
 	if tok.Kind() != jsontext.KindString {
 		return newKindMismatchTokenError(dec, tok, "json string")

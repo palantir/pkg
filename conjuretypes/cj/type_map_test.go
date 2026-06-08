@@ -81,7 +81,7 @@ func TestMap(t *testing.T) {
 		},
 		{
 			Name: "duplicate key",
-			Test: typeTestCase[map[string]int]{Codec: cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]()), JSON: "{\"a\":1,\"a\":2}", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "SyntaxError at offset 6: jsontext: duplicate object member name \"a\""},
+			Test: typeTestCase[map[string]int]{Codec: cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]()), JSON: "{\"a\":1,\"a\":2}", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "SyntaxError at offset 7: jsontext: duplicate object member name within \"/a\""},
 		},
 		{
 			Name: "duplicate int key",

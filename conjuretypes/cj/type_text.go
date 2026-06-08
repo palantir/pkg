@@ -33,7 +33,7 @@ func (textCodec[T, U]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
 func (textCodec[T, U]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver U) error {
 	tok, err := dec.ReadToken()
 	if err != nil {
-		return WrapSyntaxError(dec, "", err)
+		return WrapSyntaxError(dec, err)
 	}
 	if tok.Kind() != jsontext.KindString {
 		return newKindMismatchTokenError(dec, tok, "json string")

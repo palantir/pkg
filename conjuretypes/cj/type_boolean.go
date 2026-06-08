@@ -24,7 +24,7 @@ func (booleanCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
 func (booleanCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error {
 	tok, err := dec.ReadToken()
 	if err != nil {
-		return WrapSyntaxError(dec, "", err)
+		return WrapSyntaxError(dec, err)
 	}
 	switch tok.Kind() {
 	case jsontext.KindTrue:
@@ -55,7 +55,7 @@ func (booleanMapKeyCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) er
 func (booleanMapKeyCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error {
 	tok, err := dec.ReadToken()
 	if err != nil {
-		return WrapSyntaxError(dec, "", err)
+		return WrapSyntaxError(dec, err)
 	}
 	if tok.Kind() != jsontext.KindString {
 		return newKindMismatchTokenError(dec, tok, "json string")

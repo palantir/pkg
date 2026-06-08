@@ -19,7 +19,7 @@ func (bearerTokenCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) erro
 func (bearerTokenCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error {
 	tok, err := dec.ReadToken()
 	if err != nil {
-		return WrapSyntaxError(dec, "", err)
+		return WrapSyntaxError(dec, err)
 	}
 	if tok.Kind() != jsontext.KindString {
 		return newKindMismatchTokenError(dec, tok, "json string")

@@ -25,7 +25,7 @@ func (safeLongCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
 func (safeLongCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error {
 	tok, err := dec.ReadToken()
 	if err != nil {
-		return WrapSyntaxError(dec, "", err)
+		return WrapSyntaxError(dec, err)
 	}
 	if tok.Kind() != jsontext.KindNumber {
 		return newKindMismatchTokenError(dec, tok, "json int")
@@ -56,7 +56,7 @@ func (safeLongMapKeyCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) e
 func (safeLongMapKeyCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error {
 	tok, err := dec.ReadToken()
 	if err != nil {
-		return WrapSyntaxError(dec, "", err)
+		return WrapSyntaxError(dec, err)
 	}
 	if tok.Kind() != jsontext.KindString {
 		return newKindMismatchTokenError(dec, tok, "json string")

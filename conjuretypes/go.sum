@@ -16,6 +16,10 @@ github.com/palantir/pkg/safelong v1.3.0 h1:0PL39zwIPrGjGaEK1Lg7uqakTakB00dQwVf0L
 github.com/palantir/pkg/safelong v1.3.0/go.mod h1:KEMQTEZfl1BDJA4FWAR6sTKqzgeDVx9zIeFHSggA634=
 github.com/palantir/pkg/uuid v1.3.0 h1:ubiwfGpl1vTdrVmzXhRc1PVHD8/y60fT1QPwmziCETM=
 github.com/palantir/pkg/uuid v1.3.0/go.mod h1:OdOoLEDUu9LHBM2bdvyDXJ2IfH9gorI12ZMaaQu6zIo=
+github.com/palantir/witchcraft-go-error v1.46.0 h1:gthiwObOaPcCgpB95dXrnIPYDPf8OVvOCkYfdsFpdek=
+github.com/palantir/witchcraft-go-error v1.46.0/go.mod h1:hcf52XH04l/1YXBBQQL/FJkS/isx90jcL9c67XdwVYc=
+github.com/palantir/witchcraft-go-params v1.41.0 h1:kN+8McJpAxO94YFeOXPn4gEfTDi6mtEwCAoxMv13MQQ=
+github.com/palantir/witchcraft-go-params v1.41.0/go.mod h1:/Jel4PARd1KSOGsDKtLUemEhtshRTyJYrHxYj2fMQQo=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=

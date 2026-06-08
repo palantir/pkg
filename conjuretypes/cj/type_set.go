@@ -31,13 +31,13 @@ func (setCodec[T, U, ITEM]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T
 	}
 	if dec.PeekKind() == jsontext.KindNull {
 		if _, err := dec.ReadToken(); err != nil {
-			return WrapSyntaxError(dec, "", err)
+			return WrapSyntaxError(dec, err)
 		}
 		return nil
 	}
 	tok, err := dec.ReadToken()
 	if err != nil {
-		return WrapSyntaxError(dec, "", err)
+		return WrapSyntaxError(dec, err)
 	}
 	if tok.Kind() != jsontext.KindBeginArray {
 		return newKindMismatchTokenError(dec, tok, "set opening bracket")
@@ -45,7 +45,7 @@ func (setCodec[T, U, ITEM]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T
 	for {
 		if dec.PeekKind() == jsontext.KindEndArray {
 			if _, err := dec.ReadToken(); err != nil {
-				return WrapSyntaxError(dec, "", err)
+				return WrapSyntaxError(dec, err)
 			}
 			return nil
 		}
@@ -64,7 +64,7 @@ func (setCodec[T, U, ITEM]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T
 
 func (setCodec[T, U, ITEM]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
 	if receiver == nil {
-		if formatNull, ok := json.GetOption(enc.Options(), json.FormatNilSliceAsNull); ok && formatNull {
+		if formatNull, _ := json.GetOption(enc.Options(), json.FormatNilSliceAsNull); formatNull {
 			if err := enc.WriteToken(jsontext.Null); err != nil {
 				return WrapEncodeError(enc, "", err)
 			}

@@ -31,6 +31,13 @@ github.com/palantir/pkg/safelong
 ## explicit; go 1.25.0
 github.com/palantir/pkg/uuid
 github.com/palantir/pkg/uuid/internal/uuid
+# github.com/palantir/witchcraft-go-error v1.46.0
+## explicit; go 1.26.0
+github.com/palantir/witchcraft-go-error
+github.com/palantir/witchcraft-go-error/internal/errors
+# github.com/palantir/witchcraft-go-params v1.41.0
+## explicit; go 1.26.0
+github.com/palantir/witchcraft-go-params
 # github.com/pmezard/go-difflib v1.0.0
 ## explicit
 github.com/pmezard/go-difflib/difflib

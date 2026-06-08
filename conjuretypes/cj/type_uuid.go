@@ -21,7 +21,7 @@ func (uuidCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
 func (uuidCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error {
 	tok, err := dec.ReadToken()
 	if err != nil {
-		return WrapSyntaxError(dec, "", err)
+		return WrapSyntaxError(dec, err)
 	}
 	if tok.Kind() != jsontext.KindString {
 		return newKindMismatchTokenError(dec, tok, "json string")

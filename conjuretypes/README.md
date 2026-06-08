@@ -168,7 +168,7 @@ func (p Person) MarshalJSONTo(enc *jsontext.Encoder) error {
 func (p *Person) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
     tok, err := dec.ReadToken()
     if err != nil {
-        return cj.WrapSyntaxError(dec, "", err)
+        return cj.WrapSyntaxError(dec, err)
     }
     if kind := tok.Kind(); kind != jsontext.KindBeginObject {
         return cj.NewKindMismatchError(dec, kind, "Person opening brace")
@@ -179,7 +179,7 @@ func (p *Person) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
     for {
         key, err := dec.ReadToken()
         if err != nil {
-            return cj.WrapSyntaxError(dec, "", err)
+            return cj.WrapSyntaxError(dec, err)
         }
         switch kind := key.Kind(); kind {
         case jsontext.KindEndObject:
@@ -225,7 +225,7 @@ func (p *Person) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
         default:
             unknownMembers = append(unknownMembers, key.String())
             if err := dec.SkipValue(); err != nil {
-                return cj.WrapSyntaxError(dec, "", err)
+                return cj.WrapSyntaxError(dec, err)
             }
         }
     }

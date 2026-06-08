@@ -64,7 +64,7 @@ func (comparableMapCodec[T, K, V, KEY, VAL]) Equal(a, b T) bool {
 // otherwise the map is iterated in Go's native order.
 func mapMarshalJSONTo[T ~map[K]V, K comparable, V any, KEY Codec[K], VAL Codec[V]](enc *jsontext.Encoder, receiver T, sortKeys func([]K)) error {
 	if receiver == nil {
-		if formatNull, ok := json.GetOption(enc.Options(), json.FormatNilMapAsNull); ok && formatNull {
+		if formatNull, _ := json.GetOption(enc.Options(), json.FormatNilMapAsNull); formatNull {
 			if err := enc.WriteToken(jsontext.Null); err != nil {
 				return WrapEncodeError(enc, "", err)
 			}
@@ -114,13 +114,13 @@ func mapUnmarshalJSONFrom[T ~map[K]V, K comparable, V any, KEY Codec[K], VAL Cod
 	}
 	if dec.PeekKind() == jsontext.KindNull {
 		if _, err := dec.ReadToken(); err != nil {
-			return WrapSyntaxError(dec, "", err)
+			return WrapSyntaxError(dec, err)
 		}
 		return nil
 	}
 	tok, err := dec.ReadToken()
 	if err != nil {
-		return WrapSyntaxError(dec, "", err)
+		return WrapSyntaxError(dec, err)
 	}
 	if tok.Kind() != jsontext.KindBeginObject {
 		return newKindMismatchTokenError(dec, tok, "object opening brace")
@@ -128,7 +128,7 @@ func mapUnmarshalJSONFrom[T ~map[K]V, K comparable, V any, KEY Codec[K], VAL Cod
 	for {
 		if dec.PeekKind() == jsontext.KindEndObject {
 			if _, err := dec.ReadToken(); err != nil {
-				return WrapSyntaxError(dec, "", err)
+				return WrapSyntaxError(dec, err)
 			}
 			return nil
 		}

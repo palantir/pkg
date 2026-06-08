@@ -26,7 +26,7 @@ func (int32Codec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
 func (int32Codec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error {
 	tok, err := dec.ReadToken()
 	if err != nil {
-		return WrapSyntaxError(dec, "", err)
+		return WrapSyntaxError(dec, err)
 	}
 	if tok.Kind() != jsontext.KindNumber {
 		return newKindMismatchTokenError(dec, tok, "json int")
@@ -57,7 +57,7 @@ func (int32MapKeyCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) erro
 func (int32MapKeyCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error {
 	tok, err := dec.ReadToken()
 	if err != nil {
-		return WrapSyntaxError(dec, "", err)
+		return WrapSyntaxError(dec, err)
 	}
 	if tok.Kind() != jsontext.KindString {
 		return newKindMismatchTokenError(dec, tok, "json string")

@@ -34,17 +34,17 @@ func (binaryCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) erro
 		// read-then-validate scalar codecs.
 		tok, err := dec.ReadToken()
 		if err != nil {
-			return WrapSyntaxError(dec, "", err)
+			return WrapSyntaxError(dec, err)
 		}
 		return newKindMismatchTokenError(dec, tok, "json string")
 	}
 	val, err := dec.ReadValue()
 	if err != nil {
-		return WrapSyntaxError(dec, "", err)
+		return WrapSyntaxError(dec, err)
 	}
 	unquoted, err := jsontext.AppendUnquote(nil, val)
 	if err != nil {
-		return WrapSyntaxError(dec, "", err)
+		return WrapSyntaxError(dec, err)
 	}
 	if len(unquoted) == 0 {
 		*receiver = make(T, 0)
@@ -85,7 +85,7 @@ func (binaryMapKeyCodec[T]) Equal(a, b T) bool {
 func (binaryMapKeyCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error {
 	tok, err := dec.ReadToken()
 	if err != nil {
-		return WrapSyntaxError(dec, "", err)
+		return WrapSyntaxError(dec, err)
 	}
 	if tok.Kind() != jsontext.KindString {
 		return newKindMismatchTokenError(dec, tok, "json string")

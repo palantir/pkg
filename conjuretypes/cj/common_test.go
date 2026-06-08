@@ -131,7 +131,7 @@ func (t *testStruct) UnmarshalJSON(data []byte) error {
 func (t *testStruct) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 	tok, err := dec.ReadToken()
 	if err != nil {
-		return cj.WrapSyntaxError(dec, "", err)
+		return cj.WrapSyntaxError(dec, err)
 	}
 	if kind := tok.Kind(); kind != jsontext.KindBeginObject {
 		return cj.NewKindMismatchError(dec, kind, "testStruct opening brace")
@@ -142,7 +142,7 @@ func (t *testStruct) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 	for {
 		key, err := dec.ReadToken()
 		if err != nil {
-			return cj.WrapSyntaxError(dec, "", err)
+			return cj.WrapSyntaxError(dec, err)
 		}
 		kind := key.Kind()
 		if kind == jsontext.KindEndObject {

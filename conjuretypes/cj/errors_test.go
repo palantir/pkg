@@ -13,6 +13,7 @@ import (
 	"github.com/go-json-experiment/json"
 	"github.com/go-json-experiment/json/jsontext"
 	"github.com/palantir/pkg/conjuretypes/cj"
+	werror "github.com/palantir/witchcraft-go-error"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -21,14 +22,19 @@ func TestWrapSyntaxError(t *testing.T) {
 	dec := jsontext.NewDecoder(strings.NewReader(`invalid`))
 	cause := errors.New("bad syntax")
 
-	err := cj.WrapSyntaxError(dec, "while reading", cause)
+	err := cj.WrapSyntaxError(dec, cause)
 
 	var syntactic *jsontext.SyntacticError
 	require.ErrorAs(t, err, &syntactic)
 	assert.Equal(t, int64(0), syntactic.ByteOffset)
 	assert.Equal(t, jsontext.Pointer(""), syntactic.JSONPointer)
-	assert.ErrorContains(t, syntactic.Err, "while reading")
+	assert.ErrorContains(t, err, "bad syntax")
 	assert.ErrorIs(t, err, cause)
+
+	// The underlying error is converted to carry a stacktrace.
+	var stackTracer werror.StackTracer
+	require.ErrorAs(t, err, &stackTracer)
+	assert.NotNil(t, stackTracer.StackTrace())
 }
 
 func TestWrapSyntaxErrorPreservesParserError(t *testing.T) {
@@ -38,12 +44,22 @@ func TestWrapSyntaxErrorPreservesParserError(t *testing.T) {
 	_, err = dec.ReadToken()
 	require.Error(t, err)
 
-	wrapped := cj.WrapSyntaxError(dec, "", err)
+	var original *jsontext.SyntacticError
+	require.ErrorAs(t, err, &original)
 
-	assert.Same(t, err, wrapped)
+	wrapped := cj.WrapSyntaxError(dec, err)
+
+	// The outer type and parser position are preserved so callers can still
+	// detect a SyntacticError, but the underlying error gains a stacktrace.
 	var syntactic *jsontext.SyntacticError
 	require.ErrorAs(t, wrapped, &syntactic)
+	assert.Equal(t, original.ByteOffset, syntactic.ByteOffset)
+	assert.Equal(t, original.JSONPointer, syntactic.JSONPointer)
 	assert.NotZero(t, syntactic.ByteOffset)
+
+	var stackTracer werror.StackTracer
+	require.ErrorAs(t, wrapped, &stackTracer)
+	assert.NotNil(t, stackTracer.StackTrace())
 }
 
 func TestSemanticConstructors(t *testing.T) {
@@ -120,6 +136,26 @@ func TestWrapEncodeError(t *testing.T) {
 	assert.Equal(t, jsontext.Pointer(""), semantic.JSONPointer)
 	assert.ErrorContains(t, semantic.Err, "while writing")
 	assert.ErrorIs(t, err, cause)
+
+	var stackTracer werror.StackTracer
+	require.ErrorAs(t, err, &stackTracer)
+	assert.NotNil(t, stackTracer.StackTrace())
+}
+
+// TestErrorsCarryStacktrace verifies that a decode error surfaced through the
+// codec keeps the json-package outer type (so callers' errors.As detection still
+// works) while also carrying a werror stacktrace on its underlying cause.
+func TestErrorsCarryStacktrace(t *testing.T) {
+	var result string
+	err := cj.ClientDecoder(cj.String[string]()).Unmarshal([]byte(`123`), &result)
+	require.Error(t, err)
+
+	var semantic *json.SemanticError
+	require.ErrorAs(t, err, &semantic)
+
+	var stackTracer werror.StackTracer
+	require.ErrorAs(t, err, &stackTracer)
+	assert.NotNil(t, stackTracer.StackTrace())
 }
 
 func TestErrorIntegrationWithCodec(t *testing.T) {
