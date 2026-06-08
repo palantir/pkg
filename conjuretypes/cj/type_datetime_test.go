@@ -43,75 +43,36 @@ func TestDateTime(t *testing.T) {
 	}
 }
 
-func TestDateTimeCompare(t *testing.T) {
-	encoder := cj.DateTimeMapKey[time.Time]()
-
-	time1 := time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC)
-	time2 := time.Date(2023, 1, 1, 13, 0, 0, 0, time.UTC)
-	time3 := time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC)
-
-	tests := []struct {
-		name     string
-		a, b     time.Time
-		expected int
-	}{
-		{"equal times", time1, time3, 0},
-		{"a before b", time1, time2, -1},
-		{"a after b", time2, time1, 1},
-		{"zero times", time.Time{}, time.Time{}, 0},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := encoder.Compare(tt.a, tt.b)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
-func TestDateTimeCompareWithDateTime(t *testing.T) {
-	encoder := cj.DateTimeMapKey[datetime.DateTime]()
-
-	dt1 := datetime.DateTime(time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC))
-	dt2 := datetime.DateTime(time.Date(2023, 1, 1, 13, 0, 0, 0, time.UTC))
-	dt3 := datetime.DateTime(time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC))
-
-	tests := []struct {
-		name     string
-		a, b     datetime.DateTime
-		expected int
-	}{
-		{"equal datetimes", dt1, dt3, 0},
-		{"a before b", dt1, dt2, -1},
-		{"a after b", dt2, dt1, 1},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := encoder.Compare(tt.a, tt.b)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
-// TestDateTimeMapKeyEquality contrasts the value codec (equality by instant) with
-// the map-key codec (equality and ordering by wire string), using two datetimes
-// that denote the same instant in different time zones.
-func TestDateTimeMapKeyEquality(t *testing.T) {
+// TestDateTimeEqual covers datetime equality, which is by instant AND wire string:
+// two values that denote the same instant in different zones serialize to distinct
+// object names, so they are distinct as set elements and map keys.
+func TestDateTimeEqual(t *testing.T) {
+	codec := cj.DateTime[datetime.DateTime]()
 	utc := datetime.DateTime(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))                     // "2024-01-01T00:00:00Z"
-	plusOne := datetime.DateTime(time.Date(2024, 1, 1, 1, 0, 0, 0, time.FixedZone("", 3600))) // "2024-01-01T01:00:00+01:00"
+	utcAgain := datetime.DateTime(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))                // same instant, same zone
+	plusOne := datetime.DateTime(time.Date(2024, 1, 1, 1, 0, 0, 0, time.FixedZone("", 3600))) // "2024-01-01T01:00:00+01:00", same instant
+	later := datetime.DateTime(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC))                   // "2025-01-01T00:00:00Z"
 
-	// The value codec compares by instant, so the two are equal.
-	assert.True(t, cj.DateTime[datetime.DateTime]().Equal(utc, plusOne), "value codec compares by instant")
+	assert.True(t, codec.Equal(utc, utcAgain), "same instant and zone are equal")
+	assert.False(t, codec.Equal(utc, plusOne), "same instant, different zone is distinct (wire strings differ)")
+	assert.False(t, codec.Equal(utc, later), "different instant is not equal")
+}
 
-	// The map-key codec compares by the emitted object name, so they are distinct
-	// and "...Z" sorts before "...+01:00".
-	mapKey := cj.DateTimeMapKey[datetime.DateTime]()
-	assert.False(t, mapKey.Equal(utc, plusOne), "map-key codec compares by wire string")
-	assert.Equal(t, -1, mapKey.Compare(utc, plusOne))
-	assert.Equal(t, 1, mapKey.Compare(plusOne, utc))
+// TestDateTimeSort covers the map-key ordering: keys sort by instant, and keys at
+// the same instant in different zones are deterministically broken by wire string.
+func TestDateTimeSort(t *testing.T) {
+	utc := datetime.DateTime(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))                     // "2024-01-01T00:00:00Z"
+	plusOne := datetime.DateTime(time.Date(2024, 1, 1, 1, 0, 0, 0, time.FixedZone("", 3600))) // "2024-01-01T01:00:00+01:00", same instant as utc
+	later := datetime.DateTime(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC))                   // "2025-01-01T00:00:00Z"
 
-	// Identical wire strings are equal and compare as 0.
-	assert.True(t, mapKey.Equal(utc, utc))
-	assert.Equal(t, 0, mapKey.Compare(utc, utc))
+	keys := []datetime.DateTime{later, plusOne, utc}
+	cj.DateTime[datetime.DateTime]().Sort(keys)
+
+	got := make([]string, len(keys))
+	for i, k := range keys {
+		got[i] = k.String()
+	}
+	// later sorts last by instant; utc and plusOne share an instant, so the tie is
+	// broken by wire string ("...Z" < "...+01:00").
+	assert.Equal(t, []string{"2024-01-01T00:00:00Z", "2024-01-01T01:00:00+01:00", "2025-01-01T00:00:00Z"}, got)
 }

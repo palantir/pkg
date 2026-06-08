@@ -61,15 +61,16 @@ func TestMap(t *testing.T) {
 		},
 		{
 			Name: "datetime map key",
-			Test: typeTestCase[map[datetime.DateTime]string]{Codec: cj.Map[map[datetime.DateTime]string](cj.DateTimeMapKey[datetime.DateTime](), cj.String[string]()), Value: map[datetime.DateTime]string{datetime.DateTime(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)): "2024-01-01T00:00:00Z", datetime.DateTime(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)): "2025-01-01T00:00:00Z"}, JSON: "{\"2024-01-01T00:00:00Z\":\"2024-01-01T00:00:00Z\",\"2025-01-01T00:00:00Z\":\"2025-01-01T00:00:00Z\"}"},
+			Test: typeTestCase[map[datetime.DateTime]string]{Codec: cj.Map[map[datetime.DateTime]string](cj.DateTime[datetime.DateTime](), cj.String[string]()), Value: map[datetime.DateTime]string{datetime.DateTime(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)): "2024-01-01T00:00:00Z", datetime.DateTime(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)): "2025-01-01T00:00:00Z"}, JSON: "{\"2024-01-01T00:00:00Z\":\"2024-01-01T00:00:00Z\",\"2025-01-01T00:00:00Z\":\"2025-01-01T00:00:00Z\"}"},
 		},
 		{
 			// Two keys that denote the same instant in different zones serialize to
-			// different object names; DateTimeMapKey orders them by that wire string,
-			// so the output is deterministic. (Marshal-only: parsing "+01:00" back
-			// yields a different time.Time zone than the FixedZone written here.)
+			// different object names; DateTime sorts by instant and breaks the tie by
+			// that wire string, so the output is deterministic. (Marshal-only: parsing
+			// "+01:00" back yields a different time.Time zone than the FixedZone written
+			// here.)
 			Name: "datetime map key same instant different zone",
-			Test: typeTestCase[map[datetime.DateTime]int]{Codec: cj.Map[map[datetime.DateTime]int](cj.DateTimeMapKey[datetime.DateTime](), cj.Int32[int]()), Value: map[datetime.DateTime]int{
+			Test: typeTestCase[map[datetime.DateTime]int]{Codec: cj.Map[map[datetime.DateTime]int](cj.DateTime[datetime.DateTime](), cj.Int32[int]()), Value: map[datetime.DateTime]int{
 				datetime.DateTime(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)):                 1,
 				datetime.DateTime(time.Date(2024, 1, 1, 1, 0, 0, 0, time.FixedZone("", 3600))): 2,
 			}, JSON: "{\"2024-01-01T00:00:00Z\":1,\"2024-01-01T01:00:00+01:00\":2}", SkipTestUnmarshal: true},
