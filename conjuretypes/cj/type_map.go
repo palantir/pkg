@@ -124,6 +124,16 @@ func mapUnmarshalJSONFrom[T ~map[K]V, K comparable, V any, KEY Codec[K], VAL Cod
 	if tok.Kind() != jsontext.KindBeginObject {
 		return newKindMismatchTokenError(dec, tok, "object opening brace")
 	}
+	// key and val are declared once outside the loop. Passing &key / &val to the
+	// nested decoders forces them to escape to the heap; hoisting the declarations
+	// pays that escape once rather than per entry. They must be reset to their
+	// zero value before each decode: a reused val that still holds a reference
+	// type (slice, map, pointer) from the previous entry would otherwise be
+	// mutated in place by the nested decoder, corrupting the value already stored
+	// in the map. The reset is an assignment into the existing heap cell, so it
+	// does not allocate.
+	var key K
+	var val V
 	for {
 		if dec.PeekKind() == jsontext.KindEndObject {
 			if _, err := dec.ReadToken(); err != nil {
@@ -131,11 +141,10 @@ func mapUnmarshalJSONFrom[T ~map[K]V, K comparable, V any, KEY Codec[K], VAL Cod
 			}
 			return nil
 		}
-		key := *new(K)
+		key, val = *new(K), *new(V)
 		if err := (*new(KEY)).UnmarshalJSONFrom(dec, &key); err != nil {
 			return err
 		}
-		val := *new(V)
 		if err := (*new(VAL)).UnmarshalJSONFrom(dec, &val); err != nil {
 			return err
 		}

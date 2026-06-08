@@ -49,6 +49,13 @@ func TestMap(t *testing.T) {
 			Test: typeTestCase[map[string][]int]{Codec: cj.OrderedMap[map[string][]int](cj.String[string](), cj.List[[]int](cj.Int32[int]())), Value: map[string][]int{"nums": {1, 2, 3}}, JSON: "{\"nums\":[1,2,3]}"},
 		},
 		{
+			// Regression: the map decoder reuses one value variable across
+			// entries, so a reference-typed value (here a slice) must be reset
+			// between entries or every key would alias the last decoded slice.
+			Name: "nested multiple entries",
+			Test: typeTestCase[map[string][]int]{Codec: cj.OrderedMap[map[string][]int](cj.String[string](), cj.List[[]int](cj.Int32[int]())), Value: map[string][]int{"a": {1, 2, 3}, "b": {4, 5, 6}, "c": {7, 8, 9}}, JSON: "{\"a\":[1,2,3],\"b\":[4,5,6],\"c\":[7,8,9]}"},
+		},
+		{
 			Name: "boolean map key",
 			Test: typeTestCase[map[bool]int]{Codec: cj.ComparableMap[map[bool]int](cj.BooleanMapKey[bool](), cj.Int32[int]()), Value: map[bool]int{true: 2, false: 2}, JSON: "{\"false\":2,\"true\":2}"},
 		},

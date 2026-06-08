@@ -127,6 +127,48 @@ cj.OrderedMap[map[string]*CustomObject](
 The outer type argument usually remains explicit. The element, key, value, and
 nested codec types are inferred from constructor arguments.
 
+## Performance
+
+The package is designed so codec selection happens at compile time rather than
+through per-value reflection. Each constructor returns a zero-size type, and a
+chain such as `List[[]string](String[string]())` is a fully monomorphized
+generic type: every nested encode/decode is a direct method call (frequently
+inlined and devirtualized), not a reflective walk over `reflect.Type` and
+`reflect.Value`. This is the structural difference from `encoding/json` and from
+the reflection fallback in `json/v2`.
+
+Three properties follow from that design:
+
+- **No reflection per value.** The standard encoders re-walk type information for
+  every nested value; `cj` replaces that with generated, direct calls. The
+  advantage grows with structural depth, so lists, maps, and objects benefit
+  most. A lone scalar has little reflection to remove.
+- **Shared pooling.** `Marshal` and `Unmarshal` run through `json/v2`'s pooled
+  encoder and decoder, exactly as `encoding/json` and `json/v2` pool theirs, so
+  there is no per-call encoder construction.
+- **Allocation discipline.** Container decoders decode in place to avoid forcing
+  values onto the heap: `List` and `Set` grow their backing array and decode each
+  element into it, and the map decoder reuses one key/value pair across entries
+  (reset between entries so a reference-typed value cannot alias the previous
+  one). The remaining allocations are unavoidable — a decoded string the caller
+  stores escapes to the heap regardless of encoder.
+
+The one structural advantage upstream `json/v2` retains is an internal
+256-entry string-interning cache on its pooled decoder. When the same string
+recurs (repeated field names, enum values, a small key space) it returns
+interned copies and reports near-zero string allocations. That cache lives on
+`json/v2`'s private decoder state and is unreachable through the public
+`jsontext` API, so `cj` cannot use it; for distinct, arbitrary strings — the
+common case for map keys and free-form values — the cache misses and both sides
+allocate equally.
+
+Net: on compound and nested types `cj` matches or beats `json/v2` on both time
+and allocations, and is roughly twice as fast as `encoding/json`; on a single
+scalar value `json/v2`'s pooled fast paths and string cache can edge it out. The
+benchmarks in `benchmark_test.go` cover scalars, lists, maps, and lists of
+objects against both packages. The package's aim is correct Conjure semantics
+and richer errors at competitive or better throughput, not a blanket speedup.
+
 ## Struct Implementations
 
 Generated structs should implement `MarshalJSONTo` and `UnmarshalJSONFrom`
@@ -182,6 +224,30 @@ func (p *Person) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
             return cj.WrapSyntaxError(dec, err)
         }
         switch kind := key.Kind(); kind {
+        case jsontext.KindString:
+            switch key.String() {
+            case "name":
+                if seenName {
+                    return cj.NewDuplicateFieldKeyError(dec)
+                }
+                if err := cj.String[string]().UnmarshalJSONFrom(dec, &p.Name); err != nil {
+                    return err
+                }
+                seenName = true
+            case "age":
+                if seenAge {
+                    return cj.NewDuplicateFieldKeyError(dec)
+                }
+                if err := cj.Int32[int]().UnmarshalJSONFrom(dec, &p.Age); err != nil {
+                    return err
+                }
+                seenAge = true
+            default:
+                unknownMembers = append(unknownMembers, key.String())
+                if err := dec.SkipValue(); err != nil {
+                    return cj.WrapSyntaxError(dec, err)
+                }
+            }
         case jsontext.KindEndObject:
             var missingFields []string
             if !seenName {
@@ -199,34 +265,8 @@ func (p *Person) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
                 }
             }
             return nil
-        case jsontext.KindString:
-            // Continue below.
         default:
             return cj.NewKindMismatchError(dec, kind, "field name")
-        }
-
-        switch key.String() {
-        case "name":
-            if seenName {
-                return cj.NewDuplicateFieldKeyError(dec)
-            }
-            if err := cj.String[string]().UnmarshalJSONFrom(dec, &p.Name); err != nil {
-                return err
-            }
-            seenName = true
-        case "age":
-            if seenAge {
-                return cj.NewDuplicateFieldKeyError(dec)
-            }
-            if err := cj.Int32[int]().UnmarshalJSONFrom(dec, &p.Age); err != nil {
-                return err
-            }
-            seenAge = true
-        default:
-            unknownMembers = append(unknownMembers, key.String())
-            if err := dec.SkipValue(); err != nil {
-                return cj.WrapSyntaxError(dec, err)
-            }
         }
     }
 }

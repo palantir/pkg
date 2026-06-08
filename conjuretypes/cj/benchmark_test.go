@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	jsonv2 "github.com/go-json-experiment/json"
+	"github.com/go-json-experiment/json/jsontext"
 	"github.com/palantir/pkg/conjuretypes/cj"
 	"github.com/stretchr/testify/require"
 )
@@ -136,22 +137,27 @@ func BenchmarkUnmarshalList(b *testing.B) {
 	runBenchUnmarshal(b, data, codec)
 }
 
-func BenchmarkMarshalMap(b *testing.B) {
-	data := make(map[string]int, 50)
-	for i := range 50 {
-		data[string(rune('a'+i))] = i
+// mapBenchSize is large enough to overflow json/v2's 256-entry string-interning
+// cache, so the benchmark reflects arbitrary-key traffic (where each key is
+// decoded fresh) rather than the best case where every key stays cached.
+const mapBenchSize = 512
+
+func benchMap() map[string]int {
+	data := make(map[string]int, mapBenchSize)
+	for i := range mapBenchSize {
+		data["key-"+strconv.Itoa(i)] = i
 	}
+	return data
+}
+
+func BenchmarkMarshalMap(b *testing.B) {
 	codec := cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]())
-	runBenchMarshal(b, data, codec)
+	runBenchMarshal(b, benchMap(), codec)
 }
 
 func BenchmarkUnmarshalMap(b *testing.B) {
-	src := make(map[string]int, 50)
-	for i := range 50 {
-		src[string(rune('a'+i))] = i
-	}
 	codec := cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]())
-	data, err := cj.Marshal(src, codec)
+	data, err := cj.Marshal(benchMap(), codec)
 	require.NoError(b, err)
 	runBenchUnmarshal(b, data, codec)
 }
@@ -226,6 +232,226 @@ func BenchmarkUnmarshalStructList(b *testing.B) {
 		b.ReportAllocs()
 		for b.Loop() {
 			var v []reflectStruct
+			_ = jsonv2.Unmarshal(data, &v)
+		}
+	})
+}
+
+type benchAddress struct {
+	Street string `json:"street"`
+	City   string `json:"city"`
+	Zip    string `json:"zip"`
+}
+
+type benchPerson struct {
+	Name       string            `json:"name"`
+	Age        int               `json:"age"`
+	Emails     []string          `json:"emails"`
+	Address    benchAddress      `json:"address"`
+	Attributes map[string]string `json:"attributes"`
+}
+
+// reflectPerson mirrors benchPerson's wire shape with anonymous struct types so
+// it carries no JSON methods: the reflection baselines walk it field by field.
+type reflectPerson = struct {
+	Name    string   `json:"name"`
+	Age     int      `json:"age"`
+	Emails  []string `json:"emails"`
+	Address struct {
+		Street string `json:"street"`
+		City   string `json:"city"`
+		Zip    string `json:"zip"`
+	} `json:"address"`
+	Attributes map[string]string `json:"attributes"`
+}
+
+func (a benchAddress) MarshalJSONTo(enc *jsontext.Encoder) error {
+	if err := enc.WriteToken(jsontext.BeginObject); err != nil {
+		return err
+	}
+	for _, kv := range []struct {
+		key string
+		val string
+	}{{"street", a.Street}, {"city", a.City}, {"zip", a.Zip}} {
+		if err := enc.WriteToken(jsontext.String(kv.key)); err != nil {
+			return err
+		}
+		if err := cj.String[string]().MarshalJSONTo(enc, kv.val); err != nil {
+			return err
+		}
+	}
+	return enc.WriteToken(jsontext.EndObject)
+}
+
+func (a *benchAddress) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
+	if _, err := dec.ReadToken(); err != nil {
+		return cj.WrapSyntaxError(dec, err)
+	}
+	for dec.PeekKind() != jsontext.KindEndObject {
+		key, err := dec.ReadToken()
+		if err != nil {
+			return cj.WrapSyntaxError(dec, err)
+		}
+		switch key.String() {
+		case "street":
+			err = cj.String[string]().UnmarshalJSONFrom(dec, &a.Street)
+		case "city":
+			err = cj.String[string]().UnmarshalJSONFrom(dec, &a.City)
+		case "zip":
+			err = cj.String[string]().UnmarshalJSONFrom(dec, &a.Zip)
+		default:
+			err = dec.SkipValue()
+		}
+		if err != nil {
+			return err
+		}
+	}
+	_, err := dec.ReadToken()
+	return err
+}
+
+func (p benchPerson) MarshalJSONTo(enc *jsontext.Encoder) error {
+	if err := enc.WriteToken(jsontext.BeginObject); err != nil {
+		return err
+	}
+	if err := enc.WriteToken(jsontext.String("name")); err != nil {
+		return err
+	}
+	if err := cj.String[string]().MarshalJSONTo(enc, p.Name); err != nil {
+		return err
+	}
+	if err := enc.WriteToken(jsontext.String("age")); err != nil {
+		return err
+	}
+	if err := cj.Int32[int]().MarshalJSONTo(enc, p.Age); err != nil {
+		return err
+	}
+	if err := enc.WriteToken(jsontext.String("emails")); err != nil {
+		return err
+	}
+	if err := cj.List[[]string](cj.String[string]()).MarshalJSONTo(enc, p.Emails); err != nil {
+		return err
+	}
+	if err := enc.WriteToken(jsontext.String("address")); err != nil {
+		return err
+	}
+	if err := cj.Struct[benchAddress]().MarshalJSONTo(enc, p.Address); err != nil {
+		return err
+	}
+	if err := enc.WriteToken(jsontext.String("attributes")); err != nil {
+		return err
+	}
+	if err := cj.OrderedMap[map[string]string](cj.String[string](), cj.String[string]()).MarshalJSONTo(enc, p.Attributes); err != nil {
+		return err
+	}
+	return enc.WriteToken(jsontext.EndObject)
+}
+
+func (p *benchPerson) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
+	if _, err := dec.ReadToken(); err != nil {
+		return cj.WrapSyntaxError(dec, err)
+	}
+	for dec.PeekKind() != jsontext.KindEndObject {
+		key, err := dec.ReadToken()
+		if err != nil {
+			return cj.WrapSyntaxError(dec, err)
+		}
+		switch key.String() {
+		case "name":
+			err = cj.String[string]().UnmarshalJSONFrom(dec, &p.Name)
+		case "age":
+			err = cj.Int32[int]().UnmarshalJSONFrom(dec, &p.Age)
+		case "emails":
+			err = cj.List[[]string](cj.String[string]()).UnmarshalJSONFrom(dec, &p.Emails)
+		case "address":
+			err = cj.Struct[benchAddress]().UnmarshalJSONFrom(dec, &p.Address)
+		case "attributes":
+			err = cj.OrderedMap[map[string]string](cj.String[string](), cj.String[string]()).UnmarshalJSONFrom(dec, &p.Attributes)
+		default:
+			err = dec.SkipValue()
+		}
+		if err != nil {
+			return err
+		}
+	}
+	_, err := dec.ReadToken()
+	return err
+}
+
+func benchPeople() ([]benchPerson, []reflectPerson) {
+	const n = 50
+	people := make([]benchPerson, n)
+	refl := make([]reflectPerson, n)
+	for i := range people {
+		id := strconv.Itoa(i)
+		people[i] = benchPerson{
+			Name:    "person-" + id,
+			Age:     i,
+			Emails:  []string{id + "@a.example", id + "@b.example", id + "@c.example"},
+			Address: benchAddress{Street: id + " Main St", City: "City-" + id, Zip: "Z" + id},
+			Attributes: map[string]string{
+				"role-" + id: "engineer",
+				"team-" + id: "platform",
+				"tier-" + id: "gold",
+			},
+		}
+		refl[i].Name = people[i].Name
+		refl[i].Age = people[i].Age
+		refl[i].Emails = people[i].Emails
+		refl[i].Address.Street = people[i].Address.Street
+		refl[i].Address.City = people[i].Address.City
+		refl[i].Address.Zip = people[i].Address.Zip
+		refl[i].Attributes = people[i].Attributes
+	}
+	return people, refl
+}
+
+func BenchmarkMarshalCompound(b *testing.B) {
+	people, refl := benchPeople()
+	codec := cj.List[[]benchPerson](cj.Struct[benchPerson]())
+	b.Run("jsonv1", func(b *testing.B) {
+		b.ReportAllocs()
+		for b.Loop() {
+			_, _ = stdjson.Marshal(refl)
+		}
+	})
+	b.Run("jsonv2", func(b *testing.B) {
+		b.ReportAllocs()
+		for b.Loop() {
+			_, _ = jsonv2.Marshal(refl, jsonv2.Deterministic(true))
+		}
+	})
+	b.Run("cj", func(b *testing.B) {
+		b.ReportAllocs()
+		for b.Loop() {
+			_, _ = cj.Marshal(people, codec)
+		}
+	})
+}
+
+func BenchmarkUnmarshalCompound(b *testing.B) {
+	people, _ := benchPeople()
+	codec := cj.List[[]benchPerson](cj.Struct[benchPerson]())
+	data, err := cj.Marshal(people, codec)
+	require.NoError(b, err)
+	b.Run("cj", func(b *testing.B) {
+		b.ReportAllocs()
+		for b.Loop() {
+			var v []benchPerson
+			_ = cj.Unmarshal(data, &v, codec)
+		}
+	})
+	b.Run("stdlib", func(b *testing.B) {
+		b.ReportAllocs()
+		for b.Loop() {
+			var v []reflectPerson
+			_ = stdjson.Unmarshal(data, &v)
+		}
+	})
+	b.Run("jsonv2", func(b *testing.B) {
+		b.ReportAllocs()
+		for b.Loop() {
+			var v []reflectPerson
 			_ = jsonv2.Unmarshal(data, &v)
 		}
 	})
