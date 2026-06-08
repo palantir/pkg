@@ -12,13 +12,19 @@ import (
 	"github.com/go-json-experiment/json/jsontext"
 )
 
+type textMarshaler[T any] interface {
+	encoding.TextMarshaler
+}
+
+type textUnmarshaler[T any] interface {
+	*T
+	encoding.TextUnmarshaler
+}
+
 // textCodec encodes T as a JSON string via MarshalText and decodes via
 // UnmarshalText, comparing values by their text form. U is the pointer to T that
 // implements encoding.TextUnmarshaler.
-type textCodec[T encoding.TextMarshaler, U interface {
-	*T
-	encoding.TextUnmarshaler
-}] struct{}
+type textCodec[T textMarshaler[T], U textUnmarshaler[T]] struct{}
 
 func (textCodec[T, U]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
 	text, err := receiver.MarshalText()

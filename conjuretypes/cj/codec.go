@@ -59,36 +59,6 @@ type SetItemCodec[T any] interface {
 	Contains(set []T, item T) bool
 }
 
-// fillGoType records T on a SemanticError that does not yet name a Go type.
-// Without it, json/v2 would populate GoType with this internal codec wrapper
-// rather than the value being (un)marshaled. T is the root type passed to the
-// entry point; the error's JSON pointer locates failures within nested values.
-func fillGoType[T any](err error) error {
-	if serr, ok := errors.AsType[*json.SemanticError](err); ok && serr.GoType == nil {
-		serr.GoType = reflect.TypeFor[T]()
-	}
-	return err
-}
-
-type anonymousMarshaler[T any, E Codec[T]] struct {
-	receiver T
-}
-
-func (a *anonymousMarshaler[T, E]) MarshalJSONTo(enc *jsontext.Encoder) error {
-	return fillGoType[T]((*new(E)).MarshalJSONTo(enc, a.receiver))
-}
-
-type anonymousUnmarshaler[T any, E Codec[T]] struct {
-	receiver *T
-}
-
-func (a anonymousUnmarshaler[T, E]) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
-	if a.receiver == nil {
-		return fmt.Errorf("cj.NewAnonymousType: cannot unmarshal into nil receiver")
-	}
-	return fillGoType[T]((*new(E)).UnmarshalJSONFrom(dec, a.receiver))
-}
-
 func Unmarshal[T any, D Codec[T]](data []byte, v *T, _ D, opts ...json.Options) error {
 	// AllowDuplicateNames lets the codec (not the jsontext syntax layer) detect
 	// duplicate object members, so map codecs can report the richer
@@ -216,3 +186,33 @@ func (comparableCodec[T]) Contains(set []T, item T) bool { return slices.Contain
 type orderedKeyCodec[K cmp.Ordered] struct{ comparableCodec[K] }
 
 func (orderedKeyCodec[K]) Sort(keys []K) { slices.Sort(keys) }
+
+type anonymousMarshaler[T any, E Codec[T]] struct {
+	receiver T
+}
+
+func (a *anonymousMarshaler[T, E]) MarshalJSONTo(enc *jsontext.Encoder) error {
+	return fillGoType[T]((*new(E)).MarshalJSONTo(enc, a.receiver))
+}
+
+type anonymousUnmarshaler[T any, E Codec[T]] struct {
+	receiver *T
+}
+
+func (a anonymousUnmarshaler[T, E]) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
+	if a.receiver == nil {
+		return fmt.Errorf("cj.NewAnonymousType: cannot unmarshal into nil receiver")
+	}
+	return fillGoType[T]((*new(E)).UnmarshalJSONFrom(dec, a.receiver))
+}
+
+// fillGoType records T on a SemanticError that does not yet name a Go type.
+// Without it, json/v2 would populate GoType with this internal codec wrapper
+// rather than the value being (un)marshaled. T is the root type passed to the
+// entry point; the error's JSON pointer locates failures within nested values.
+func fillGoType[T any](err error) error {
+	if serr, ok := errors.AsType[*json.SemanticError](err); ok && serr.GoType == nil {
+		serr.GoType = reflect.TypeFor[T]()
+	}
+	return err
+}

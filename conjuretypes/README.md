@@ -75,7 +75,7 @@ Container and delegation codec call shapes:
 - `List[[]T](itemCodec)`
 - `Set[[]T](itemCodec)`
 - `Map[map[K]V](keyCodec, valueCodec)`
-- `Struct[T json.MarshalerTo]()`
+- `Struct[T]()` — `T` must implement `MarshalJSONTo`, `UnmarshalJSONFrom`, and `Equal`
 - `Text[T encoding.TextMarshaler]()`
 
 Map-key codecs for non-string scalar wire types encode and decode quoted object
@@ -178,13 +178,23 @@ and richer errors at competitive or better throughput, not a blanket speedup.
 
 ## Struct Implementations
 
-Generated structs should implement `MarshalJSONTo` and `UnmarshalJSONFrom`
-directly. Field codecs are called directly.
+Generated structs must implement `MarshalJSONTo`, `UnmarshalJSONFrom`, and
+`Equal` directly; `Struct[T]()` will not compile for a type missing any of the
+three (route such types through `Any` instead). Field codecs are called directly.
+
+`Equal` carries the struct's own Conjure-value semantics rather than Go's `==` or
+`reflect.DeepEqual`: it compares scalar fields directly, slices and maps element
+by element, and nested objects through their own `Equal`. The generator emits it
+from the same field walk it uses for marshaling.
 
 ```go
 type Person struct {
     Name string `json:"name"`
     Age  int    `json:"age"`
+}
+
+func (p Person) Equal(other Person) bool {
+    return p.Name == other.Name && p.Age == other.Age
 }
 
 func (p Person) MarshalJSON() ([]byte, error) {
@@ -350,8 +360,9 @@ to nil.
 
 Map encoding is deterministic by default. `Map` sorts keys via the key codec's
 `Sort` method, so each key type sorts as fast as it can: `cmp.Ordered` key types
-(integer, safelong, double, string) use Go's built-in ordering, while comparable
-types that do not support `<` (uuid, datetime, boolean) sort by `KEY.Compare`.
+(integer, safelong, double, string) use Go's built-in ordering, while key types
+that do not support `<` (uuid, datetime, boolean) sort by a type-specific
+comparison.
 
 ```go
 cj.Map[map[string]Value](cj.String[string](), ValueCodec())

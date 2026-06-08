@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-json-experiment/json/jsontext"
 	"github.com/palantir/pkg/conjuretypes/cj"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestStructs(t *testing.T) {
@@ -30,10 +31,45 @@ func TestStructs(t *testing.T) {
 	}
 }
 
+// TestStructEqual verifies the codec delegates to the type's own Equal method. The
+// ptrStruct case is the proof: its Equal compares by pointee, so two distinct
+// pointers to equal values report equal -- the opposite of Go's == on the struct.
+func TestStructEqual(t *testing.T) {
+	codec := cj.Struct[simpleStruct]()
+	assert.True(t, codec.Equal(simpleStruct{Name: "a", Num: 1}, simpleStruct{Name: "a", Num: 1}))
+	assert.False(t, codec.Equal(simpleStruct{Name: "a", Num: 1}, simpleStruct{Name: "b", Num: 1}))
+
+	ptrCodec := cj.Struct[ptrStruct]()
+	x, y, z := 7, 7, 8
+	assert.True(t, ptrCodec.Equal(ptrStruct{Opt: &x}, ptrStruct{Opt: &y}), "delegates to Equal, which compares by pointee, not identity")
+	assert.False(t, ptrCodec.Equal(ptrStruct{Opt: &x}, ptrStruct{Opt: &z}))
+}
+
 type simpleStruct struct {
 	Name string
 	Num  int
 }
+
+func (s simpleStruct) Equal(other simpleStruct) bool {
+	return s.Name == other.Name && s.Num == other.Num
+}
+
+// ptrStruct's Equal compares by pointee, demonstrating that the codec adopts the
+// type's own equality semantics. The methods exist only to satisfy the Struct
+// constructor's constraint.
+type ptrStruct struct {
+	Opt *int
+}
+
+func (s ptrStruct) Equal(other ptrStruct) bool {
+	if s.Opt == nil || other.Opt == nil {
+		return s.Opt == other.Opt
+	}
+	return *s.Opt == *other.Opt
+}
+
+func (ptrStruct) MarshalJSONTo(*jsontext.Encoder) error      { return nil }
+func (*ptrStruct) UnmarshalJSONFrom(*jsontext.Decoder) error { return nil }
 
 func (s simpleStruct) MarshalJSONTo(enc *jsontext.Encoder) error {
 	return enc.WriteValue(jsontext.Value(fmt.Sprintf(`{"name":"%s","num":%d}`, s.Name, s.Num)))

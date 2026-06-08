@@ -5,10 +5,8 @@
 package cj
 
 import (
-	"encoding"
 	"time"
 
-	"github.com/go-json-experiment/json"
 	"github.com/palantir/pkg/binary"
 	"github.com/palantir/pkg/datetime"
 )
@@ -74,21 +72,12 @@ func Set[T ~[]U, U any, ITEM SetItemCodec[U]](_ ITEM) (_ setCodec[T, U, ITEM]) {
 // String returns a codec for Conjure string values.
 func String[T ~string]() (_ stringCodec[T]) { return }
 
-// Struct returns a codec for generated structs that implement the JSON v2 methods directly.
-func Struct[T json.MarshalerTo, U interface {
-	*T
-	json.UnmarshalerFrom
-}]() (_ structCodec[T, U]) {
-	return
-}
+// Struct returns a codec for generated structs that implement MarshalJSONTo,
+// UnmarshalJSONFrom, and Equal directly. Types lacking any of the three can use Any.
+func Struct[T structMarshaler[T], U structUnmarshaler[T]]() (_ structCodec[T, U]) { return }
 
 // Text returns a codec for text-marshaled values.
-func Text[T encoding.TextMarshaler, U interface {
-	*T
-	encoding.TextUnmarshaler
-}]() (_ textCodec[T, U]) {
-	return
-}
+func Text[T textMarshaler[T], U textUnmarshaler[T]]() (_ textCodec[T, U]) { return }
 
 // UUID returns a codec for Conjure UUID values.
 func UUID[T ~[16]byte]() (_ uuidCodec[T]) { return }

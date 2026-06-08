@@ -107,6 +107,10 @@ type testStruct struct {
 	Age  int    `json:"age"`
 }
 
+func (t testStruct) Equal(other testStruct) bool {
+	return t.Name == other.Name && t.Age == other.Age
+}
+
 func (t testStruct) MarshalJSON() ([]byte, error) {
 	return json.Marshal(t, jsontext.AllowDuplicateNames(true))
 }

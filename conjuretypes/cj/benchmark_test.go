@@ -6,6 +6,8 @@ package cj_test
 
 import (
 	stdjson "encoding/json"
+	"maps"
+	"slices"
 	"strconv"
 	"testing"
 
@@ -266,12 +268,24 @@ type benchAddress struct {
 	Zip    string `json:"zip"`
 }
 
+func (a benchAddress) Equal(other benchAddress) bool {
+	return a.Street == other.Street && a.City == other.City && a.Zip == other.Zip
+}
+
 type benchPerson struct {
 	Name       string            `json:"name"`
 	Age        int               `json:"age"`
 	Emails     []string          `json:"emails"`
 	Address    benchAddress      `json:"address"`
 	Attributes map[string]string `json:"attributes"`
+}
+
+func (p benchPerson) Equal(other benchPerson) bool {
+	return p.Name == other.Name &&
+		p.Age == other.Age &&
+		slices.Equal(p.Emails, other.Emails) &&
+		p.Address.Equal(other.Address) &&
+		maps.Equal(p.Attributes, other.Attributes)
 }
 
 // reflectPerson mirrors benchPerson's wire shape with anonymous struct types so
