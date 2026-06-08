@@ -14,7 +14,7 @@ import (
 
 // int32Codec provides JSON marshaling and unmarshaling for integer types (signed).
 // Encodes values as JSON numbers, and decodes JSON numbers into the underlying type.
-type int32Codec[T ~int | ~int8 | ~int16 | ~int32 | ~int64] struct{}
+type int32Codec[T ~int | ~int8 | ~int16 | ~int32 | ~int64] struct{ comparableCodec[T] }
 
 func (int32Codec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
 	if int64(receiver) < math.MinInt32 || int64(receiver) > math.MaxInt32 {
@@ -39,13 +39,9 @@ func (int32Codec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error
 	return nil
 }
 
-func (int32Codec[T]) Equal(a, b T) bool {
-	return a == b
-}
-
 // int32MapKeyCodec provides JSON marshaling and unmarshaling for signed integer types used as map keys.
 // Encodes integer keys as JSON strings to comply with JSON map key requirements.
-type int32MapKeyCodec[T ~int | ~int8 | ~int16 | ~int32 | ~int64] struct{}
+type int32MapKeyCodec[T ~int | ~int8 | ~int16 | ~int32 | ~int64] struct{ comparableCodec[T] }
 
 func (int32MapKeyCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
 	if int64(receiver) < math.MinInt32 || int64(receiver) > math.MaxInt32 {
@@ -68,8 +64,4 @@ func (int32MapKeyCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T)
 	}
 	*receiver = T(i)
 	return nil
-}
-
-func (int32MapKeyCodec[T]) Equal(a, b T) bool {
-	return a == b
 }

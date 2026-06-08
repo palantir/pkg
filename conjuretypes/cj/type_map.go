@@ -21,9 +21,7 @@ import (
 type orderedMapCodec[T ~map[K]V, K cmp.Ordered, V any, KEY Codec[K], VAL Codec[V]] struct{}
 
 func (orderedMapCodec[T, K, V, KEY, VAL]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
-	return mapMarshalJSONTo[T, K, V, KEY, VAL](enc, receiver, func(keys []K) {
-		slices.Sort(keys)
-	})
+	return mapMarshalJSONTo[T, K, V, KEY, VAL](enc, receiver, slices.Sort)
 }
 
 func (orderedMapCodec[T, K, V, KEY, VAL]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error {
@@ -124,14 +122,11 @@ func mapUnmarshalJSONFrom[T ~map[K]V, K comparable, V any, KEY Codec[K], VAL Cod
 	if tok.Kind() != jsontext.KindBeginObject {
 		return newKindMismatchTokenError(dec, tok, "object opening brace")
 	}
-	// key and val are declared once outside the loop. Passing &key / &val to the
-	// nested decoders forces them to escape to the heap; hoisting the declarations
-	// pays that escape once rather than per entry. They must be reset to their
-	// zero value before each decode: a reused val that still holds a reference
-	// type (slice, map, pointer) from the previous entry would otherwise be
-	// mutated in place by the nested decoder, corrupting the value already stored
-	// in the map. The reset is an assignment into the existing heap cell, so it
-	// does not allocate.
+	// key and val are hoisted out of the loop: &key / &val escape to the heap when
+	// passed to the nested decoders, so declaring them once pays that escape once
+	// rather than per entry. The reset each iteration is required, not just tidy: a
+	// reused reference-typed val (slice, map, pointer) would otherwise be mutated in
+	// place by the nested decoder, corrupting the value already stored in the map.
 	var key K
 	var val V
 	for {

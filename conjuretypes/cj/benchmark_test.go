@@ -269,45 +269,100 @@ func (a benchAddress) MarshalJSONTo(enc *jsontext.Encoder) error {
 	if err := enc.WriteToken(jsontext.BeginObject); err != nil {
 		return err
 	}
-	for _, kv := range []struct {
-		key string
-		val string
-	}{{"street", a.Street}, {"city", a.City}, {"zip", a.Zip}} {
-		if err := enc.WriteToken(jsontext.String(kv.key)); err != nil {
-			return err
-		}
-		if err := cj.String[string]().MarshalJSONTo(enc, kv.val); err != nil {
-			return err
-		}
+	if err := enc.WriteToken(jsontext.String("street")); err != nil {
+		return err
+	}
+	if err := cj.String[string]().MarshalJSONTo(enc, a.Street); err != nil {
+		return err
+	}
+	if err := enc.WriteToken(jsontext.String("city")); err != nil {
+		return err
+	}
+	if err := cj.String[string]().MarshalJSONTo(enc, a.City); err != nil {
+		return err
+	}
+	if err := enc.WriteToken(jsontext.String("zip")); err != nil {
+		return err
+	}
+	if err := cj.String[string]().MarshalJSONTo(enc, a.Zip); err != nil {
+		return err
 	}
 	return enc.WriteToken(jsontext.EndObject)
 }
 
 func (a *benchAddress) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
-	if _, err := dec.ReadToken(); err != nil {
+	tok, err := dec.ReadToken()
+	if err != nil {
 		return cj.WrapSyntaxError(dec, err)
 	}
-	for dec.PeekKind() != jsontext.KindEndObject {
+	if kind := tok.Kind(); kind != jsontext.KindBeginObject {
+		return cj.NewKindMismatchError(dec, kind, "benchAddress opening brace")
+	}
+	var seenStreet, seenCity, seenZip bool
+	var unknownMembers []string
+	for {
 		key, err := dec.ReadToken()
 		if err != nil {
 			return cj.WrapSyntaxError(dec, err)
 		}
+		kind := key.Kind()
+		if kind == jsontext.KindEndObject {
+			break
+		}
+		if kind != jsontext.KindString {
+			return cj.NewKindMismatchError(dec, kind, "field name")
+		}
 		switch key.String() {
 		case "street":
-			err = cj.String[string]().UnmarshalJSONFrom(dec, &a.Street)
+			if seenStreet {
+				return cj.NewDuplicateFieldKeyError(dec)
+			}
+			if err := cj.String[string]().UnmarshalJSONFrom(dec, &a.Street); err != nil {
+				return err
+			}
+			seenStreet = true
 		case "city":
-			err = cj.String[string]().UnmarshalJSONFrom(dec, &a.City)
+			if seenCity {
+				return cj.NewDuplicateFieldKeyError(dec)
+			}
+			if err := cj.String[string]().UnmarshalJSONFrom(dec, &a.City); err != nil {
+				return err
+			}
+			seenCity = true
 		case "zip":
-			err = cj.String[string]().UnmarshalJSONFrom(dec, &a.Zip)
+			if seenZip {
+				return cj.NewDuplicateFieldKeyError(dec)
+			}
+			if err := cj.String[string]().UnmarshalJSONFrom(dec, &a.Zip); err != nil {
+				return err
+			}
+			seenZip = true
 		default:
-			err = dec.SkipValue()
-		}
-		if err != nil {
-			return err
+			unknownMembers = append(unknownMembers, key.String())
+			if err := dec.SkipValue(); err != nil {
+				return err
+			}
 		}
 	}
-	_, err := dec.ReadToken()
-	return err
+	var missingFields []string
+	if !seenStreet {
+		missingFields = append(missingFields, "street")
+	}
+	if !seenCity {
+		missingFields = append(missingFields, "city")
+	}
+	if !seenZip {
+		missingFields = append(missingFields, "zip")
+	}
+	if len(missingFields) > 0 {
+		return cj.NewMissingFieldsError(dec, missingFields)
+	}
+	if len(unknownMembers) > 0 {
+		if strict, _ := jsonv2.GetOption(dec.Options(), jsonv2.RejectUnknownMembers); strict {
+			return cj.NewUnknownFieldsError(dec, unknownMembers)
+		}
+	}
+	return nil
 }
 
 func (p benchPerson) MarshalJSONTo(enc *jsontext.Encoder) error {
@@ -348,34 +403,100 @@ func (p benchPerson) MarshalJSONTo(enc *jsontext.Encoder) error {
 }
 
 func (p *benchPerson) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
-	if _, err := dec.ReadToken(); err != nil {
+	tok, err := dec.ReadToken()
+	if err != nil {
 		return cj.WrapSyntaxError(dec, err)
 	}
-	for dec.PeekKind() != jsontext.KindEndObject {
+	if kind := tok.Kind(); kind != jsontext.KindBeginObject {
+		return cj.NewKindMismatchError(dec, kind, "benchPerson opening brace")
+	}
+	var seenName, seenAge, seenEmails, seenAddress, seenAttributes bool
+	var unknownMembers []string
+	for {
 		key, err := dec.ReadToken()
 		if err != nil {
 			return cj.WrapSyntaxError(dec, err)
 		}
+		kind := key.Kind()
+		if kind == jsontext.KindEndObject {
+			break
+		}
+		if kind != jsontext.KindString {
+			return cj.NewKindMismatchError(dec, kind, "field name")
+		}
 		switch key.String() {
 		case "name":
-			err = cj.String[string]().UnmarshalJSONFrom(dec, &p.Name)
+			if seenName {
+				return cj.NewDuplicateFieldKeyError(dec)
+			}
+			if err := cj.String[string]().UnmarshalJSONFrom(dec, &p.Name); err != nil {
+				return err
+			}
+			seenName = true
 		case "age":
-			err = cj.Int32[int]().UnmarshalJSONFrom(dec, &p.Age)
+			if seenAge {
+				return cj.NewDuplicateFieldKeyError(dec)
+			}
+			if err := cj.Int32[int]().UnmarshalJSONFrom(dec, &p.Age); err != nil {
+				return err
+			}
+			seenAge = true
 		case "emails":
-			err = cj.List[[]string](cj.String[string]()).UnmarshalJSONFrom(dec, &p.Emails)
+			if seenEmails {
+				return cj.NewDuplicateFieldKeyError(dec)
+			}
+			if err := cj.List[[]string](cj.String[string]()).UnmarshalJSONFrom(dec, &p.Emails); err != nil {
+				return err
+			}
+			seenEmails = true
 		case "address":
-			err = cj.Struct[benchAddress]().UnmarshalJSONFrom(dec, &p.Address)
+			if seenAddress {
+				return cj.NewDuplicateFieldKeyError(dec)
+			}
+			if err := cj.Struct[benchAddress]().UnmarshalJSONFrom(dec, &p.Address); err != nil {
+				return err
+			}
+			seenAddress = true
 		case "attributes":
-			err = cj.OrderedMap[map[string]string](cj.String[string](), cj.String[string]()).UnmarshalJSONFrom(dec, &p.Attributes)
+			if seenAttributes {
+				return cj.NewDuplicateFieldKeyError(dec)
+			}
+			if err := cj.OrderedMap[map[string]string](cj.String[string](), cj.String[string]()).UnmarshalJSONFrom(dec, &p.Attributes); err != nil {
+				return err
+			}
+			seenAttributes = true
 		default:
-			err = dec.SkipValue()
-		}
-		if err != nil {
-			return err
+			unknownMembers = append(unknownMembers, key.String())
+			if err := dec.SkipValue(); err != nil {
+				return err
+			}
 		}
 	}
-	_, err := dec.ReadToken()
-	return err
+	var missingFields []string
+	if !seenName {
+		missingFields = append(missingFields, "name")
+	}
+	if !seenAge {
+		missingFields = append(missingFields, "age")
+	}
+	if !seenEmails {
+		missingFields = append(missingFields, "emails")
+	}
+	if !seenAddress {
+		missingFields = append(missingFields, "address")
+	}
+	if !seenAttributes {
+		missingFields = append(missingFields, "attributes")
+	}
+	if len(missingFields) > 0 {
+		return cj.NewMissingFieldsError(dec, missingFields)
+	}
+	if len(unknownMembers) > 0 {
+		if strict, _ := jsonv2.GetOption(dec.Options(), jsonv2.RejectUnknownMembers); strict {
+			return cj.NewUnknownFieldsError(dec, unknownMembers)
+		}
+	}
+	return nil
 }
 
 func benchPeople() ([]benchPerson, []reflectPerson) {

@@ -25,7 +25,6 @@ func (optionalCodec[T, U, ITEM]) MarshalJSONTo(enc *jsontext.Encoder, receiver T
 
 func (optionalCodec[T, U, ITEM]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error {
 	if dec.PeekKind() == jsontext.KindNull {
-		// still have to consume 'null' token
 		if _, err := dec.ReadToken(); err != nil {
 			return WrapSyntaxError(dec, err)
 		}

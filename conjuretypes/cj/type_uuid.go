@@ -12,7 +12,7 @@ import (
 )
 
 // uuidCodec provides JSON marshaling and unmarshaling for uuid.UUID.
-type uuidCodec[T ~[16]byte] struct{}
+type uuidCodec[T ~[16]byte] struct{ comparableCodec[T] }
 
 func (uuidCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
 	return enc.WriteToken(jsontext.String(uuid.UUID(receiver).String()))
@@ -36,8 +36,4 @@ func (uuidCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error 
 
 func (uuidCodec[T]) Compare(a, b T) int {
 	return bytes.Compare(a[:], b[:])
-}
-
-func (uuidCodec[T]) Equal(a, b T) bool {
-	return a == b
 }

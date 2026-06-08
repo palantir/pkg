@@ -12,7 +12,7 @@ import (
 
 // booleanCodec provides JSON marshaling and unmarshaling for Go bool-like types.
 // Encodes values as JSON true/false, and decodes JSON booleans into the underlying type.
-type booleanCodec[T ~bool] struct{}
+type booleanCodec[T ~bool] struct{ comparableCodec[T] }
 
 func (booleanCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
 	if receiver {
@@ -37,13 +37,9 @@ func (booleanCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) err
 	return nil
 }
 
-func (booleanCodec[T]) Equal(a, b T) bool {
-	return a == b
-}
-
 // booleanMapKeyCodec provides JSON marshaling for bool-like types used as map keys.
 // Encodes bool keys as the JSON strings "true" or "false" (not as booleans), to comply with JSON map key requirements.
-type booleanMapKeyCodec[T ~bool] struct{}
+type booleanMapKeyCodec[T ~bool] struct{ comparableCodec[T] }
 
 func (booleanMapKeyCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
 	if receiver {
@@ -76,8 +72,4 @@ func (booleanMapKeyCodec[T]) Compare(a, b T) int {
 		return 1
 	}
 	return -1
-}
-
-func (booleanMapKeyCodec[T]) Equal(a, b T) bool {
-	return a == b
 }

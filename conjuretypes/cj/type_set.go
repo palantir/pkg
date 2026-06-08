@@ -79,7 +79,6 @@ func (setCodec[T, U, ITEM]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) err
 		if slices.ContainsFunc(receiver[0:i], func(next U) bool {
 			return (*new(ITEM)).Equal(item, next)
 		}) {
-			// duplicate item
 			continue
 		}
 		if err := (*new(ITEM)).MarshalJSONTo(enc, item); err != nil {

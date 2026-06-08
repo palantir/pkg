@@ -13,7 +13,7 @@ import (
 
 // safeLongCodec provides JSON marshaling and unmarshaling for integer types (signed).
 // Encodes values as JSON numbers, and decodes JSON numbers into the underlying type.
-type safeLongCodec[T ~int | ~int8 | ~int16 | ~int32 | ~int64] struct{}
+type safeLongCodec[T ~int | ~int8 | ~int16 | ~int32 | ~int64] struct{ comparableCodec[T] }
 
 func (safeLongCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
 	if _, err := safelong.NewSafeLong(int64(receiver)); err != nil {
@@ -38,13 +38,9 @@ func (safeLongCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) er
 	return nil
 }
 
-func (safeLongCodec[T]) Equal(a, b T) bool {
-	return a == b
-}
-
 // safeLongMapKeyCodec provides JSON marshaling and unmarshaling for signed integer types used as map keys.
 // Encodes integer keys as JSON strings to comply with JSON map key requirements.
-type safeLongMapKeyCodec[T ~int | ~int8 | ~int16 | ~int32 | ~int64] struct{}
+type safeLongMapKeyCodec[T ~int | ~int8 | ~int16 | ~int32 | ~int64] struct{ comparableCodec[T] }
 
 func (safeLongMapKeyCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
 	if _, err := safelong.NewSafeLong(int64(receiver)); err != nil {
@@ -67,8 +63,4 @@ func (safeLongMapKeyCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver 
 	}
 	*receiver = T(i)
 	return nil
-}
-
-func (safeLongMapKeyCodec[T]) Equal(a, b T) bool {
-	return a == b
 }

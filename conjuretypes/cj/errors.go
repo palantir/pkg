@@ -59,15 +59,15 @@ func NewKindMismatchError(dec *jsontext.Decoder, got jsontext.Kind, want string)
 }
 
 func newKindMismatchTokenError(dec *jsontext.Decoder, tok jsontext.Token, want string) error {
-	return semanticDecodeTokenError(dec, tok, fmt.Errorf("want %s", want))
+	return semanticDecodeError(dec, tok.Kind(), tokenJSONValue(tok), fmt.Errorf("want %s", want))
 }
 
 func newInvalidTokenValueError(dec *jsontext.Decoder, tok jsontext.Token, message string, err error) error {
-	return semanticDecodeTokenError(dec, tok, errorWithMessage(message, err))
+	return semanticDecodeError(dec, tok.Kind(), tokenJSONValue(tok), errorWithMessage(message, err))
 }
 
-func newInvalidJSONValueError(dec *jsontext.Decoder, value jsontext.Value, message string, err error) error {
-	return semanticDecodeError(dec, value.Kind(), value, errorWithMessage(message, err))
+func newInvalidJSONValueError(dec *jsontext.Decoder, value jsontext.Value, err error) error {
+	return semanticDecodeError(dec, value.Kind(), value, err)
 }
 
 // The constructors below leave the offending Go type and location to the
@@ -113,10 +113,6 @@ func semanticDecodeError(dec *jsontext.Decoder, kind jsontext.Kind, value jsonte
 		JSONValue:   value.Clone(),
 		Err:         werror.Convert(err),
 	}
-}
-
-func semanticDecodeTokenError(dec *jsontext.Decoder, tok jsontext.Token, err error) error {
-	return semanticDecodeError(dec, tok.Kind(), tokenJSONValue(tok), err)
 }
 
 func tokenJSONValue(tok jsontext.Token) jsontext.Value {

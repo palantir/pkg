@@ -14,6 +14,33 @@ import (
 	"github.com/go-json-experiment/json/jsontext"
 )
 
+// Codec is implemented by types that can encode and decode a Go value of type T to JSON using the
+// provided jsontext.Encoder and jsontext.Decoder. Constructors for each Conjure type
+// (e.g., Boolean, Int32, String, List, Map, etc.) are provided in this package.
+// Each implementation ensures correct marshaling of the corresponding Go type to the appropriate JSON representation.
+// Implementations' zero values must be valid for use by container encoders.
+type Codec[T any] interface {
+	// MarshalJSONTo can be passed to json.MarshalToFunc or used to implement json.MarshalerTo.
+	MarshalJSONTo(enc *jsontext.Encoder, receiver T) error
+	// UnmarshalJSONFrom can be passed to json.UnmarshalFromFunc or used to implement json.UnmarshalerFrom.
+	UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error
+	// Equal returns whether the two values can be considered equal for the purposes of map and set uniqueness.
+	Equal(T, T) bool
+}
+
+// MapKeyCodec is implemented by types that can be used as map keys in Conjure types
+// but do not implement cmp.Ordered. The encoder's Compare method is used to sort map keys in a deterministic order.
+// This is used for types like UUID, datetime, and boolean that need custom comparison logic for ordering.
+// Key types that satisfy cmp.Ordered (e.g. integer, safelong, double, and binary which is a string) instead use
+// OrderedMap, whose slices.Sort path is faster than forcing them through Compare.
+type MapKeyCodec[K comparable] interface {
+	Codec[K]
+	// Compare returns -1 if a < b, 0 if a == b, and 1 if a > b.
+	// This is used to sort map keys and set elements in a deterministic order for types that are comparable
+	// but don't support ordering operators like <, >, ==.
+	Compare(K, K) int
+}
+
 // fillGoType records T on a SemanticError that does not yet name a Go type.
 // Without it, json/v2 would populate GoType with this internal codec wrapper
 // rather than the value being (un)marshaled. T is the root type passed to the
@@ -148,3 +175,15 @@ func (defaultEncoder[T, E]) Marshal(v any) ([]byte, error) {
 	}
 	return json.Marshal(v, json.WithMarshalers(defaultMarshalers))
 }
+
+// comparableCodec is embedded by scalar codecs whose values are equal exactly
+// when Go's == says so (numbers, bool, string, and the like). It supplies the
+// Codec[T].Equal method so each codec does not repeat the same one-liner.
+//
+// There is deliberately no cmp.Ordered-based Compare mixin: ordered keys sort
+// through OrderedMap's slices.Sort path (see MapKeyCodec), and the key types
+// that do need a Compare method (datetime, uuid, boolean, ...) all define a
+// custom one, so a cmp.Compare wrapper would never be used.
+type comparableCodec[T comparable] struct{}
+
+func (comparableCodec[T]) Equal(a, b T) bool { return a == b }

@@ -11,12 +11,9 @@ import (
 	"github.com/go-json-experiment/json/jsontext"
 )
 
-// textCodec provides JSON marshaling for types implementing encoding.TextMarshaler.
-// Encodes values as JSON strings using the MarshalText method, and supports comparison by text value.
-//
-// textCodec provides JSON unmarshaling for types implementing encoding.TextUnmarshaler.
-// Decodes JSON strings by calling UnmarshalText on the target type.
-// Type U is the pointer to T that implements encoding.TextUnmarshaler.
+// textCodec encodes T as a JSON string via MarshalText and decodes via
+// UnmarshalText, comparing values by their text form. U is the pointer to T that
+// implements encoding.TextUnmarshaler.
 type textCodec[T encoding.TextMarshaler, U interface {
 	*T
 	encoding.TextUnmarshaler

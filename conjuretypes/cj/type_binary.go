@@ -58,7 +58,7 @@ func (binaryCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) erro
 	}
 	decoded, err := base64.StdEncoding.AppendDecode(*receiver, unquoted)
 	if err != nil {
-		return newInvalidJSONValueError(dec, val, "", err)
+		return newInvalidJSONValueError(dec, val, err)
 	}
 	*receiver = decoded
 	return nil
@@ -72,14 +72,10 @@ func (binaryCodec[T]) Equal(a, b T) bool {
 	return bytes.Equal(a, b)
 }
 
-type binaryMapKeyCodec[T binary.Binary] struct{}
+type binaryMapKeyCodec[T binary.Binary] struct{ comparableCodec[T] }
 
 func (binaryMapKeyCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
 	return (stringCodec[binary.Binary]{}).MarshalJSONTo(enc, binary.Binary(receiver))
-}
-
-func (binaryMapKeyCodec[T]) Equal(a, b T) bool {
-	return a == b
 }
 
 func (binaryMapKeyCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error {

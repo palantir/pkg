@@ -10,7 +10,7 @@ import (
 	"github.com/go-json-experiment/json/jsontext"
 )
 
-type bearerTokenCodec[T ~string] struct{}
+type bearerTokenCodec[T ~string] struct{ comparableCodec[T] }
 
 func (bearerTokenCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
 	return enc.WriteToken(jsontext.String(string(receiver)))
@@ -46,10 +46,6 @@ func (bearerTokenCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T)
 	}
 	*receiver = T(str)
 	return nil
-}
-
-func (bearerTokenCodec[T]) Equal(a, b T) bool {
-	return a == b
 }
 
 // validBearerTokenChars marks the ASCII bytes permitted in a bearer token: the

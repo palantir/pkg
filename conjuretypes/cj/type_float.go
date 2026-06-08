@@ -15,7 +15,7 @@ import (
 // floatCodec provides JSON marshaling and unmarshaling for float64-like types.
 // Encodes values as JSON numbers, and decodes JSON numbers into the underlying type.
 // Special values like "NaN", "Infinity", and "-Infinity" are handled by jsontext.Float.
-type floatCodec[T ~float64] struct{}
+type floatCodec[T ~float64] struct{ comparableCodec[T] }
 
 func (floatCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
 	return enc.WriteToken(jsontext.Float(float64(receiver)))
@@ -50,14 +50,10 @@ func (floatCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T) error
 	return nil
 }
 
-func (floatCodec[T]) Equal(a, b T) bool {
-	return a == b
-}
-
 // floatMapKeyCodec provides JSON marshaling and unmarshaling for float64-like types used as map keys.
 // Encodes float keys as JSON strings to comply with JSON map key requirements, supporting
 // special values like "NaN", "Infinity", and "-Infinity".
-type floatMapKeyCodec[T ~float64] struct{}
+type floatMapKeyCodec[T ~float64] struct{ comparableCodec[T] }
 
 func (floatMapKeyCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
 	switch {
@@ -106,8 +102,4 @@ func (floatMapKeyCodec[T]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T)
 		*receiver = T(f)
 	}
 	return nil
-}
-
-func (floatMapKeyCodec[T]) Equal(a, b T) bool {
-	return a == b
 }

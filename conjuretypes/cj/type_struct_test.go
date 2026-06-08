@@ -52,21 +52,22 @@ func (s *simpleStruct) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 		if err != nil {
 			return err
 		}
-		if kind := key.Kind(); kind == jsontext.KindEndObject {
-			break // End of object
-		} else if kind != jsontext.KindString {
-			return cj.NewKindMismatchError(dec, kind, "next key or closing brace for EnumValueDefinition")
-		}
-		switch key.String() {
-		case "name":
-			if err := cj.String[string]().UnmarshalJSONFrom(dec, &s.Name); err != nil {
-				return err
+		switch kind := key.Kind(); kind {
+		case jsontext.KindString:
+			switch key.String() {
+			case "name":
+				if err := cj.String[string]().UnmarshalJSONFrom(dec, &s.Name); err != nil {
+					return err
+				}
+			case "num":
+				if err := cj.Int32[int]().UnmarshalJSONFrom(dec, &s.Num); err != nil {
+					return err
+				}
 			}
-		case "num":
-			if err := cj.Int32[int]().UnmarshalJSONFrom(dec, &s.Num); err != nil {
-				return err
-			}
+		case jsontext.KindEndObject:
+			return nil // end of object
+		default:
+			return cj.NewKindMismatchError(dec, kind, "next key or closing brace for simpleStruct")
 		}
 	}
-	return nil
 }

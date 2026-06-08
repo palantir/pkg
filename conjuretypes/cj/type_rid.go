@@ -25,7 +25,7 @@ type ridConstraint interface {
 // ridCodec provides JSON marshaling and unmarshaling for types based on rid.ResourceIdentifier.
 // Encodes values as JSON strings using the canonical string representation of the resource identifier.
 // Implements comparison based on all ridCodec fields for use as a map key.
-type ridCodec[T ridConstraint] struct{}
+type ridCodec[T ridConstraint] struct{ comparableCodec[T] }
 
 func (ridCodec[T]) MarshalJSONTo(enc *jsontext.Encoder, receiver T) error {
 	return enc.WriteToken(jsontext.String(rid.ResourceIdentifier(receiver).String()))
@@ -55,8 +55,4 @@ func (ridCodec[T]) Compare(a, b T) int {
 		strings.Compare(ra.Type, rb.Type),
 		strings.Compare(ra.Locator, rb.Locator),
 	)
-}
-
-func (ridCodec[T]) Equal(a, b T) bool {
-	return a == b
 }
