@@ -22,19 +22,19 @@ func TestBearerToken(t *testing.T) {
 		},
 		{
 			Name: "null",
-			Test: typeTestCase[bearertoken.Token]{Codec: cj.BearerToken[bearertoken.Token](), JSON: "null", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "KindMismatchError at offset 4: want json string, got null"},
+			Test: typeTestCase[bearertoken.Token]{Codec: cj.BearerToken[bearertoken.Token](), JSON: "null", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "json: cannot unmarshal JSON null into Go bearertoken.Token after offset 4: want json string"},
 		},
 		{
 			Name: "invalid",
-			Test: typeTestCase[bearertoken.Token]{Codec: cj.BearerToken[bearertoken.Token](), JSON: "\" \"", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "InvalidValueError at offset 3: invalid character for bearer token"},
+			Test: typeTestCase[bearertoken.Token]{Codec: cj.BearerToken[bearertoken.Token](), JSON: "\" \"", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "json: cannot unmarshal JSON string \" \" into Go bearertoken.Token after offset 3: invalid character for bearer token"},
 		},
 		{
 			Name: "non_ascii",
-			Test: typeTestCase[bearertoken.Token]{Codec: cj.BearerToken[bearertoken.Token](), JSON: "\"☃\"", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "InvalidValueError at offset 5: invalid character for bearer token"},
+			Test: typeTestCase[bearertoken.Token]{Codec: cj.BearerToken[bearertoken.Token](), JSON: "\"☃\"", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "json: cannot unmarshal JSON string \"☃\" into Go bearertoken.Token after offset 5: invalid character for bearer token"},
 		},
 		{
 			Name: "empty",
-			Test: typeTestCase[bearertoken.Token]{Codec: cj.BearerToken[bearertoken.Token](), JSON: "\"\"", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "InvalidValueError at offset 2: empty bearer token"},
+			Test: typeTestCase[bearertoken.Token]{Codec: cj.BearerToken[bearertoken.Token](), JSON: "\"\"", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "json: cannot unmarshal JSON string \"\" into Go bearertoken.Token after offset 2: empty bearer token"},
 		},
 		{
 			Name: "trailing_padding",
@@ -42,11 +42,11 @@ func TestBearerToken(t *testing.T) {
 		},
 		{
 			Name: "interspersed_padding",
-			Test: typeTestCase[bearertoken.Token]{Codec: cj.BearerToken[bearertoken.Token](), JSON: "\"fo=o\"", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "InvalidValueError at offset 6: invalid character for bearer token"},
+			Test: typeTestCase[bearertoken.Token]{Codec: cj.BearerToken[bearertoken.Token](), JSON: "\"fo=o\"", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "json: cannot unmarshal JSON string \"fo=o\" into Go bearertoken.Token after offset 6: invalid character for bearer token"},
 		},
 		{
 			Name: "only_padding",
-			Test: typeTestCase[bearertoken.Token]{Codec: cj.BearerToken[bearertoken.Token](), JSON: "\"==\"", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "InvalidValueError at offset 4: invalid character for bearer token"},
+			Test: typeTestCase[bearertoken.Token]{Codec: cj.BearerToken[bearertoken.Token](), JSON: "\"==\"", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "json: cannot unmarshal JSON string \"==\" into Go bearertoken.Token after offset 4: invalid character for bearer token"},
 		},
 	}
 	for _, tc := range tests {

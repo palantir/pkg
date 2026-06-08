@@ -56,7 +56,7 @@ func TestSet(t *testing.T) {
 		},
 		{
 			Name: "unmarshal_dupes",
-			Test: typeTestCase[[]int]{Codec: cj.Set[[]int](cj.Int32[int]()), Value: []int{1, 42}, JSON: "[42, 42, 1]", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "DuplicateSetItemError at offset 7: type int has a duplicate set item at index 1"},
+			Test: typeTestCase[[]int]{Codec: cj.Set[[]int](cj.Int32[int]()), Value: []int{1, 42}, JSON: "[42, 42, 1]", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "json: cannot unmarshal into Go []int within \"/1\": duplicate set item"},
 		},
 		{
 			Name: "set_of_structs",
@@ -74,7 +74,7 @@ func TestSet(t *testing.T) {
 		{
 			Name: "set_of_structs_errors",
 			Test: typeTestCase[[]testStruct]{Codec: cj.Set[[]testStruct](cj.Struct[testStruct]()), JSON: "[{\"name\":\"c\",\"age\":3},{\"name\":\"b\",\"age\":2},{\"name\":\"a\",\"age\":1},{\"name\":\"b\",\"age\":2},{\"name\":\"b\",\"age\":2}]",
-				ErrUnmarshalJSONFrom: "DuplicateSetItemError at offset 84: type cj_test.testStruct has a duplicate set item at index 3",
+				ErrUnmarshalJSONFrom: "json: cannot unmarshal into Go []cj_test.testStruct within \"/3\": duplicate set item",
 				SkipTestMarshal:      true,
 			},
 		},
@@ -88,7 +88,7 @@ func TestSet(t *testing.T) {
 			Name: "datetimes_errors",
 			Test: typeTestCase[[]datetime.DateTime]{Codec: cj.Set[[]datetime.DateTime](cj.Text[datetime.DateTime]()), JSON: "[\"2025-05-12T19:26:00Z\",\"2001-01-01T19:26:00Z\",\"0001-01-01T00:00:00Z\",\"0001-01-01T00:00:00.00Z\"]",
 				Value:                []datetime.DateTime{must(datetime.ParseDateTime("2025-05-12T19:26:00Z")), must(datetime.ParseDateTime("2001-01-01T19:26:00Z")), must(datetime.ParseDateTime("0001-01-01T00:00:00Z"))},
-				ErrUnmarshalJSONFrom: "DuplicateSetItemError at offset 95: type datetime.DateTime has a duplicate set item at index 3",
+				ErrUnmarshalJSONFrom: "json: cannot unmarshal into Go []datetime.DateTime within \"/3\": duplicate set item",
 				SkipTestMarshal:      true,
 			},
 		},

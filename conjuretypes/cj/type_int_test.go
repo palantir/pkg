@@ -30,7 +30,7 @@ func TestInt(t *testing.T) {
 		},
 		{
 			Name: "invalid",
-			Test: typeTestCase[int]{Codec: cj.Int32[int](), JSON: "\"invalid\"", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "KindMismatchError at offset 9: want json int, got string"},
+			Test: typeTestCase[int]{Codec: cj.Int32[int](), JSON: "\"invalid\"", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "json: cannot unmarshal JSON string \"invalid\" into Go int after offset 9: want json int"},
 		},
 	}
 	for _, tc := range tests {

@@ -37,7 +37,7 @@ func TestBoolean(t *testing.T) {
 			Name: "null",
 			Test: typeTestCase[bool]{Codec: cj.Boolean[bool](), JSON: "null",
 				SkipTestMarshal:      true,
-				ErrUnmarshalJSONFrom: "KindMismatchError at offset 4: want json boolean, got null",
+				ErrUnmarshalJSONFrom: "json: cannot unmarshal JSON null into Go bool after offset 4: want json boolean",
 			},
 		},
 		{
@@ -50,14 +50,14 @@ func TestBoolean(t *testing.T) {
 			Name: "map_key_invalid",
 			Test: typeTestCase[bool]{Codec: cj.BooleanMapKey[bool](), JSON: `"invalid"`,
 				SkipTestMarshal:      true,
-				ErrUnmarshalJSONFrom: "InvalidValueError at offset 9: invalid boolean: strconv.ParseBool: parsing \"invalid\": invalid syntax",
+				ErrUnmarshalJSONFrom: "json: cannot unmarshal JSON string \"invalid\" into Go bool after offset 9: invalid boolean: strconv.ParseBool: parsing \"invalid\": invalid syntax",
 			},
 		},
 		{
 			Name: "map_key_not_string",
 			Test: typeTestCase[bool]{Codec: cj.BooleanMapKey[bool](), JSON: `true`,
 				SkipTestMarshal:      true,
-				ErrUnmarshalJSONFrom: "KindMismatchError at offset 4: want json string, got true",
+				ErrUnmarshalJSONFrom: "json: cannot unmarshal JSON boolean into Go bool after offset 4: want json string",
 			},
 		},
 	}

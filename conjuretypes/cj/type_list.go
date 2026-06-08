@@ -65,11 +65,12 @@ func (listCodec[T, U, ITEM]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *
 			}
 			return nil
 		}
-		item := *new(U)
-		if err := (*new(ITEM)).UnmarshalJSONFrom(dec, &item); err != nil {
+		// Grow into the backing array and decode in place so the element does
+		// not escape to the heap via the &item passed to the nested decoder.
+		*receiver = append(*receiver, *new(U))
+		if err := (*new(ITEM)).UnmarshalJSONFrom(dec, &(*receiver)[len(*receiver)-1]); err != nil {
 			return err
 		}
-		*receiver = append(*receiver, item)
 	}
 }
 

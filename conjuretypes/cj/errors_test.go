@@ -7,6 +7,7 @@ package cj_test
 import (
 	"bytes"
 	"errors"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -85,32 +86,32 @@ func TestSemanticConstructorsPreserveCategory(t *testing.T) {
 	}{
 		{
 			name: "missing fields",
-			err:  cj.NewMissingFieldsError(dec, "Person", []string{"name"}),
+			err:  cj.NewMissingFieldsError(dec, []string{"name"}),
 			is:   cj.ErrMissingFields,
 		},
 		{
 			name: "unknown fields",
-			err:  cj.NewUnknownFieldsError(dec, "Person", []string{"extra"}),
+			err:  cj.NewUnknownFieldsError(dec, []string{"extra"}),
 			is:   cj.ErrUnknownFields,
 		},
 		{
 			name: "unknown enum",
-			err:  cj.NewUnknownEnumError(dec, "Color"),
+			err:  cj.NewUnknownEnumError(dec),
 			is:   cj.ErrUnknownEnum,
 		},
 		{
 			name: "duplicate field",
-			err:  cj.NewDuplicateFieldKeyError(dec, `Person["name"]`),
+			err:  cj.NewDuplicateFieldKeyError(dec),
 			is:   cj.ErrDuplicateField,
 		},
 		{
 			name: "duplicate map key",
-			err:  cj.NewDuplicateMapKeyError(dec, "map[int]int"),
+			err:  cj.NewDuplicateMapKeyError(dec),
 			is:   cj.ErrDuplicateMapKey,
 		},
 		{
 			name: "duplicate set item",
-			err:  cj.NewDuplicateSetItemError(dec, "int", 1),
+			err:  cj.NewDuplicateSetItemError(dec),
 			is:   cj.ErrDuplicateSetItem,
 		},
 	}
@@ -169,6 +170,9 @@ func TestErrorIntegrationWithCodec(t *testing.T) {
 		assert.Equal(t, jsontext.KindNumber, semantic.JSONKind)
 		assert.Equal(t, jsontext.Value("123"), semantic.JSONValue)
 		assert.Equal(t, jsontext.Pointer(""), semantic.JSONPointer)
+		// The entry point records the decoded Go type rather than the internal
+		// codec wrapper that json/v2 would otherwise fill in (see fillGoType).
+		assert.Equal(t, reflect.TypeFor[string](), semantic.GoType)
 		assert.ErrorContains(t, semantic.Err, "want json string")
 	})
 

@@ -5,19 +5,32 @@
 package cj
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"reflect"
 
 	"github.com/go-json-experiment/json"
 	"github.com/go-json-experiment/json/jsontext"
 )
 
+// fillGoType records T on a SemanticError that does not yet name a Go type.
+// Without it, json/v2 would populate GoType with this internal codec wrapper
+// rather than the value being (un)marshaled. T is the root type passed to the
+// entry point; the error's JSON pointer locates failures within nested values.
+func fillGoType[T any](err error) error {
+	if serr, ok := errors.AsType[*json.SemanticError](err); ok && serr.GoType == nil {
+		serr.GoType = reflect.TypeFor[T]()
+	}
+	return err
+}
+
 type anonymousMarshaler[T any, E Codec[T]] struct {
 	receiver T
 }
 
-func (a anonymousMarshaler[T, E]) MarshalJSONTo(enc *jsontext.Encoder) error {
-	return (*new(E)).MarshalJSONTo(enc, a.receiver)
+func (a *anonymousMarshaler[T, E]) MarshalJSONTo(enc *jsontext.Encoder) error {
+	return fillGoType[T]((*new(E)).MarshalJSONTo(enc, a.receiver))
 }
 
 type anonymousUnmarshaler[T any, E Codec[T]] struct {
@@ -28,17 +41,23 @@ func (a anonymousUnmarshaler[T, E]) UnmarshalJSONFrom(dec *jsontext.Decoder) err
 	if a.receiver == nil {
 		return fmt.Errorf("cj.NewAnonymousType: cannot unmarshal into nil receiver")
 	}
-	return (*new(E)).UnmarshalJSONFrom(dec, a.receiver)
+	return fillGoType[T]((*new(E)).UnmarshalJSONFrom(dec, a.receiver))
 }
 
 func Unmarshal[T any, D Codec[T]](data []byte, v *T, _ D, opts ...json.Options) error {
 	// AllowDuplicateNames lets the codec (not the jsontext syntax layer) detect
 	// duplicate object members, so map codecs can report the richer
 	// ErrDuplicateMapKey and catch canonicalized duplicates (e.g. "01" and "1").
+	if len(opts) == 0 {
+		return json.Unmarshal(data, &anonymousUnmarshaler[T, D]{v}, jsontext.AllowDuplicateNames(true))
+	}
 	return json.Unmarshal(data, &anonymousUnmarshaler[T, D]{v}, jsontext.AllowDuplicateNames(true), json.JoinOptions(opts...))
 }
 
 func UnmarshalRead[T any, D Codec[T]](r io.Reader, v *T, _ D, opts ...json.Options) error {
+	if len(opts) == 0 {
+		return json.UnmarshalRead(r, &anonymousUnmarshaler[T, D]{v}, jsontext.AllowDuplicateNames(true))
+	}
 	return json.UnmarshalRead(r, &anonymousUnmarshaler[T, D]{v}, jsontext.AllowDuplicateNames(true), json.JoinOptions(opts...))
 }
 
@@ -47,11 +66,23 @@ func ClientDecoder[T any, D Codec[T]](_ D) clientDecoder[T, D] { return clientDe
 func ServerDecoder[T any, D Codec[T]](_ D) serverDecoder[T, D] { return serverDecoder[T, D]{} }
 
 func Marshal[T any, E Codec[T]](v T, _ E, opts ...json.Options) ([]byte, error) {
-	return json.Marshal(anonymousMarshaler[T, E]{v}, opts...)
+	// Pass a pointer: json/v2 makes a reflect.New copy of any non-pointer value to
+	// obtain an addressable value, costing an extra allocation per call.
+	//
+	// AllowDuplicateNames skips json/v2's per-member duplicate-name validation,
+	// which the codecs do not need: map keys are unique by construction and
+	// generated object codecs emit each field name once.
+	if len(opts) == 0 {
+		return json.Marshal(&anonymousMarshaler[T, E]{v}, jsontext.AllowDuplicateNames(true))
+	}
+	return json.Marshal(&anonymousMarshaler[T, E]{v}, jsontext.AllowDuplicateNames(true), json.JoinOptions(opts...))
 }
 
 func MarshalWrite[T any, E Codec[T]](out io.Writer, v T, _ E, opts ...json.Options) error {
-	return json.MarshalWrite(out, anonymousMarshaler[T, E]{v}, opts...)
+	if len(opts) == 0 {
+		return json.MarshalWrite(out, &anonymousMarshaler[T, E]{v}, jsontext.AllowDuplicateNames(true))
+	}
+	return json.MarshalWrite(out, &anonymousMarshaler[T, E]{v}, jsontext.AllowDuplicateNames(true), json.JoinOptions(opts...))
 }
 
 func ClientEncoder[T any, E Codec[T]](_ E) defaultEncoder[T, E] { return defaultEncoder[T, E]{} }

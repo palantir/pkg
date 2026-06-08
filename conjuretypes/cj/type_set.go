@@ -5,7 +5,6 @@
 package cj
 
 import (
-	"reflect"
 	"slices"
 
 	"github.com/go-json-experiment/json"
@@ -49,16 +48,18 @@ func (setCodec[T, U, ITEM]) UnmarshalJSONFrom(dec *jsontext.Decoder, receiver *T
 			}
 			return nil
 		}
-		item := *new(U)
-		if err := (*new(ITEM)).UnmarshalJSONFrom(dec, &item); err != nil {
+		// Grow into the backing array and decode in place so the element does
+		// not escape to the heap via the &item passed to the nested decoder.
+		*receiver = append(*receiver, *new(U))
+		item := &(*receiver)[len(*receiver)-1]
+		if err := (*new(ITEM)).UnmarshalJSONFrom(dec, item); err != nil {
 			return err
 		}
-		if slices.ContainsFunc(*receiver, func(next U) bool {
-			return (*new(ITEM)).Equal(item, next)
+		if slices.ContainsFunc((*receiver)[:len(*receiver)-1], func(next U) bool {
+			return (*new(ITEM)).Equal(*item, next)
 		}) {
-			return NewDuplicateSetItemError(dec, reflect.TypeFor[U]().String(), len(*receiver))
+			return NewDuplicateSetItemError(dec)
 		}
-		*receiver = append(*receiver, item)
 	}
 }
 

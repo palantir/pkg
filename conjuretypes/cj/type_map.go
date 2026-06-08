@@ -7,7 +7,6 @@ package cj
 import (
 	"cmp"
 	"maps"
-	"reflect"
 	"slices"
 
 	"github.com/go-json-experiment/json"
@@ -141,7 +140,7 @@ func mapUnmarshalJSONFrom[T ~map[K]V, K comparable, V any, KEY Codec[K], VAL Cod
 			return err
 		}
 		if _, ok := (*receiver)[key]; ok {
-			return NewDuplicateMapKeyError(dec, reflect.TypeFor[T]().String())
+			return NewDuplicateMapKeyError(dec)
 		}
 		(*receiver)[key] = val
 	}

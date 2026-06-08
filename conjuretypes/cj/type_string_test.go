@@ -33,7 +33,7 @@ func TestString(t *testing.T) {
 		},
 		{
 			Name: "null",
-			Test: typeTestCase[string]{Codec: cj.String[string](), JSON: "null", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "KindMismatchError at offset 4: want json string, got null"},
+			Test: typeTestCase[string]{Codec: cj.String[string](), JSON: "null", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "json: cannot unmarshal JSON null into Go string after offset 4: want json string"},
 		},
 	}
 	for _, tc := range tests {

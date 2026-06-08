@@ -6,8 +6,10 @@ package cj_test
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"math"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -48,7 +50,7 @@ func (tc typeTestCase[T]) TestMarshal(t *testing.T) {
 	enc := jsontext.NewEncoder(buf, json.JoinOptions(cj.DefaultOptions, tc.Options))
 	err := tc.Codec.MarshalJSONTo(enc, tc.Value)
 	if tc.ErrMarshalJSONTo != "" {
-		require.EqualErrorf(t, err, tc.ErrMarshalJSONTo, "expected error from (%T)(%v).MarshalJSON", tc.Value, tc.Value)
+		requireErrorMatches(t, err, tc.ErrMarshalJSONTo, "expected error from (%T)(%v).MarshalJSON", tc.Value, tc.Value)
 		return
 	}
 	require.NoErrorf(t, err, "unexpected error from (%T)(%v).MarshalJSON", tc.Value, tc.Value)
@@ -59,6 +61,24 @@ func (tc typeTestCase[T]) TestMarshal(t *testing.T) {
 	}
 }
 
+// codecUnmarshaler adapts a Codec[T] to json.UnmarshalerFrom and mirrors the
+// GoType handling of the package entry points (see fillGoType in codec.go).
+// Decoding through it lets the harness assert the same SemanticError envelope
+// that production code produces: json/v2 fills in the "unmarshal" action and the
+// adapter records the Go type that a bare codec call would leave unset.
+type codecUnmarshaler[T any] struct {
+	codec    cj.Codec[T]
+	receiver *T
+}
+
+func (c codecUnmarshaler[T]) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
+	err := c.codec.UnmarshalJSONFrom(dec, c.receiver)
+	if serr, ok := errors.AsType[*json.SemanticError](err); ok && serr.GoType == nil {
+		serr.GoType = reflect.TypeFor[T]()
+	}
+	return err
+}
+
 func (tc typeTestCase[T]) TestUnmarshal(t *testing.T) {
 	t.Helper()
 	if tc.SkipTestUnmarshal {
@@ -66,9 +86,9 @@ func (tc typeTestCase[T]) TestUnmarshal(t *testing.T) {
 	}
 	dec := jsontext.NewDecoder(strings.NewReader(tc.JSON), json.JoinOptions(cj.DefaultOptions, tc.Options))
 	var got T
-	err := tc.Codec.UnmarshalJSONFrom(dec, &got)
+	err := json.UnmarshalDecode(dec, &codecUnmarshaler[T]{tc.Codec, &got})
 	if tc.ErrUnmarshalJSONFrom != "" {
-		require.ErrorContainsf(t, err, expectedErrorFragment(tc.ErrUnmarshalJSONFrom), "expected error from (%T).UnmarshalJSON(%q)", tc.Value, tc.JSON)
+		requireErrorMatches(t, err, tc.ErrUnmarshalJSONFrom, "expected error from (%T).UnmarshalJSON(%q)", tc.Value, tc.JSON)
 		return
 	}
 	require.NoErrorf(t, err, "unexpected error from (%T).UnmarshalJSON(%q)", tc.Value, tc.JSON)
@@ -79,13 +99,6 @@ func (tc typeTestCase[T]) TestUnmarshal(t *testing.T) {
 	} else {
 		assert.EqualValuesf(t, tc.Value, got, "unexpected value from (%T).UnmarshalJSON(%q)", tc.Value, tc.JSON)
 	}
-}
-
-func expectedErrorFragment(expected string) string {
-	if idx := strings.Index(expected, ": "); idx >= 0 {
-		return expected[idx+2:]
-	}
-	return expected
 }
 
 // Create a simple struct-like type that visits object fields
@@ -154,7 +167,7 @@ func (t *testStruct) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 		switch key.String() {
 		case "name":
 			if seenName {
-				return cj.NewDuplicateFieldKeyError(dec, "testStruct[\"name\"]")
+				return cj.NewDuplicateFieldKeyError(dec)
 			}
 			if err := cj.String[string]().UnmarshalJSONFrom(dec, &t.Name); err != nil {
 				return err
@@ -162,7 +175,7 @@ func (t *testStruct) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 			seenName = true
 		case "age":
 			if seenAge {
-				return cj.NewDuplicateFieldKeyError(dec, "testStruct[\"age\"]")
+				return cj.NewDuplicateFieldKeyError(dec)
 			}
 			if err := cj.Int32[int]().UnmarshalJSONFrom(dec, &t.Age); err != nil {
 				return err
@@ -183,14 +196,30 @@ func (t *testStruct) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 		missingFields = append(missingFields, "age")
 	}
 	if len(missingFields) > 0 {
-		return cj.NewMissingFieldsError(dec, "testStruct", missingFields)
+		return cj.NewMissingFieldsError(dec, missingFields)
 	}
 	if len(unknownMembers) > 0 {
 		if strict, _ := json.GetOption(dec.Options(), json.RejectUnknownMembers); strict {
-			return cj.NewUnknownFieldsError(dec, "testStruct", unknownMembers)
+			return cj.NewUnknownFieldsError(dec, unknownMembers)
 		}
 	}
 	return nil
+}
+
+// requireErrorMatches asserts that err's message matches want apart from
+// json/v2's deliberately-randomized modal verb. The json package switches
+// between "json: cannot " and "json: unable to " once per process (tied to Go's
+// map-iteration randomization; see errorModalVerb) to discourage depending on
+// the exact wording. That verb is the only varying part and it is a prefix, so
+// we match the stable suffix. Everything after the verb -- action, Go type,
+// byte offset, JSON pointer, and cause -- is asserted verbatim.
+func requireErrorMatches(t *testing.T, err error, want, format string, args ...any) {
+	t.Helper()
+	require.Errorf(t, err, format, args...)
+	suffix := strings.TrimPrefix(want, "json: cannot ")
+	suffix = strings.TrimPrefix(suffix, "json: unable to ")
+	require.Truef(t, strings.HasSuffix(err.Error(), suffix),
+		"error %q does not end with %q; "+format, append([]any{err.Error(), suffix}, args...)...)
 }
 
 func must[T any](v T, err error) T {

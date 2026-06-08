@@ -34,7 +34,7 @@ func TestUUID(t *testing.T) {
 			Test: typeTestCase[uuid.UUID]{Codec: cj.UUID[uuid.UUID](), Value: must(uuid.ParseUUID("10101010-1010-1010-1010-101010101010")),
 				JSON:                 "null",
 				SkipTestMarshal:      true,
-				ErrUnmarshalJSONFrom: "KindMismatchError at offset 4: want json string, got null",
+				ErrUnmarshalJSONFrom: "json: cannot unmarshal JSON null into Go uuid.UUID after offset 4: want json string",
 			},
 		},
 		{
@@ -48,7 +48,7 @@ func TestUUID(t *testing.T) {
 		},
 		{
 			Name: "invalid",
-			Test: typeTestCase[uuid.UUID]{Codec: cj.UUID[uuid.UUID](), JSON: "\"0000\"", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "InvalidValueError at offset 6: invalid UUID length: 4"},
+			Test: typeTestCase[uuid.UUID]{Codec: cj.UUID[uuid.UUID](), JSON: "\"0000\"", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "json: cannot unmarshal JSON string \"0000\" into Go uuid.UUID after offset 6: invalid UUID length: 4"},
 		},
 	}
 	for _, tc := range tests {

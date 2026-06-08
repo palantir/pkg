@@ -51,14 +51,15 @@ func WrapEncodeError(enc *jsontext.Encoder, message string, cause error) error {
 	}
 }
 
-// NewKindMismatchError returns an error for a JSON kind mismatch.
+// NewKindMismatchError returns an error for a JSON kind mismatch. The kind that
+// was actually found is recorded on the SemanticError's JSONKind field, so the
+// message only names what was wanted.
 func NewKindMismatchError(dec *jsontext.Decoder, got jsontext.Kind, want string) error {
-	return semanticDecodeError(dec, got, nil, fmt.Errorf("want %s, got %s", want, got.String()))
+	return semanticDecodeError(dec, got, nil, fmt.Errorf("want %s", want))
 }
 
 func newKindMismatchTokenError(dec *jsontext.Decoder, tok jsontext.Token, want string) error {
-	kind := tok.Kind()
-	return semanticDecodeTokenError(dec, tok, fmt.Errorf("want %s, got %s", want, kind.String()))
+	return semanticDecodeTokenError(dec, tok, fmt.Errorf("want %s", want))
 }
 
 func newInvalidTokenValueError(dec *jsontext.Decoder, tok jsontext.Token, message string, err error) error {
@@ -69,34 +70,39 @@ func newInvalidJSONValueError(dec *jsontext.Decoder, value jsontext.Value, messa
 	return semanticDecodeError(dec, value.Kind(), value, errorWithMessage(message, err))
 }
 
+// The constructors below leave the offending Go type and location to the
+// SemanticError envelope: GoType is filled in by the codec entry point (see
+// fillGoType) and JSONPointer is set from the decoder, so the messages carry
+// only the information that the envelope does not.
+
 // NewMissingFieldsError returns an error for missing required struct fields.
-func NewMissingFieldsError(dec *jsontext.Decoder, typeName string, fields []string) error {
-	return semanticDecodeError(dec, 0, nil, fmt.Errorf("type %s missing required fields %v: %w", typeName, fields, ErrMissingFields))
+func NewMissingFieldsError(dec *jsontext.Decoder, fields []string) error {
+	return semanticDecodeError(dec, 0, nil, fmt.Errorf("%w %v", ErrMissingFields, fields))
 }
 
 // NewUnknownFieldsError returns an error for unknown struct fields.
-func NewUnknownFieldsError(dec *jsontext.Decoder, typeName string, fields []string) error {
-	return semanticDecodeError(dec, 0, nil, fmt.Errorf("type %s has unknown fields %v: %w", typeName, fields, ErrUnknownFields))
+func NewUnknownFieldsError(dec *jsontext.Decoder, fields []string) error {
+	return semanticDecodeError(dec, 0, nil, fmt.Errorf("%w %v", ErrUnknownFields, fields))
 }
 
 // NewUnknownEnumError returns an error for an unrecognized enum value.
-func NewUnknownEnumError(dec *jsontext.Decoder, typeName string) error {
-	return semanticDecodeError(dec, 0, nil, fmt.Errorf("type %s has unrecognized enum value: %w", typeName, ErrUnknownEnum))
+func NewUnknownEnumError(dec *jsontext.Decoder) error {
+	return semanticDecodeError(dec, 0, nil, ErrUnknownEnum)
 }
 
 // NewDuplicateFieldKeyError returns an error for a duplicate struct field key.
-func NewDuplicateFieldKeyError(dec *jsontext.Decoder, fieldDescriptor string) error {
-	return semanticDecodeError(dec, 0, nil, fmt.Errorf("field %s duplicated: %w", fieldDescriptor, ErrDuplicateField))
+func NewDuplicateFieldKeyError(dec *jsontext.Decoder) error {
+	return semanticDecodeError(dec, 0, nil, ErrDuplicateField)
 }
 
 // NewDuplicateMapKeyError returns an error for a duplicate decoded map key.
-func NewDuplicateMapKeyError(dec *jsontext.Decoder, typeName string) error {
-	return semanticDecodeError(dec, 0, nil, fmt.Errorf("type %s has duplicate map keys: %w", typeName, ErrDuplicateMapKey))
+func NewDuplicateMapKeyError(dec *jsontext.Decoder) error {
+	return semanticDecodeError(dec, 0, nil, ErrDuplicateMapKey)
 }
 
 // NewDuplicateSetItemError returns an error for a duplicate decoded set item.
-func NewDuplicateSetItemError(dec *jsontext.Decoder, typeName string, index int) error {
-	return semanticDecodeError(dec, 0, nil, fmt.Errorf("type %s has a duplicate set item at index %d: %w", typeName, index, ErrDuplicateSetItem))
+func NewDuplicateSetItemError(dec *jsontext.Decoder) error {
+	return semanticDecodeError(dec, 0, nil, ErrDuplicateSetItem)
 }
 
 func semanticDecodeError(dec *jsontext.Decoder, kind jsontext.Kind, value jsontext.Value, err error) error {

@@ -191,11 +191,11 @@ func (p *Person) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
                 missingFields = append(missingFields, "age")
             }
             if len(missingFields) > 0 {
-                return cj.NewMissingFieldsError(dec, "Person", missingFields)
+                return cj.NewMissingFieldsError(dec, missingFields)
             }
             if len(unknownMembers) > 0 {
                 if strict, _ := json.GetOption(dec.Options(), json.RejectUnknownMembers); strict {
-                    return cj.NewUnknownFieldsError(dec, "Person", unknownMembers)
+                    return cj.NewUnknownFieldsError(dec, unknownMembers)
                 }
             }
             return nil
@@ -208,7 +208,7 @@ func (p *Person) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
         switch key.String() {
         case "name":
             if seenName {
-                return cj.NewDuplicateFieldKeyError(dec, `Person["name"]`)
+                return cj.NewDuplicateFieldKeyError(dec)
             }
             if err := cj.String[string]().UnmarshalJSONFrom(dec, &p.Name); err != nil {
                 return err
@@ -216,7 +216,7 @@ func (p *Person) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
             seenName = true
         case "age":
             if seenAge {
-                return cj.NewDuplicateFieldKeyError(dec, `Person["age"]`)
+                return cj.NewDuplicateFieldKeyError(dec)
             }
             if err := cj.Int32[int]().UnmarshalJSONFrom(dec, &p.Age); err != nil {
                 return err

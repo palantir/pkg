@@ -42,18 +42,18 @@ func TestSafeLongValues(t *testing.T) {
 		},
 		{
 			Name: "string_rejected",
-			Test: typeTestCase[int64]{Codec: cj.SafeLong[int64](), JSON: `"42"`, SkipTestMarshal: true, ErrUnmarshalJSONFrom: "KindMismatchError at offset 4: want json int, got string"},
+			Test: typeTestCase[int64]{Codec: cj.SafeLong[int64](), JSON: `"42"`, SkipTestMarshal: true, ErrUnmarshalJSONFrom: "json: cannot unmarshal JSON string \"42\" into Go int64 after offset 4: want json int"},
 		},
 		{
 			Name: "too_large_unmarshal",
 			Test: typeTestCase[int64]{Codec: cj.SafeLong[int64](), JSON: "9007199254740992", SkipTestMarshal: true,
-				ErrUnmarshalJSONFrom: "InvalidValueError at offset 16: invalid safelong: 9007199254740992 is not a valid value for a SafeLong as it is not safely representable in Javascript: must be between -9007199254740991 and 9007199254740991",
+				ErrUnmarshalJSONFrom: "json: cannot unmarshal JSON number 9007199254740992 into Go int64 after offset 16: invalid safelong: 9007199254740992 is not a valid value for a SafeLong as it is not safely representable in Javascript: must be between -9007199254740991 and 9007199254740991",
 			},
 		},
 		{
 			Name: "too_small_unmarshal",
 			Test: typeTestCase[int64]{Codec: cj.SafeLong[int64](), JSON: "-9007199254740992", SkipTestMarshal: true,
-				ErrUnmarshalJSONFrom: "InvalidValueError at offset 17: invalid safelong: -9007199254740992 is not a valid value for a SafeLong as it is not safely representable in Javascript: must be between -9007199254740991 and 9007199254740991",
+				ErrUnmarshalJSONFrom: "json: cannot unmarshal JSON number -9007199254740992 into Go int64 after offset 17: invalid safelong: -9007199254740992 is not a valid value for a SafeLong as it is not safely representable in Javascript: must be between -9007199254740991 and 9007199254740991",
 			},
 		},
 	}
@@ -82,7 +82,7 @@ func TestSafeLongMaps(t *testing.T) {
 		{
 			Name: "map_key_rejects_out_of_range",
 			Test: typeTestCase[map[SL]int]{Codec: cj.OrderedMap[map[SL]int](cj.SafeLongMapKey[SL](), cj.Int32[int]()), JSON: `{"9007199254740992":1}`, SkipTestMarshal: true,
-				ErrUnmarshalJSONFrom: "InvalidValueError at offset 19: invalid safelong: 9007199254740992 is not a valid value for a SafeLong as it is not safely representable in Javascript: must be between -9007199254740991 and 9007199254740991",
+				ErrUnmarshalJSONFrom: "json: cannot unmarshal JSON string \"9007199254740992\" into Go map[safelong.SafeLong]int within \"/9007199254740992\": invalid safelong: 9007199254740992 is not a valid value for a SafeLong as it is not safely representable in Javascript: must be between -9007199254740991 and 9007199254740991",
 			},
 		},
 	}
@@ -100,5 +100,5 @@ func TestSafeLongMapKeyRequiresString(t *testing.T) {
 
 	err := cj.SafeLongMapKey[int64]().UnmarshalJSONFrom(dec, &got)
 
-	require.ErrorContains(t, err, "want json string, got number")
+	require.ErrorContains(t, err, "want json string")
 }

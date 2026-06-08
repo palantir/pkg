@@ -35,7 +35,7 @@ func TestAny(t *testing.T) {
 		},
 		{
 			Name: "null",
-			Test: typeTestCase[any]{Codec: cj.Any[any](), Value: nil, JSON: "null", ErrUnmarshalJSONFrom: "KindMismatchError at offset 0: want non-optional value, got null"},
+			Test: typeTestCase[any]{Codec: cj.Any[any](), Value: nil, JSON: "null", ErrUnmarshalJSONFrom: "json: cannot unmarshal JSON null into Go interface {} after offset 4: want non-optional value"},
 		},
 		{
 			Name: "null optional",

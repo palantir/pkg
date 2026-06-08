@@ -77,19 +77,19 @@ func TestMap(t *testing.T) {
 		},
 		{
 			Name: "not an object",
-			Test: typeTestCase[map[string]int]{Codec: cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]()), JSON: "[]", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "KindMismatchError at offset 1: want object opening brace, got ["},
+			Test: typeTestCase[map[string]int]{Codec: cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]()), JSON: "[]", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "json: cannot unmarshal JSON array into Go map[string]int after offset 1: want object opening brace"},
 		},
 		{
 			Name: "duplicate key",
-			Test: typeTestCase[map[string]int]{Codec: cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]()), JSON: "{\"a\":1,\"a\":2}", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "SyntaxError at offset 7: jsontext: duplicate object member name within \"/a\""},
+			Test: typeTestCase[map[string]int]{Codec: cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]()), JSON: "{\"a\":1,\"a\":2}", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "jsontext: duplicate object member name within \"/a\" after offset 7"},
 		},
 		{
 			Name: "duplicate int key",
-			Test: typeTestCase[map[int]int]{Codec: cj.OrderedMap[map[int]int](cj.Int32MapKey[int](), cj.Int32[int]()), JSON: "{\"01\":1,\"1\":2}", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "type map[int]int has duplicate map keys: duplicate map key"},
+			Test: typeTestCase[map[int]int]{Codec: cj.OrderedMap[map[int]int](cj.Int32MapKey[int](), cj.Int32[int]()), JSON: "{\"01\":1,\"1\":2}", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "json: cannot unmarshal into Go map[int]int within \"/1\": duplicate map key"},
 		},
 		{
 			Name: "key not string",
-			Test: typeTestCase[map[string]int]{Codec: cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]()), JSON: "{ 1:2 }", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "SyntaxError at offset 1: jsontext: object member name must be a string after offset 2"},
+			Test: typeTestCase[map[string]int]{Codec: cj.OrderedMap[map[string]int](cj.String[string](), cj.Int32[int]()), JSON: "{ 1:2 }", SkipTestMarshal: true, ErrUnmarshalJSONFrom: "jsontext: object member name must be a string after offset 2"},
 		},
 	}
 	for _, tc := range tests {
