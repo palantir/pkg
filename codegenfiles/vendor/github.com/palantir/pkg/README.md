@@ -1,7 +1,3 @@
-<p align="right">
-<a href="https://autorelease.general.dmz.palantir.tech/palantir/pkg"><img src="https://img.shields.io/badge/Perform%20an-Autorelease-success.svg" alt="Autorelease"></a>
-</p>
-
 pkg
 ===
 
@@ -16,13 +12,6 @@ cli
 ---
 `cli` provides a framework for creating CLI applications. It provides support for commands, subcommands, flags, before
 and after hooks, documentation, deprecation, command-line completion and other functionality.
-
-codegenfiles
-------------
-`codegenfiles` reconciles the output of a code generator against a directory: it writes the files whose content changed,
-leaves the rest alone, deletes output that is no longer generated, and preserves hand-written files that share the
-directory. Differences can be reported without modifying anything, so a tool's generate and verify modes are the same
-code path. Depends on `matcher`.
 
 matcher
 -------
