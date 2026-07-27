@@ -5,72 +5,46 @@
 // Package codegenfiles reconciles the output of a code generator against a directory.
 //
 // Generating code is the caller's business. This package deals with what comes after: writing the files
-// whose content changed, leaving alone the ones that did not, deleting output that is no longer
-// produced, preserving hand-written files that share the directory, and answering "would this change
-// anything?" without touching the filesystem.
+// whose content changed, leaving alone the ones that did not, deleting output no longer produced,
+// preserving hand-written files that share the directory, and answering "would this change anything?"
+// without touching the filesystem.
 //
-// A caller collects generated content into an [Output] and asks a [Project] what would have to change:
+// Collect generated content into an [Output], ask a [Project] what would have to change, then either
+// report the result with [Changes.Err] or carry it out with [Changes.Apply]. [Project.Plan] reads the
+// filesystem but never writes to it, so verifying and generating differ only in what is done with its
+// result: a tool offering both runs the same code either way, and its verify cannot corrupt the tree it
+// is checking.
 //
-//	out := codegenfiles.NewOutput()
-//	out.AddAll(generated)
-//
-//	p := &codegenfiles.Project{
-//		Dir:             projectDir,
-//		FileMatcher:     matcher.Name(`.+\.go`),
-//		ContentsMatcher: codegenfiles.GeneratedCodeMatcher(),
-//		DeleteStale:     true,
-//	}
-//	changes, err := p.Plan(out)
-//	if err != nil {
-//		return err
-//	}
-//	if verify {
-//		return changes.Err()
-//	}
-//	return changes.Apply()
-//
-// [Project.Plan] reads the filesystem but never writes to it, so verifying and generating differ only
-// in what is done with the result. A tool exposing the two as separate modes runs the same code either
-// way, and its verify cannot corrupt the tree it is checking.
+// Everything written into a managed directory must go through one [Project]. Reconciling part of it
+// separately would let one pass delete what another is responsible for producing, so several generators,
+// configurations or schemas contributing to one directory contribute to one [Output] — which is also why
+// two of them writing the same path is a collision that Plan reports rather than a silent
+// last-writer-wins.
 //
 // # Ownership
 //
-// Deleting output nobody produced is the delicate part, and two independent questions decide it.
+// Deleting output nobody produced is the delicate part, and three fields decide it. FileMatcher bounds
+// ownership by location, covering both the on-disk files a project reconciles against and the paths its
+// generators may produce; a generated path it does not match is an error, since such a path could never
+// be reconciled. ContentsMatcher bounds ownership by content, normally via the marker recognized by
+// [GeneratedCodeMatcher], so a hand-written file in a generated directory survives. DeleteStale turns
+// deletion on, and requires FileMatcher, since a nil matcher matches everything in Dir.
 //
-// FileMatcher answers "is this file mine by location?" and bounds everything: the on-disk files a
-// project reconciles against, and the paths its generators may produce. A generated path it does not
-// match is an error, because such a path could never be reconciled.
+// Leaving ContentsMatcher nil is common: a format that cannot carry a comment cannot be identified this
+// way, a marker does not match output generated before the marker last changed, and where a generator
+// owns a distinctive filename it rules out nothing FileMatcher has not. FileMatcher is then all that
+// stands between DeleteStale and a hand-written file, so match the paths the current configuration could
+// produce — not a bare filename, which may also appear in vendored copies of a dependency's output, and
+// not a directory shared with hand-written files or another generator. Bounded tightly enough it matches
+// only the generated set, leaving DeleteStale unable to fire at all: safe, but not working stale-output
+// handling.
 //
-// ContentsMatcher answers "is this file mine by content?", normally via the generated-code marker
-// recognized by [GeneratedCodeMatcher]. It exists so that a hand-written file placed in a generated
-// directory survives. A format that cannot carry a comment, such as JSON, can never be identified this
-// way, so a project generating those must establish ownership by path alone.
+// # Collecting output
 //
-// DeleteStale turns deletion on. It requires FileMatcher, because a nil matcher matches every file in
-// Dir.
-//
-// # One project per managed directory
-//
-// Everything written into a managed directory must go through a single [Project]. Reconciling part of
-// it separately would let one pass delete files another pass is responsible for producing. When several
-// generators, configurations or schemas contribute to one directory, they contribute to one [Output].
-//
-// The corollary is that two generators writing the same path is a collision rather than a silent
-// last-writer-wins, and [Project.Plan] reports it.
-//
-// # Collecting output from a generator
-//
-// Generators expose their output in different ways, and the ones seen so far all reduce to filling an
-// [Output]:
-//
-//   - A generator returning a map of path to content: hand it to [Output.AddAll].
-//   - A generator returning file values that render on demand: render each and [Output.Add] it. Paths
-//     may be absolute; Plan resolves them against Dir.
-//   - A generator that writes through an interface of its own: implement that interface over an Output.
-//     A generator library commonly has one, since writing to disk is rarely its only use.
-//   - A generator with a pluggable assembler, such as gengo, whose FileType decides how an assembled
-//     file is committed: register one that captures instead of writing.
-//
-// The last two are worth looking for before reaching for a scratch directory. A generator that can only
-// write to disk has to be pointed at a temporary directory, and its output read back from there.
+// However a generator exposes what it produces, it reduces to filling an [Output]. A map of path to
+// content goes to [Output.AddAll]; file values that render on demand render into [Output.Add]; a
+// generator writing through an interface of its own, such as gengo's FileType, gets one implemented over
+// an Output. Paths may be absolute, and Plan resolves them against Dir. Look for that interface before
+// reaching for a scratch directory, which only a generator that can write nowhere else needs, and which
+// works only if its output does not depend on where it was written.
 package codegenfiles
