@@ -3,7 +3,7 @@ version: 2.1
 orbs:
   go-jobs: palantir/go-jobs@0.8.0
 
-image-version: &image-version "cimg/go:1.25.1-browsers"
+image-version: &image-version "cimg/go:1.26.5-browsers"
 
 checkout-path: &checkout-path
   path: /home/circleci/go/src/github.com/palantir/pkg
