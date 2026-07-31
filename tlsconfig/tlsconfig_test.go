@@ -7,7 +7,7 @@ package tlsconfig_test
 import (
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -89,7 +89,7 @@ func TestUseTLSConfigClientAuthConnection(t *testing.T) {
 
 			resp, err := client.Get(server.URL + "/hello")
 			require.NoError(t, err)
-			bytes, err := ioutil.ReadAll(resp.Body)
+			bytes, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
 
 			assert.Equal(t, "OK: /hello", string(bytes), "Case %d: %s", i, tc.name)

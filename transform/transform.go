@@ -38,7 +38,7 @@ func (rules Rules) apply(target reflect.Type, in reflect.Value) reflect.Value {
 		return rules.applyInterface(target, in)
 	case reflect.Map:
 		return rules.applyMap(in)
-	case reflect.Ptr:
+	case reflect.Pointer:
 		return rules.applyPointer(in)
 	case reflect.Slice:
 		return rules.applySlice(in)
@@ -127,7 +127,7 @@ func applyRule(rule interface{}, target reflect.Type, in reflect.Value) reflect.
 // canBeNil reports whether an untyped nil can be assigned to the type. See reflect.Zero.
 func canBeNil(typ reflect.Type) bool {
 	switch typ.Kind() {
-	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice:
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
 		return true
 	default:
 		return false

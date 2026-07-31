@@ -72,12 +72,12 @@ func simplifiedType(valueOrTypeOrObj interface{}) (prefix string, simple reflect
 		return "", nil
 	}
 
-	typ = reflect.PtrTo(typ) // so big.Int -> *big.Int
-	for typ.Kind() == reflect.Ptr && !IsBigIntType(typ) && !IsBigFloatType(typ) {
+	typ = reflect.PointerTo(typ) // so big.Int -> *big.Int
+	for typ.Kind() == reflect.Pointer && !IsBigIntType(typ) && !IsBigFloatType(typ) {
 		typ = typ.Elem()
 		prefix += "*"
 	}
-	prefix = strings.TrimPrefix(prefix, "*") // to make up for reflect.PtrTo
+	prefix = strings.TrimPrefix(prefix, "*") // to make up for reflect.PointerTo
 	return prefix, typ
 }
 
@@ -99,7 +99,7 @@ func typeNameHelper(typ reflect.Type) string {
 		if typ.NumMethod() == 0 {
 			return "object"
 		}
-	case reflect.Ptr:
+	case reflect.Pointer:
 		if IsBigIntType(typ) {
 			return "integer"
 		}

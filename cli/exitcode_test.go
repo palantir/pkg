@@ -6,7 +6,6 @@ package cli_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -58,15 +57,17 @@ func TestExitCoder(t *testing.T) {
 }
 
 func runGoFile(t *testing.T, src string) ([]byte, error) {
-	tmpDir, err := ioutil.TempDir(".", "")
+	// created inside the module directory (rather than via t.TempDir()) so that "go build" below can resolve the
+	// "github.com/palantir/pkg/cli" import using this module's go.mod.
+	tmpDir, err := os.MkdirTemp(".", "")
 	require.NoError(t, err)
-	defer func() {
+	t.Cleanup(func() {
 		if err := os.RemoveAll(tmpDir); err != nil {
 			fmt.Printf("Failed to remove directory %v: %v\n", tmpDir, err)
 		}
-	}()
+	})
 
-	err = ioutil.WriteFile(path.Join(tmpDir, "test_cli.go"), []byte(src), 0644)
+	err = os.WriteFile(path.Join(tmpDir, "test_cli.go"), []byte(src), 0644)
 	require.NoError(t, err)
 
 	buildCmd := exec.Command("go", "build", "-o", "test-cli", ".")
