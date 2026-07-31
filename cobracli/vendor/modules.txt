@@ -10,6 +10,13 @@ github.com/nmiyake/pkg/errorstringer
 # github.com/palantir/pkg v1.1.0
 ## explicit; go 1.19
 github.com/palantir/pkg
+# github.com/palantir/witchcraft-go-error v1.42.0
+## explicit; go 1.25.0
+github.com/palantir/witchcraft-go-error
+github.com/palantir/witchcraft-go-error/internal/errors
+# github.com/palantir/witchcraft-go-params v1.38.0
+## explicit; go 1.24.0
+github.com/palantir/witchcraft-go-params
 # github.com/pkg/errors v0.8.1
 ## explicit
 github.com/pkg/errors
