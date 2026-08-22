@@ -2,7 +2,7 @@ module github.com/palantir/pkg/yamlpatch
 
 go 1.26.0
 
-toolchain go1.26.5
+toolchain go1.26.7
 
 require (
 	github.com/goccy/go-yaml v1.15.22
