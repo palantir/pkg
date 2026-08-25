@@ -4,4 +4,4 @@ require github.com/palantir/pkg v1.1.0
 
 go 1.26.0
 
-toolchain go1.26.5
+toolchain go1.26.7
