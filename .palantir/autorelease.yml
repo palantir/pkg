@@ -1,0 +1,107 @@
+version: 3
+
+groups:
+  __default__:
+    paths: ["."]
+    tag_prefix: "v"
+  bearertoken:
+    paths: ["bearertoken"]
+    tag_prefix: "bearertoken/v"
+  binary:
+    paths: ["binary"]
+    tag_prefix: "binary/v"
+  boolean:
+    paths: ["boolean"]
+    tag_prefix: "boolean/v"
+  bytesbuffers:
+    paths: ["bytesbuffers"]
+    tag_prefix: "bytesbuffers/v"
+  cli:
+    paths: ["cli"]
+    tag_prefix: "cli/v"
+  clipackager:
+    paths: ["clipackager"]
+    tag_prefix: "clipackager/v"
+  cobracli:
+    paths: ["cobracli"]
+    tag_prefix: "cobracli/v"
+  datetime:
+    paths: ["datetime"]
+    tag_prefix: "datetime/v"
+  gittest:
+    paths: ["gittest"]
+    tag_prefix: "gittest/v"
+  httpclient:
+    paths: ["httpclient"]
+    tag_prefix: "httpclient/v"
+  httpserver:
+    paths: ["httpserver"]
+    tag_prefix: "httpserver/v"
+  matcher:
+    paths: ["matcher"]
+    tag_prefix: "matcher/v"
+  merge:
+    paths: ["merge"]
+    tag_prefix: "merge/v"
+  metrics:
+    paths: ["metrics"]
+    tag_prefix: "metrics/v"
+  objmatcher:
+    paths: ["objmatcher"]
+    tag_prefix: "objmatcher/v"
+  pkgpath:
+    paths: ["pkgpath"]
+    tag_prefix: "pkgpath/v"
+  refreshable:
+    paths: ["refreshable"]
+    tag_prefix: "refreshable/v"
+  retry:
+    paths: ["retry"]
+    tag_prefix: "retry/v"
+  rid:
+    paths: ["rid"]
+    tag_prefix: "rid/v"
+  safehttp:
+    paths: ["safehttp"]
+    tag_prefix: "safehttp/v"
+  safejson:
+    paths: ["safejson"]
+    tag_prefix: "safejson/v"
+  safelong:
+    paths: ["safelong"]
+    tag_prefix: "safelong/v"
+  safeyaml:
+    paths: ["safeyaml"]
+    tag_prefix: "safeyaml/v"
+  signals:
+    paths: ["signals"]
+    tag_prefix: "signals/v"
+  specdir:
+    paths: ["specdir"]
+    tag_prefix: "specdir/v"
+  tableprinter:
+    paths: ["tableprinter"]
+    tag_prefix: "tableprinter/v"
+  tlsconfig:
+    paths: ["tlsconfig"]
+    tag_prefix: "tlsconfig/v"
+  transform:
+    paths: ["transform"]
+    tag_prefix: "transform/v"
+  typenames:
+    paths: ["typenames"]
+    tag_prefix: "typenames/v"
+  uuid:
+    paths: ["uuid"]
+    tag_prefix: "uuid/v"
+  yamlpatch:
+    paths: ["yamlpatch"]
+    tag_prefix: "yamlpatch/v"
+
+intoto:
+  disable: true
+
+options:
+  # Multi-group repos reject plain label releases. Release only groups with unreleased changelog entries.
+  release_recommended_groups: true
+  allowed_branches: ["master"]
