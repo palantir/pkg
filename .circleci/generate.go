@@ -1,198 +1,100 @@
 //go:build generate
-// +build generate
 
-// This program prints the CircleCI configuration for the "pkg" repository. Standard way to run it is to run
-// "go run generate.go ../ > config.yml" from the directory that contains this file (corresponds to "go run generate.go {{parentDir}} > config.yml").
+// This program writes the inputs for the shared CircleCI and Autorelease templates for the "pkg" repository.
+// Output paths are resolved relative to this source file rather than the process working directory.
 package main
 
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"text/template"
 )
 
 const (
-	header = `version: 2.1
-
-orbs:
-  go-jobs: palantir/go-jobs@0.8.0
-
-image-version: &image-version "cimg/go:1.26.5-browsers"
-
-checkout-path: &checkout-path
-  path: /home/circleci/go/src/github.com/palantir/pkg
-
-# Filter that matches all tags (will run on every build).
-all-tags-filter: &all-tags-filter
-  filters:
-    tags:
-      only: /.*/
-
-# Filter that matches any branch besides primary branch and ignores all tags except for release candidates
-pull-request-filter: &pull-request-filter
-  filters:
-    tags:
-      only: /.*-rc.*/
-    branches:
-      ignore:
-        - master
-
-executors:`
-
-	executorTemplateContent = `
-  standard-executor-{{.Module}}:
-    docker:
-      - image: *image-version
-    environment:
-      GOTOOLCHAIN: local
-    working_directory: /home/circleci/go/src/github.com/palantir/pkg/{{.Module}}
-`
-
-	requiresHeader = `
-# The set of jobs that should be run on every build
-requires_jobs: &requires_jobs
-`
-
-	requiresTemplateContent = `  - {{.Module}}-verify
-`
-
-	jobsWorkflowsTemplateContent = `
-jobs:
-  verify-circleci:
-    working_directory: /home/circleci/go/src/github.com/palantir/pkg
-    docker:
-      - image: *image-version
-    environment:
-      GOTOOLCHAIN: local
-    resource_class: small
-    steps:
-      - checkout
-      - run: go version
-      - run: go run .circleci/generate.go .
-      - run: diff  <(cat .circleci/config.yml) <(go run .circleci/generate.go .)
-
-workflows:
-  version: 2
-  verify-test:
-    jobs:
-      - verify-circleci
-      - go-jobs/circle_all:
-          name: "circle-all"
-          image: "busybox:1.36.1"
-          requires: *requires_jobs
-          <<: *pull-request-filter
-`
-
-	moduleTemplateContent = `
-      # {{.Module}}
-      - go-jobs/godel_verify:
-          name: {{.Module}}-verify
-          executor: standard-executor-{{.Module}}
-          setup_steps:
-            - go-jobs/default_setup_steps:
-                checkout_steps:
-                  - checkout:
-                      <<: *checkout-path
-          <<: *all-tags-filter
-`
+	templateShPath  = "template.sh"
+	autoreleasePath = "../.palantir/autorelease.yml"
 )
 
-type TemplateObject struct {
-	Module string
-}
+// Every module of this repository is a peer in its own directory and the root of the repository is not a godel project,
+// so all of the modules are listed in "MODULES": "ADDITIONAL_MODULES" would render jobs for a module at the root of the
+// repository that does not exist. "PRIMARY_BRANCH" is set because the template defaults to "develop", while this
+// repository uses "master". "USE_GOPATH_WD" preserves the working directories used by the old generated configuration.
+const templateShTemplateContent = `#!/usr/bin/env bash
+export CIRCLECI_TEMPLATE=go-library-oss
+export PRIMARY_BRANCH=master
+export USE_GOPATH_WD=true
+export MODULES={{join . ","}}
+`
 
-func main() {
-	if len(os.Args) < 2 {
-		panic("parent directory must be provided as argument")
-	}
-	modParentDir := os.Args[1]
-	mods, err := modules(modParentDir)
-	if err != nil {
-		panic(err)
-	}
-	configYML, err := createConfigYML(mods)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Print(configYML)
-}
+const autoreleaseTemplateContent = `version: 3
+
+groups:
+  __default__:
+    paths: ["."]
+    tag_prefix: "v"
+{{range .}}  {{.}}:
+    paths: ["{{.}}"]
+    tag_prefix: "{{.}}/v"
+{{end}}
+intoto:
+  disable: true
+
+options:
+  # Multi-group repos reject plain label releases. Release only groups with unreleased changelog entries.
+  release_recommended_groups: true
+  allowed_branches: ["master"]
+`
 
 var (
-	executorTemplate,
-	requiresTemplate,
-	jobsWorkflowsTemplate,
-	moduleTemplate *template.Template
+	templateShTemplate  = template.Must(template.New(templateShPath).Funcs(template.FuncMap{"join": strings.Join}).Parse(templateShTemplateContent))
+	autoreleaseTemplate = template.Must(template.New(autoreleasePath).Parse(autoreleaseTemplateContent))
 )
 
-func init() {
-	var err error
-	executorTemplate, err = template.New("executorTemplate").Parse(executorTemplateContent)
-	if err != nil {
-		panic(fmt.Sprintf("failed to create executorTemplate template: %v", err))
+func main() {
+	_, sourceFile, _, ok := runtime.Caller(0)
+	if !ok {
+		panic("failed to determine generator source path")
 	}
-	requiresTemplate, err = template.New("requiresTemplate").Parse(requiresTemplateContent)
+	sourceDir := filepath.Dir(sourceFile)
+
+	mods, err := modules(filepath.Dir(sourceDir))
 	if err != nil {
-		panic(fmt.Sprintf("failed to create requiresTemplate template: %v", err))
+		panic(err)
 	}
-	jobsWorkflowsTemplate, err = template.New("jobsWorkflowsTemplate").Parse(jobsWorkflowsTemplateContent)
-	if err != nil {
-		panic(fmt.Sprintf("failed to create jobsWorkflowsTemplate template: %v", err))
+	if err := writeGeneratedFile(sourceDir, templateShPath, templateShTemplate, mods, 0755); err != nil {
+		panic(err)
 	}
-	moduleTemplate, err = template.New("moduleTemplate").Parse(moduleTemplateContent)
-	if err != nil {
-		panic(fmt.Sprintf("failed to create moduleTemplate template: %v", err))
+	if err := writeGeneratedFile(sourceDir, autoreleasePath, autoreleaseTemplate, mods, 0644); err != nil {
+		panic(err)
 	}
 }
 
-func createConfigYML(modDirs []string) (string, error) {
-	jobNames := make([]string, 0, len(modDirs)*2)
-	for _, modDir := range modDirs {
-		jobNames = append(jobNames, modDir+"-verify", modDir+"-test-go-prev")
-	}
+func writeGeneratedFile(sourceDir, relativePath string, tmpl *template.Template, modDirs []string, perm os.FileMode) error {
 	outBuf := &bytes.Buffer{}
-	outBuf.WriteString(header)
-
-	var modTemplates []TemplateObject
-	for _, modDir := range modDirs {
-		modTemplates = append(modTemplates, TemplateObject{
-			Module: modDir,
-		})
+	if err := tmpl.Execute(outBuf, modDirs); err != nil {
+		return fmt.Errorf("failed to render %s: %w", relativePath, err)
 	}
-
-	for _, modTemplate := range modTemplates {
-		if err := executorTemplate.Execute(outBuf, modTemplate); err != nil {
-			return "", fmt.Errorf("failed to execute executorTemplate template: %v", err)
-		}
+	outputPath := filepath.Join(sourceDir, relativePath)
+	if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+		return fmt.Errorf("failed to create parent directory for %s: %w", outputPath, err)
 	}
-
-	outBuf.WriteString(requiresHeader)
-	for _, modTemplate := range modTemplates {
-		if err := requiresTemplate.Execute(outBuf, modTemplate); err != nil {
-			return "", fmt.Errorf("failed to execute requiresTemplate template: %v", err)
-		}
+	if err := os.WriteFile(outputPath, outBuf.Bytes(), perm); err != nil {
+		return fmt.Errorf("failed to write %s: %w", outputPath, err)
 	}
-
-	if err := jobsWorkflowsTemplate.Execute(outBuf, map[string]interface{}{
-		"JobNames": jobNames,
-	}); err != nil {
-		return "", fmt.Errorf("failed to execute headerTemplate template: %v", err)
+	if err := os.Chmod(outputPath, perm); err != nil {
+		return fmt.Errorf("failed to set permissions on %s: %w", outputPath, err)
 	}
-
-	for _, modTemplate := range modTemplates {
-		if err := moduleTemplate.Execute(outBuf, modTemplate); err != nil {
-			return "", fmt.Errorf("failed to execute moduleTemplate template: %v", err)
-		}
-	}
-	return outBuf.String(), nil
+	return nil
 }
 
 func modules(parentDir string) ([]string, error) {
-	fis, err := ioutil.ReadDir(parentDir)
+	fis, err := os.ReadDir(parentDir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read directory: %v", err)
+		return nil, fmt.Errorf("failed to read directory: %w", err)
 	}
 	var dirNames []string
 	for _, fi := range fis {
