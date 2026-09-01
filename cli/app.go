@@ -25,6 +25,7 @@ type App struct {
 	OnExit         OnExit
 	ContextConfig  func(Context, context.Context) context.Context
 	ContextOptions []ContextOption
+	AllowRoot      bool
 }
 
 type Option func(*App)
@@ -33,9 +34,10 @@ type ContextOption func(*Context)
 
 func NewApp(opts ...Option) *App {
 	app := &App{
-		Stdout: os.Stdout,
-		Stderr: os.Stderr,
-		OnExit: newOnExit(),
+		Stdout:    os.Stdout,
+		Stderr:    os.Stderr,
+		OnExit:    newOnExit(),
+		AllowRoot: false,
 	}
 	for _, opt := range opts {
 		opt(app)

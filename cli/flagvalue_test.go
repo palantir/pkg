@@ -52,6 +52,7 @@ func TestBindFlagValues(t *testing.T) {
 		},
 	} {
 		app := cli.NewApp()
+		app.AllowRoot = true
 		app.Command = cli.Command{
 			Name: "foo",
 			Flags: []flag.Flag{
@@ -111,6 +112,7 @@ func TestBindFlagValuesStringParam(t *testing.T) {
 		},
 	} {
 		app := cli.NewApp()
+		app.AllowRoot = true
 		app.Command = cli.Command{
 			Name: "foo",
 			Flags: []flag.Flag{
