@@ -2,7 +2,7 @@ module github.com/palantir/pkg/cli
 
 go 1.26.0
 
-toolchain go1.26.7
+toolchain go1.26.8
 
 require (
 	github.com/mitchellh/go-wordwrap v1.0.0
