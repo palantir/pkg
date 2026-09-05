@@ -6,6 +6,7 @@ package clipackager_test
 
 import (
 	_ "embed"
+	"os"
 	"strings"
 	"testing"
 
@@ -68,7 +69,7 @@ func TestRunCLI(t *testing.T) {
 			// Create a CLI runner with a unique work directory for this test
 			runner := clipackager.NewPackagedCLIRunner(
 				"test-cli-1.0.0",
-				t.TempDir(),
+				trustedTempDir(t),
 				cliProvider,
 			)
 
@@ -107,7 +108,7 @@ func TestRunCLIWithArgs(t *testing.T) {
 
 	runner := clipackager.NewPackagedCLIRunner(
 		"test-cli-1.0.0",
-		t.TempDir(),
+		trustedTempDir(t),
 		cliProvider,
 	)
 
@@ -129,7 +130,7 @@ func TestCLIExecutablePath(t *testing.T) {
 		clipackager.StaticPathProvider("hello-world-1.0.0/bin/test-cli.sh"),
 	)
 
-	workDir := t.TempDir()
+	workDir := trustedTempDir(t)
 	runner := clipackager.NewPackagedCLIRunner(
 		"test-cli-1.0.0",
 		workDir,
@@ -160,4 +161,26 @@ func TestCLIExecutablePath(t *testing.T) {
 	if execPath != execPath2 {
 		t.Errorf("executable path changed between calls:\nfirst:  %q\nsecond: %q", execPath, execPath2)
 	}
+}
+
+func trustedTempDir(t *testing.T) string {
+	t.Helper()
+
+	cacheRoot, err := os.UserCacheDir()
+	if err != nil {
+		t.Fatalf("failed to determine user cache directory for test: %v", err)
+	}
+	if err := os.MkdirAll(cacheRoot, 0700); err != nil {
+		t.Fatalf("failed to create user cache directory for test: %v", err)
+	}
+	tempDir, err := os.MkdirTemp(cacheRoot, "clipackager-test-*")
+	if err != nil {
+		t.Fatalf("failed to create trusted temporary directory for test: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			t.Errorf("failed to remove trusted temporary directory %s: %v", tempDir, err)
+		}
+	})
+	return tempDir
 }
