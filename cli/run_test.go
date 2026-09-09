@@ -34,6 +34,7 @@ func TestRunErrorOutput(t *testing.T) {
 
 	for i, currCase := range cases {
 		app := cli.NewApp()
+		app.AllowRoot = true
 		app.Action = func(ctx cli.Context) error {
 			return currCase.err
 		}
@@ -79,6 +80,7 @@ func TestRunErrorHandler(t *testing.T) {
 
 	for i, currCase := range cases {
 		app := cli.NewApp()
+		app.AllowRoot = true
 		app.ErrorHandler = currCase.handler
 		app.Action = func(ctx cli.Context) error {
 			return currCase.err
@@ -118,6 +120,7 @@ func TestRunContext(t *testing.T) {
 			name: "check that context is propagated to app action",
 			check: func(t *testing.T) {
 				app := cli.NewApp()
+				app.AllowRoot = true
 
 				app.Command.Flags = []flag.Flag{
 					flag.StringFlag{
@@ -136,6 +139,7 @@ func TestRunContext(t *testing.T) {
 			name: "check that context is propagated to app error handler",
 			check: func(t *testing.T) {
 				app := cli.NewApp()
+				app.AllowRoot = true
 
 				app.Command.Flags = []flag.Flag{
 					flag.StringFlag{
@@ -162,6 +166,7 @@ func TestRunContext(t *testing.T) {
 			name: "check that context is propagated to app subcommand",
 			check: func(t *testing.T) {
 				app := cli.NewApp()
+				app.AllowRoot = true
 
 				app.Command.Flags = []flag.Flag{
 					flag.StringFlag{

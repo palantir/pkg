@@ -37,6 +37,13 @@ func (app *App) Run(args []string) (exitStatus int) {
 		return 0
 	}
 
+	if !app.AllowRoot {
+		if syscall.Getuid() == 0 {
+			ctx.Errorf("%v\n", "Root is not allowed to run this program.")
+			return 1
+		}
+	}
+
 	baseContext := context.Background()
 	if app.ContextConfig != nil {
 		baseContext = app.ContextConfig(ctx, baseContext)

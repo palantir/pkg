@@ -22,6 +22,7 @@ func TestCLIViperApp(t *testing.T) {
 
 	// set cliviper.App() option
 	app := cli.NewApp(cliviper.App())
+	app.AllowRoot = true
 	app.Flags = []flag.Flag{
 		flag.StringFlag{Name: msgFlag},
 	}
