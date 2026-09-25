@@ -25,18 +25,33 @@ import (
 // extension that represents the format of the archive.
 //
 // Assumes that the archive contains a top-level directory named "{cliName}-{cliVersion}", and that the CLI executable
-// is at {cliName}-{cliVersion}/bin/{cliName}, with ".bat" appended if the GOOS is windows. The directory
-// filepath.Join(os.TempDir(), "_"+cliName) is used as the package working directory.
+// is at {cliName}-{cliVersion}/bin/{cliName}, with ".bat" appended if the GOOS is windows. A stable package working
+// directory under os.UserCacheDir(), scoped by "clipackager" and cliName, is used so extracted CLIs remain reusable
+// across runs without relying on a shared temporary directory.
 func NewDefaultPackagedCLIRunner(
 	cliName,
 	cliVersion string,
 	archiveBytes []byte,
 	archiveExtension string,
 ) PackagedCLIRunner {
+	return newDefaultPackagedCLIRunner(cliName, cliVersion, archiveBytes, archiveExtension, os.UserCacheDir)
+}
+
+type userCacheDirFn func() (string, error)
+
+func newDefaultPackagedCLIRunner(
+	cliName,
+	cliVersion string,
+	archiveBytes []byte,
+	archiveExtension string,
+	cacheDirFn userCacheDirFn,
+) PackagedCLIRunner {
 	cliDirName := fmt.Sprintf("%s-%s", cliName, cliVersion)
-	return NewPackagedCLIRunner(
+	pkgWorkDir, pkgWorkDirErr := defaultPkgWorkDir(cliName, cacheDirFn)
+	return newPackagedCLIRunner(
 		cliDirName,
-		filepath.Join(os.TempDir(), "_"+cliName),
+		pkgWorkDir,
+		pkgWorkDirErr,
 		NewArchivePackagedCLIProviderFromBytes(
 			archiveBytes,
 			archiveExtension,
@@ -46,6 +61,28 @@ func NewDefaultPackagedCLIRunner(
 			),
 		),
 	)
+}
+
+func defaultPkgWorkDir(cliName string, cacheDirFn userCacheDirFn) (string, error) {
+	cacheRoot, err := cacheDirFn()
+	if err != nil {
+		return "", fmt.Errorf("failed to determine user cache directory: %w", err)
+	}
+	if cacheRoot == "" {
+		return "", fmt.Errorf("failed to determine user cache directory: path was empty")
+	}
+	return filepath.Join(cacheRoot, "clipackager", cliName), nil
+}
+
+func normalizePkgWorkDir(path string) (string, error) {
+	if path == "" {
+		return "", fmt.Errorf("package work directory path was empty")
+	}
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return "", fmt.Errorf("failed to determine absolute package work directory: %w", err)
+	}
+	return filepath.Clean(absPath), nil
 }
 
 // RunPackagedCLI is a convenience function that runs the CLI executable provided by packgedCLIRunner using the provided
@@ -65,12 +102,23 @@ type PackagedCLIRunner interface {
 	EnsureCLIExistsAndReturnPath() (string, error)
 }
 
-// NewPackagedCLIRunner returns a new PackagedCLIRunner that uses the provided parameters.
+// NewPackagedCLIRunner returns a new PackagedCLIRunner that uses the provided parameters. On Unix, pkgWorkDir and each
+// existing ancestor must be a real directory owned by root or the effective user and must not be group- or
+// world-writable. Missing path components are created with mode 0700. Violations are reported on first use before a
+// lock file is created or a cached executable is trusted.
 func NewPackagedCLIRunner(name, pkgWorkDir string, cliProvider PackagedCLIProvider) PackagedCLIRunner {
+	return newPackagedCLIRunner(name, pkgWorkDir, nil, cliProvider)
+}
+
+func newPackagedCLIRunner(name, pkgWorkDir string, pkgWorkDirErr error, cliProvider PackagedCLIProvider) PackagedCLIRunner {
+	if pkgWorkDirErr == nil {
+		pkgWorkDir, pkgWorkDirErr = normalizePkgWorkDir(pkgWorkDir)
+	}
 	return &packgedCLIRunner{
-		cliPkgName:  name,
-		pkgWorkDir:  pkgWorkDir,
-		cliProvider: cliProvider,
+		cliPkgName:    name,
+		pkgWorkDir:    pkgWorkDir,
+		pkgWorkDirErr: pkgWorkDirErr,
+		cliProvider:   cliProvider,
 	}
 }
 
@@ -91,12 +139,11 @@ type packgedCLIRunner struct {
 	// should be unique per package. Typically, the value is something like "{name}-{version}" (for example, "conjure-4.35.0").
 	cliPkgName string
 
-	// pkgWorkDir is the directory in which all package-related operations should occur. This directory may be used for
-	// things like lock files and as a parent directory within which archives may be written or extracted, so it should
-	// generally be assumed that the runner has full control over the directory. However, it may also make sense to have
-	// this be somewhat stable (rather than fully random) so that CLIs that have been set up can be reused across runs.
-	// For example, a value such as filepath.Join(os.TempDir(), "_conjureircli") is an example of such usage.
-	pkgWorkDir string
+	// pkgWorkDir is the directory in which all package-related operations should occur. The runner creates lock files and
+	// extracted CLI trees under this directory and therefore only uses directories that are safe to execute cached code
+	// from. Stable directories are expected and allow CLIs to be reused across runs.
+	pkgWorkDir    string
+	pkgWorkDirErr error
 
 	// cliProvider is the provider that extracts and writes the CLI if it does not exist.
 	cliProvider PackagedCLIProvider
@@ -105,6 +152,9 @@ type packgedCLIRunner struct {
 var _ PackagedCLIRunner = (*packgedCLIRunner)(nil)
 
 func (r *packgedCLIRunner) EnsureCLIExistsAndReturnPath() (string, error) {
+	if r.pkgWorkDirErr != nil {
+		return "", r.pkgWorkDirErr
+	}
 	cliPath, err := r.cliPath()
 	if err != nil {
 		return "", err
@@ -133,8 +183,8 @@ func (r *packgedCLIRunner) cliPath() (string, error) {
 // the CLI package name that locks across different processes/executables. Returns an error if the CLI does not exist at
 // the expected location and it was not possible to extract it.
 func (r *packgedCLIRunner) ensureCLIExists() error {
-	if err := os.MkdirAll(r.pkgWorkDir, 0755); err != nil {
-		return fmt.Errorf("os.MkdirAll failed for package work directory %s: %w", r.pkgWorkDir, err)
+	if err := ensurePkgWorkDir(r.pkgWorkDir); err != nil {
+		return fmt.Errorf("failed to prepare package work directory %s: %w", r.pkgWorkDir, err)
 	}
 	installPkgLockFilePath := filepath.Join(r.pkgWorkDir, fmt.Sprintf("install-%s.lock", r.cliPkgName))
 	installMutex := lockedfile.MutexAt(installPkgLockFilePath)

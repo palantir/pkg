@@ -10,6 +10,6 @@
 // The PackagedCLIProvider interface provides functions for extracting a CLI from an archive into a directory for use.
 //
 // The PackagedCLIRunner interface provides a function that ensures that a CLI exists using PackagedCLIProvider and
-// returns its path. The functionality is implemented in such a way that the CLI should generally be cached across
-// different runs and also uses file-based locking to ensure safety across processes.
+// returns its path. The default runner stores extracted CLIs in a per-user cache directory so they can be reused across
+// runs and uses file-based locking to ensure safety across processes.
 package clipackager
