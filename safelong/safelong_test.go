@@ -56,7 +56,7 @@ func TestSafeLongUnmarshal(t *testing.T) {
 }
 
 func TestSafeLongBoundsEnforcedByMarshal(t *testing.T) {
-	wantErrFmt := "json: error calling MarshalJSON for type safelong.SafeLong: %d is not a valid value for a SafeLong as it is not safely representable in Javascript: must be between -9007199254740991 and 9007199254740991"
+	wantErrFmt := "json: error calling MarshalJSON for type *safelong.SafeLong: %d is not a valid value for a SafeLong as it is not safely representable in Javascript: must be between -9007199254740991 and 9007199254740991"
 
 	for i, currVal := range []int64{
 		int64(1) << 53,
