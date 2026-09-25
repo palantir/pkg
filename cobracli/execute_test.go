@@ -191,7 +191,7 @@ func TestPrintInfoLevelErrorAndParamsWithDebugTransformer(t *testing.T) {
 Error params:
   baz: 7
   foo: "bar"
-  qux: error json marshalling parameter value: json: unsupported type: map[cobracli_test.jsonInvalidMapKey]string
+  qux: error json marshalling parameter value: json: unsupported value: jsontext: object member name must be a string after offset 2
 `, out.String())
 	})
 
