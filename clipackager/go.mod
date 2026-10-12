@@ -2,7 +2,7 @@ module github.com/palantir/pkg/clipackager
 
 go 1.27.0
 
-toolchain go1.27.1
+toolchain go1.27.2
 
 require (
 	github.com/mholt/archives v0.1.5
