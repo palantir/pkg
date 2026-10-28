@@ -1,0 +1,16 @@
+[
+  {"name":"go-patch","go_mod":"module example.com/test\ngo 1.26.2\n","toolchain":"go1.26.2"},
+  {"name":"go-language","go_mod":"module example.com/test\ngo 1.27\n","toolchain":"go1.27.0"},
+  {"name":"go-legacy-language","go_mod":"module example.com/test\ngo 1.20\n","toolchain":"go1.20.0"},
+  {"name":"go-release-candidate","go_mod":"module example.com/test\ngo 1.27rc1\n","toolchain":"go1.27rc1"},
+  {"name":"go-beta","go_mod":"module example.com/test\ngo 1.27beta1\n","toolchain":"go1.27beta1"},
+  {"name":"toolchain-newer","go_mod":"module example.com/test\ngo 1.26.1\ntoolchain go1.27.1\n","toolchain":"go1.27.1"},
+  {"name":"toolchain-lower","go_mod":"module example.com/test\ngo 1.27.0\ntoolchain go1.26.2\n","toolchain":"go1.26.2"},
+  {"name":"toolchain-default","go_mod":"module example.com/test\ngo 1.27\ntoolchain default\n","toolchain":"go1.27.0"},
+  {"name":"comments-whitespace","go_mod":"module example.com/test\n\tgo 1.26.1 // minimum\n toolchain go1.26.2 // preferred\n","toolchain":"go1.26.2"},
+  {"name":"missing-go","go_mod":"module example.com/test\n","error":true},
+  {"name":"repeated-go","go_mod":"module example.com/test\ngo 1.27\ngo 1.27.0\n","error":true},
+  {"name":"toolchain-missing-patch","go_mod":"module example.com/test\ngo 1.27.0\ntoolchain go1.27\n","error":true},
+  {"name":"toolchain-custom","go_mod":"module example.com/test\ngo 1.27.0\ntoolchain go1.27.3-custom\n","error":true},
+  {"name":"noncanonical-require","go_mod":"module example.com/test\ngo 1.26.2\nrequire example.com/dependency v1.2\n","toolchain":"go1.26.2"}
+]
