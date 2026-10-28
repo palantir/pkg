@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -68,6 +69,7 @@ func (rid ResourceIdentifier) MarshalText() (text []byte, err error) {
 
 // AppendText implements encoding.TextAppender.
 func (rid ResourceIdentifier) AppendText(text []byte) ([]byte, error) {
+	text = slices.Grow(text, len(ridClass)+4*len(separator)+len(rid.Service)+len(rid.Instance)+len(rid.Type)+len(rid.Locator))
 	text = append(text, ridClass...)
 	for _, part := range [...]string{rid.Service, rid.Instance, rid.Type, rid.Locator} {
 		text = append(append(text, separator...), part...)
