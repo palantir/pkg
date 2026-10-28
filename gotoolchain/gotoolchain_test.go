@@ -2,9 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Copyright (c) 2026 Palantir Technologies. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be found in the LICENSE file.
-
 package gotoolchain_test
 
 import (
@@ -100,17 +97,55 @@ func TestNormalize(t *testing.T) {
 	}
 }
 
-func TestSelectedToolchain(t *testing.T) {
+// selectCases include directive values that a go.mod file cannot contain. An empty want indicates an error.
+var selectCases = []struct {
+	d    gotoolchain.Directives
+	want string
+}{
+	{gotoolchain.Directives{Go: "1.27"}, "go1.27.0"},
+	{gotoolchain.Directives{Go: "1.27", Toolchain: "go1.27.3"}, "go1.27.3"},
+	{gotoolchain.Directives{Go: "1.27", Toolchain: "default"}, "go1.27.0"},
+	{gotoolchain.Directives{Go: "1.28.0", Toolchain: "go1.27.3"}, "go1.27.3"},
+	{gotoolchain.Directives{Go: "1.20", Toolchain: "go1.20"}, "go1.20"},
+	{gotoolchain.Directives{Toolchain: "go1.27.3"}, ""},
+	{gotoolchain.Directives{Go: "go1.27.0"}, ""},
+	{gotoolchain.Directives{Go: "latest", Toolchain: "go1.27.3"}, ""},
+	{gotoolchain.Directives{Go: "1.27", Toolchain: "go1.27"}, ""},
+	{gotoolchain.Directives{Go: "1.27", Toolchain: "1.27.3"}, ""},
+	{gotoolchain.Directives{Go: "1.27", Toolchain: "local"}, ""},
+	{gotoolchain.Directives{Go: "1.27", Toolchain: "go1.27.3 extra"}, ""},
+	{gotoolchain.Directives{Go: "1.27", Toolchain: "go1.27.3-custom"}, ""},
+}
+
+func TestReadDirectives(t *testing.T) {
 	for _, tc := range []struct {
-		d    gotoolchain.Directives
-		want string
+		goMod   string
+		want    gotoolchain.Directives
+		wantErr bool
 	}{
-		{gotoolchain.Directives{Go: "1.27"}, "go1.27.0"},
-		{gotoolchain.Directives{Go: "1.27", Toolchain: "go1.27.3"}, "go1.27.3"},
-		{gotoolchain.Directives{Go: "1.27", Toolchain: "default"}, "go1.27.0"},
-		{gotoolchain.Directives{Toolchain: "go1.27.3"}, ""},
-		{gotoolchain.Directives{Go: "1.27", Toolchain: "go1.27"}, ""},
+		{goMod: "module example.com/test\ngo 1.27.0\ntoolchain go1.27.3\n", want: gotoolchain.Directives{Go: "1.27.0", Toolchain: "go1.27.3"}},
+		{goMod: "module example.com/test\ngo 1.27\n", want: gotoolchain.Directives{Go: "1.27"}},
+		{goMod: "module example.com/test\ntoolchain default\n", want: gotoolchain.Directives{Toolchain: "default"}},
+		{goMod: "module example.com/test\n", want: gotoolchain.Directives{}},
+		{goMod: "module example.com/test\ngo 1.27\ngo 1.27\n", wantErr: true},
+		{goMod: "module example.com/test\ngo 1.27\nrequire (\n", wantErr: true},
 	} {
+		got, err := gotoolchain.ReadDirectives(writeGoMod(t, tc.goMod))
+		if tc.wantErr {
+			if err == nil {
+				t.Errorf("ReadDirectives(%q) expected an error", tc.goMod)
+			}
+			continue
+		}
+		requireNoError(t, err)
+		if got != tc.want {
+			t.Errorf("ReadDirectives(%q) = %+v, want %+v", tc.goMod, got, tc.want)
+		}
+	}
+}
+
+func TestSelectedToolchain(t *testing.T) {
+	for _, tc := range selectCases {
 		got, err := tc.d.SelectedToolchain()
 		if tc.want == "" {
 			if err == nil {
