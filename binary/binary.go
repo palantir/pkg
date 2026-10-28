@@ -30,12 +30,17 @@ func (b Binary) String() string {
 }
 
 func (b Binary) MarshalText() (text []byte, err error) {
+	return b.AppendText(nil)
+}
+
+// AppendText implements encoding.TextAppender.
+func (b Binary) AppendText(text []byte) ([]byte, error) {
 	// Verify that data is base64-encoded
 	if _, err := b.Bytes(); err != nil {
 		return nil, err
 	}
 
-	return []byte(b), nil
+	return append(text, b...), nil
 }
 
 func (b *Binary) UnmarshalText(data []byte) error {

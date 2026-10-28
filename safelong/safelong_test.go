@@ -6,6 +6,7 @@ package safelong_test
 
 import (
 	"encoding/json"
+	jsonv2 "encoding/json/v2"
 	"fmt"
 	"testing"
 
@@ -56,7 +57,7 @@ func TestSafeLongUnmarshal(t *testing.T) {
 }
 
 func TestSafeLongBoundsEnforcedByMarshal(t *testing.T) {
-	wantErrFmt := "json: error calling MarshalJSON for type *safelong.SafeLong: %d is not a valid value for a SafeLong as it is not safely representable in Javascript: must be between -9007199254740991 and 9007199254740991"
+	wantErrFmt := "json: error calling MarshalJSONTo for type *safelong.SafeLong: %d is not a valid value for a SafeLong as it is not safely representable in Javascript: must be between -9007199254740991 and 9007199254740991"
 
 	for i, currVal := range []int64{
 		int64(1) << 53,
@@ -91,4 +92,60 @@ func TestBoundsEnforcedByNewSafeLong(t *testing.T) {
 		_, err := safelong.NewSafeLong(currVal)
 		assert.EqualError(t, err, fmt.Sprintf(wantErrFmt, currVal), "Case %d", i)
 	}
+}
+
+func TestSafeLongMapKey(t *testing.T) {
+	in := map[safelong.SafeLong]safelong.SafeLong{-42: 13, 0: 0}
+	const want = `{"-42":13,"0":0}`
+	for _, tc := range []struct {
+		name      string
+		marshal   func(any) ([]byte, error)
+		unmarshal func([]byte, any) error
+	}{
+		{name: "v1", marshal: json.Marshal, unmarshal: json.Unmarshal},
+		{name: "v2",
+			marshal:   func(v any) ([]byte, error) { return jsonv2.Marshal(v, jsonv2.Deterministic(true)) },
+			unmarshal: func(data []byte, v any) error { return jsonv2.Unmarshal(data, v) }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			out, err := tc.marshal(in)
+			require.NoError(t, err)
+			assert.Equal(t, want, string(out))
+
+			var got map[safelong.SafeLong]safelong.SafeLong
+			require.NoError(t, tc.unmarshal(out, &got))
+			assert.Equal(t, in, got)
+		})
+	}
+}
+
+func TestSafeLongV2(t *testing.T) {
+	for i, currCase := range safeLongJSONs {
+		out, err := jsonv2.Marshal(safelong.SafeLong(currCase.val))
+		require.NoError(t, err, "Case %d", i)
+		assert.Equal(t, currCase.json, string(out), "Case %d", i)
+
+		var got safelong.SafeLong
+		require.NoError(t, jsonv2.Unmarshal(out, &got), "Case %d", i)
+		assert.Equal(t, safelong.SafeLong(currCase.val), got, "Case %d", i)
+	}
+	for _, in := range []string{
+		`9007199254740992`,
+		`"13"`,
+		`1.5`,
+		`{"9007199254740992":0}`,
+		`{"1.5":0}`,
+	} {
+		t.Run("rejects "+in, func(t *testing.T) {
+			var v any = new(safelong.SafeLong)
+			if in[0] == '{' {
+				v = new(map[safelong.SafeLong]int)
+			}
+			assert.Error(t, jsonv2.Unmarshal([]byte(in), v))
+		})
+	}
+	t.Run("rejects out of bounds map key", func(t *testing.T) {
+		_, err := jsonv2.Marshal(map[safelong.SafeLong]int{1 << 53: 0})
+		assert.Error(t, err)
+	})
 }

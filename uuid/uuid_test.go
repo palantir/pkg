@@ -50,7 +50,7 @@ func TestUUID_UnmarshalJSON(t *testing.T) {
 	t.Run("incorrect group", func(t *testing.T) {
 		var actual uuid.UUID
 		err := json.Unmarshal([]byte(`"00010203-04Z5-0607-0809-0A0B0C0D0E0F"`), &actual)
-		assert.EqualError(t, err, "invalid UUID format")
+		assert.EqualError(t, err, "invalid uuid")
 	})
 }
 
@@ -76,4 +76,11 @@ func TestNewUUID(t *testing.T) {
 	u1 := uuid.NewUUID()
 	u2 := uuid.NewUUID()
 	require.NotEqual(t, u1.String(), u2.String(), "Two UUIDs should not be equal.")
+}
+
+func TestUUID_AppendText(t *testing.T) {
+	u := uuid.NewUUID()
+	got, err := u.AppendText([]byte("prefix:"))
+	assert.NoError(t, err)
+	assert.Equal(t, "prefix:"+u.String(), string(got))
 }
