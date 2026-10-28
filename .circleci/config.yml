@@ -55,6 +55,11 @@ executors:
       - image: *image-version
     resource_class: medium
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/gittest
+  standard-executor-gotoolchain:
+    docker:
+      - image: *image-version
+    resource_class: medium
+    working_directory: /home/circleci/go/src/github.com/palantir/pkg/gotoolchain
   standard-executor-httpclient:
     docker:
       - image: *image-version
@@ -189,6 +194,7 @@ requires_jobs: &requires_jobs
   - cobracli-verify
   - datetime-verify
   - gittest-verify
+  - gotoolchain-verify
   - httpclient-verify
   - httpserver-verify
   - matcher-verify
@@ -291,6 +297,15 @@ workflows:
       - go-jobs/godel_verify:
           name: "gittest-verify"
           executor: "standard-executor-gittest"
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      path: /home/circleci/go/src/github.com/palantir/pkg
+          <<: *all-tags-filter
+      - go-jobs/godel_verify:
+          name: "gotoolchain-verify"
+          executor: "standard-executor-gotoolchain"
           setup_steps:
             - go-jobs/default_setup_steps:
                 checkout_steps:

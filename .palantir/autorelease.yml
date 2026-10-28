@@ -31,6 +31,9 @@ groups:
   gittest:
     paths: ["gittest"]
     tag_prefix: "gittest/v"
+  gotoolchain:
+    paths: ["gotoolchain"]
+    tag_prefix: "gotoolchain/v"
   httpclient:
     paths: ["httpclient"]
     tag_prefix: "httpclient/v"
