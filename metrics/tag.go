@@ -84,6 +84,9 @@ func MustNewTag(k, v string) Tag {
 // to using a known valid value (e.g., "unknown") when the value is invalid. Note: because MustNewTag will panic if it
 // fails, both the key and fallback value must be known valid.
 func NewTagWithFallbackValue(k, v, fallback string) Tag {
+	if v == "" {
+		return MustNewTag(k, fallback)
+	}
 	tag, err := NewTag(k, v)
 	if err != nil {
 		return MustNewTag(k, fallback)

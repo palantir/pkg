@@ -53,3 +53,36 @@ func TestMustTag(t *testing.T) {
 		assert.Error(t, err)
 	})
 }
+
+func TestNewTagWithFallbackValue(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		value    string
+		fallback string
+		expected string
+	}{
+		{name: "valid value", value: "Role", expected: "role"},
+		{name: "empty value", fallback: "Unknown", expected: "unknown"},
+		{name: "invalid nonempty value", value: strings.Repeat("a", 200), fallback: "unknown", expected: "unknown"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, Tag{key: "kind", value: tc.expected}, NewTagWithFallbackValue("kind", tc.value, tc.fallback))
+		})
+	}
+}
+
+func TestNewTagWithFallbackValuePanics(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		key      string
+		fallback string
+	}{
+		{name: "empty key", fallback: "unknown"},
+		{name: "invalid key", key: "0kind", fallback: "unknown"},
+		{name: "empty fallback", key: "kind"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Panics(t, func() { NewTagWithFallbackValue(tc.key, "", tc.fallback) })
+		})
+	}
+}
