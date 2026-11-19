@@ -6,6 +6,7 @@ package metrics
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -287,7 +288,7 @@ func (r *rootRegistry) Each(f MetricVisitor) {
 		sortedMetricIDs = append(sortedMetricIDs, name)
 		allMetrics[name] = metric
 	})
-	sortStrings(sortedMetricIDs)
+	slices.Sort(sortedMetricIDs)
 
 	for _, id := range sortedMetricIDs {
 		r.idToMetricMutex.RLock()
@@ -421,6 +422,21 @@ func toMetricTagsID(name string, tags Tags) metricTagsID {
 // newSortedTags copies the tag slice before sorting so that in-place mutation does not affect the input slice.
 func newSortedTags(tags Tags) Tags {
 	tagsCopy := append(tags[:0:0], tags...)
-	sortTags(tagsCopy)
+	slices.SortFunc(tagsCopy, compareTags)
 	return tagsCopy
+}
+
+func compareTags(a, b Tag) int {
+	switch {
+	case a.key < b.key:
+		return -1
+	case a.key > b.key:
+		return 1
+	case a.value < b.value:
+		return -1
+	case a.value > b.value:
+		return 1
+	default:
+		return 0
+	}
 }
