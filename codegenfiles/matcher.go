@@ -12,6 +12,9 @@ import (
 // generator owns. It is used to distinguish generated files from hand-written
 // files that have been placed in a directory otherwise managed by a generator,
 // so that only generated files are considered for deletion.
+//
+// It is an interface, like the matcher.Matcher used for FileMatcher, so a matcher
+// can carry its own state; ContentsMatcherFunc adapts a plain function.
 type ContentsMatcher interface {
 	MatchFileContents(contents []byte) bool
 }

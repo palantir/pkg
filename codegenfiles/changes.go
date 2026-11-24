@@ -73,35 +73,33 @@ func (c *Changes) Err() error {
 	return fmt.Errorf("generated output is out of date:\n%s", c)
 }
 
-// Apply makes the changes on disk, reporting progress to os.Stdout.
+// Apply makes the changes on disk. If log is non-nil, Apply reports to it, one line each, every file it
+// removes or writes and every directory it removes because it became empty.
 //
-// Removals are performed before writes so that a path whose shape changed since the last run -- a
-// directory standing where a generated file must now be written -- is cleared first where its contents
-// are themselves stale generated files.
-func (c *Changes) Apply() error {
-	return c.apply(os.Stdout)
-}
-
-func (c *Changes) apply(stdout io.Writer) error {
+// Removals are performed before writes so that a directory standing where a generated file must now be
+// written, which Plan has checked holds only stale generated files, is gone by the time the file is
+// written.
+func (c *Changes) Apply(log io.Writer) error {
+	if log == nil {
+		log = io.Discard
+	}
 	for _, relPath := range c.removals {
-		_, _ = fmt.Fprintf(stdout, "removing file %s\n", relPath)
+		_, _ = fmt.Fprintf(log, "removing file %s\n", relPath)
 		if err := os.Remove(filepath.Join(c.dir, relPath)); err != nil {
 			return fmt.Errorf("failed to remove %s: %w", relPath, err)
 		}
-		if err := removeEmptyParentDirectories(c.dir, relPath, stdout); err != nil {
+		if err := removeEmptyParentDirectories(c.dir, relPath, log); err != nil {
 			return fmt.Errorf("failed to remove empty parent directories for %s: %w", relPath, err)
 		}
 	}
 
 	for _, w := range c.writes {
+		_, _ = fmt.Fprintf(log, "writing file %s\n", w.Path)
 		fullPath := filepath.Join(c.dir, w.Path)
 		if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
 			return fmt.Errorf("failed to create parent directory for %s: %w", w.Path, err)
 		}
 		if err := writeFileAtomic(fullPath, w.Content); err != nil {
-			if info, statErr := os.Lstat(fullPath); statErr == nil && info.IsDir() {
-				return fmt.Errorf("failed to write %s: a directory exists at that path", w.Path)
-			}
 			return fmt.Errorf("failed to write %s: %w", w.Path, err)
 		}
 	}
@@ -158,7 +156,7 @@ func writeFileAtomic(path string, content []byte) error {
 // holding nothing existed solely for the generated files that were just deleted. Consulting the matcher
 // instead would disable cleanup altogether for the common case, since a matcher that selects files
 // (matcher.Name(`.+\.go`)) matches no directory at all.
-func removeEmptyParentDirectories(rootDir string, deletedFile string, stdout io.Writer) error {
+func removeEmptyParentDirectories(rootDir string, deletedFile string, log io.Writer) error {
 	relParent := filepath.Dir(deletedFile)
 	if relParent == "" || relParent == "." {
 		// reached the project root: stop
@@ -173,11 +171,11 @@ func removeEmptyParentDirectories(rootDir string, deletedFile string, stdout io.
 	_, readErr := f.Readdirnames(1)
 	_ = f.Close()
 	if readErr == io.EOF {
-		_, _ = fmt.Fprintf(stdout, "removing empty directory %s\n", relParent)
+		_, _ = fmt.Fprintf(log, "removing empty directory %s\n", relParent)
 		if err := os.Remove(parentDir); err != nil {
 			return fmt.Errorf("failed to remove empty directory %s: %w", relParent, err)
 		}
-		return removeEmptyParentDirectories(rootDir, relParent, stdout)
+		return removeEmptyParentDirectories(rootDir, relParent, log)
 	}
 	if readErr != nil {
 		return readErr

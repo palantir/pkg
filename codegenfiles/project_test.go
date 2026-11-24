@@ -94,7 +94,7 @@ func TestApply_WritesDeletesAndPreserves(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Plan: %v", err)
 	}
-	if err := changes.Apply(); err != nil {
+	if err := changes.Apply(nil); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 
@@ -135,7 +135,7 @@ func TestApply_LeavesUnchangedFilesAlone(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Plan: %v", err)
 	}
-	if err := changes.Apply(); err != nil {
+	if err := changes.Apply(nil); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 
@@ -162,7 +162,7 @@ func TestApply_RemovesEveryDirectoryEmptiedByARemoval(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Plan: %v", err)
 	}
-	if err := changes.Apply(); err != nil {
+	if err := changes.Apply(nil); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 	assertNotExists(t, nested)
@@ -184,7 +184,7 @@ func TestApply_KeepsDirectoriesThatAreStillOccupied(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Plan: %v", err)
 	}
-	if err := changes.Apply(); err != nil {
+	if err := changes.Apply(nil); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 	assertNotExists(t, filepath.Join(genDir, "stale.go"))
@@ -277,24 +277,68 @@ func TestPlan_EscapingPathIsRejected(t *testing.T) {
 	}
 }
 
-// A directory standing where a generated file must go is cleared by the removals Apply performs first,
-// rather than failing the write as it did when writes came first.
+// A directory standing where a generated file must go is cleared by the removals Apply performs first.
 func TestApply_ReplacesDirectoryLeftByAPreviousRun(t *testing.T) {
 	projectDir := t.TempDir()
 	// a previous run produced gen/kept.go as a directory containing generated files
 	obsolete := filepath.Join(projectDir, "gen", "kept.go")
 	mkdirAll(t, obsolete)
 	writeFile(t, filepath.Join(obsolete, "old.go"), generatedHeader+"// old\n")
+	mkdirAll(t, filepath.Join(obsolete, "sub"))
+	writeFile(t, filepath.Join(obsolete, "sub", "older.go"), generatedHeader+"// older\n")
 
 	p := newProject(projectDir)
 	changes, err := p.Plan(outputWith(filepath.Join("gen", "kept.go")))
 	if err != nil {
 		t.Fatalf("Plan: %v", err)
 	}
-	if err := changes.Apply(); err != nil {
+	if err := changes.Apply(nil); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 	assertContent(t, filepath.Join(projectDir, "gen", "kept.go"), string(keptContent()))
+}
+
+// A directory standing where a generated file must go that Apply would not fully remove is a conflict
+// Plan reports, so that verification sees it and Apply never fails partway through its removals.
+func TestPlan_RejectsDirectoryInTheWayThatRemovalsDoNotClear(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		deleteStale bool
+		setup       func(t *testing.T, dir string)
+	}{
+		{"hand-written file", true, func(t *testing.T, dir string) {
+			writeFile(t, filepath.Join(dir, "stale.go"), generatedHeader+"// stale\n")
+			writeFile(t, filepath.Join(dir, "hand.go"), "package gen\n")
+		}},
+		{"file outside FileMatcher", true, func(t *testing.T, dir string) {
+			writeFile(t, filepath.Join(dir, "README.md"), "notes\n")
+		}},
+		{"empty subdirectory", true, func(t *testing.T, dir string) {
+			writeFile(t, filepath.Join(dir, "stale.go"), generatedHeader+"// stale\n")
+			mkdirAll(t, filepath.Join(dir, "empty"))
+		}},
+		{"empty directory", true, func(t *testing.T, dir string) {}},
+		{"DeleteStale disabled", false, func(t *testing.T, dir string) {
+			writeFile(t, filepath.Join(dir, "stale.go"), generatedHeader+"// stale\n")
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			projectDir := t.TempDir()
+			obsolete := filepath.Join(projectDir, "gen", "kept.go")
+			mkdirAll(t, obsolete)
+			tc.setup(t, obsolete)
+
+			p := newProject(projectDir)
+			p.DeleteStale = tc.deleteStale
+			_, err := p.Plan(outputWith(filepath.Join("gen", "kept.go")))
+			if err == nil {
+				t.Fatal("expected Plan to reject the directory at gen/kept.go, got nil")
+			}
+			if !strings.Contains(err.Error(), "a directory exists at that path") {
+				t.Errorf("error should explain the directory conflict, got: %v", err)
+			}
+		})
+	}
 }
 
 func TestPlan_DeleteStaleDisabledIgnoresUngeneratedFiles(t *testing.T) {
@@ -313,7 +357,7 @@ func TestPlan_DeleteStaleDisabledIgnoresUngeneratedFiles(t *testing.T) {
 	if len(changes.Removals()) != 0 {
 		t.Errorf("expected no removals with DeleteStale disabled, got %v", changes.Removals())
 	}
-	if err := changes.Apply(); err != nil {
+	if err := changes.Apply(nil); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 	assertExists(t, filepath.Join(genDir, "stale.go"))

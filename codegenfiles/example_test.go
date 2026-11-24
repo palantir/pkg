@@ -57,7 +57,7 @@ func Example() {
 	// Plan has not touched anything yet. A tool's verify mode reports here and stops.
 	fmt.Println(changes)
 
-	if err := changes.Apply(); err != nil {
+	if err := changes.Apply(os.Stdout); err != nil {
 		panic(err)
 	}
 
@@ -72,6 +72,7 @@ func Example() {
 	// gen/gadget.go: missing
 	// gen/sprocket.go: no longer generated
 	// removing file gen/sprocket.go
+	// writing file gen/gadget.go
 	// second run empty: true
 }
 

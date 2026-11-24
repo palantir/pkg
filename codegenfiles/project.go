@@ -49,7 +49,7 @@ type Project struct {
 // it, so the result can be reported (Changes.Err) or applied (Changes.Apply).
 //
 // It returns an error if a generated path escapes Dir, is not matched by FileMatcher, or is produced
-// more than once.
+// more than once, or if a directory stands at a generated path and Apply would not remove all of it.
 func (p *Project) Plan(out *Output) (*Changes, error) {
 	if err := p.validate(); err != nil {
 		return nil, err
@@ -60,13 +60,17 @@ func (p *Project) Plan(out *Output) (*Changes, error) {
 	}
 
 	changes := &Changes{dir: p.Dir}
+	var dirsInTheWay []string
 	for _, relPath := range slices.Sorted(maps.Keys(files)) {
-		write, err := p.planWrite(relPath, files[relPath])
+		write, isDir, err := p.planWrite(relPath, files[relPath])
 		if err != nil {
 			return nil, err
 		}
 		if write != nil {
 			changes.writes = append(changes.writes, *write)
+		}
+		if isDir {
+			dirsInTheWay = append(dirsInTheWay, relPath)
 		}
 	}
 
@@ -91,33 +95,73 @@ func (p *Project) Plan(out *Output) (*Changes, error) {
 			changes.removals = append(changes.removals, relPath)
 		}
 	}
+
+	removed := make(map[string]bool, len(changes.removals))
+	for _, relPath := range changes.removals {
+		removed[relPath] = true
+	}
+	for _, relPath := range dirsInTheWay {
+		cleared, err := p.clearedByRemovals(relPath, removed)
+		if err != nil {
+			return nil, fmt.Errorf("failed to inspect directory %s: %w", relPath, err)
+		}
+		if !cleared {
+			return nil, fmt.Errorf("cannot write %s: a directory exists at that path and does not hold only stale generated files", relPath)
+		}
+	}
 	return changes, nil
 }
 
 // planWrite reports the write needed to give relPath the provided content, or nil if the file on disk
-// already matches.
-func (p *Project) planWrite(relPath string, content []byte) (*Write, error) {
+// already matches. isDir reports that a directory stands where the file must go; Plan then checks that
+// Apply's removals clear it.
+func (p *Project) planWrite(relPath string, content []byte) (write *Write, isDir bool, err error) {
 	fullPath := filepath.Join(p.Dir, relPath)
 	info, err := os.Lstat(fullPath)
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
-		return &Write{Path: relPath, Content: content, Created: true}, nil
+		return &Write{Path: relPath, Content: content, Created: true}, false, nil
 	case err != nil:
-		return nil, fmt.Errorf("failed to stat %s: %w", relPath, err)
+		return nil, false, fmt.Errorf("failed to stat %s: %w", relPath, err)
 	case info.IsDir():
-		// a directory stands where the file must go; Apply clears it first if its contents are stale
-		// generated files, and reports the conflict precisely if they are not
-		return &Write{Path: relPath, Content: content, Created: true}, nil
+		return &Write{Path: relPath, Content: content, Created: true}, true, nil
 	}
 
 	existing, err := os.ReadFile(fullPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read %s: %w", relPath, err)
+		return nil, false, fmt.Errorf("failed to read %s: %w", relPath, err)
 	}
 	if bytes.Equal(existing, content) {
-		return nil, nil
+		return nil, false, nil
 	}
-	return &Write{Path: relPath, Content: content}, nil
+	return &Write{Path: relPath, Content: content}, false, nil
+}
+
+// clearedByRemovals reports whether Apply's removals leave nothing of the directory at relDir. Apply
+// removes a directory only when removing a file empties it, so every leaf under relDir must be a removed
+// file: an empty directory, or a file that is kept, survives.
+func (p *Project) clearedByRemovals(relDir string, removed map[string]bool) (bool, error) {
+	entries, err := os.ReadDir(filepath.Join(p.Dir, relDir))
+	if err != nil {
+		return false, err
+	}
+	if len(entries) == 0 {
+		return false, nil
+	}
+	for _, entry := range entries {
+		relPath := filepath.Join(relDir, entry.Name())
+		if !entry.IsDir() {
+			if !removed[relPath] {
+				return false, nil
+			}
+			continue
+		}
+		cleared, err := p.clearedByRemovals(relPath, removed)
+		if err != nil || !cleared {
+			return false, err
+		}
+	}
+	return true, nil
 }
 
 // validate rejects configurations whose behavior would be destructive or impossible to satisfy.

@@ -30,7 +30,7 @@ func TestApply_PreservesPermissionsOfReplacedFiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Plan: %v", err)
 	}
-	if err := changes.Apply(); err != nil {
+	if err := changes.Apply(nil); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 
@@ -50,7 +50,7 @@ func TestApply_CreatesNewFilesReadable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Plan: %v", err)
 	}
-	if err := changes.Apply(); err != nil {
+	if err := changes.Apply(nil); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 
@@ -77,7 +77,7 @@ func TestApply_LeavesNoTemporaryFilesBehind(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Plan: %v", err)
 	}
-	if err := changes.Apply(); err != nil {
+	if err := changes.Apply(nil); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 
@@ -125,7 +125,7 @@ func TestApply_FailedWriteLeavesPreviousContentsIntact(t *testing.T) {
 		_ = os.Chmod(genDir, 0755)
 	})
 
-	if err := changes.Apply(); err == nil {
+	if err := changes.Apply(nil); err == nil {
 		t.Fatal("expected Apply to fail when the temporary file cannot be created, got nil")
 	}
 	assertContent(t, keptPath, original)
@@ -180,7 +180,7 @@ func TestApply_ReconcilesMixedGoAndMarkdownOutput(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Plan: %v", err)
 	}
-	if err := changes.Apply(); err != nil {
+	if err := changes.Apply(nil); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 

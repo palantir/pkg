@@ -37,7 +37,7 @@ func TestPlan_NilFileMatcherWithoutDeleteStaleIsAllowed(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Plan: %v", err)
 	}
-	if err := changes.Apply(); err != nil {
+	if err := changes.Apply(nil); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 	assertExists(t, filepath.Join(projectDir, "gen", "kept.go"))
@@ -107,7 +107,7 @@ func TestApply_DeletesStaleFileWithCRLFLineEndings(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Plan: %v", err)
 	}
-	if err := changes.Apply(); err != nil {
+	if err := changes.Apply(nil); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 	assertNotExists(t, filepath.Join(genDir, "stale.go"))
