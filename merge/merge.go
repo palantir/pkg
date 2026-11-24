@@ -90,7 +90,7 @@ func determineValue(destVal, srcVal reflect.Value) (reflect.Value, error) {
 // safeIsNil only calls IsNil if the value is an interface, pointer, map, or slice (IsNil will not panic in these cases)
 func safeIsNil(val reflect.Value) bool {
 	switch val.Kind() {
-	case reflect.Interface, reflect.Ptr:
+	case reflect.Interface, reflect.Pointer:
 		return val.IsNil() || safeIsNil(val.Elem())
 	case reflect.Slice, reflect.Map:
 		return val.IsNil()

@@ -6,6 +6,8 @@ package safelong
 
 import (
 	"encoding/json"
+	"encoding/json/jsontext"
+	jsonv2 "encoding/json/v2"
 	"fmt"
 	"strconv"
 )
@@ -53,6 +55,46 @@ func (s SafeLong) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 	return strconv.AppendInt(nil, int64(s), 10), nil
+}
+
+// MarshalJSONTo writes s as a JSON number, or as a JSON string when s is an object name,
+// so that map[SafeLong]T works without encoding/json's legacy rule of ignoring MarshalJSON for map keys.
+func (s SafeLong) MarshalJSONTo(enc *jsontext.Encoder) error {
+	if err := validate(int64(s)); err != nil {
+		return err
+	}
+	if isObjectName(enc.StackIndex(enc.StackDepth())) {
+		return enc.WriteToken(jsontext.String(strconv.FormatInt(int64(s), 10)))
+	}
+	return enc.WriteToken(jsontext.Int(int64(s)))
+}
+
+// UnmarshalJSONFrom reads s from a JSON number, or from a JSON string when s is an object name.
+func (s *SafeLong) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
+	var val int64
+	if isObjectName(dec.StackIndex(dec.StackDepth())) {
+		tok, err := dec.ReadToken()
+		if err != nil {
+			return err
+		}
+		if val, err = strconv.ParseInt(tok.String(), 10, 64); err != nil {
+			return err
+		}
+	} else if err := jsonv2.UnmarshalDecode(dec, &val); err != nil {
+		return err
+	}
+	newVal, err := NewSafeLong(val)
+	if err != nil {
+		return err
+	}
+	*s = newVal
+	return nil
+}
+
+// isObjectName reports whether the next token at the given stack position is an object name.
+// An object's length counts its names and values, so the next token is a name when the length is even.
+func isObjectName(kind jsontext.Kind, length int64) bool {
+	return kind == '{' && length%2 == 0
 }
 
 func validate(val int64) error {

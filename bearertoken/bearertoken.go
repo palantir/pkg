@@ -13,7 +13,12 @@ func (t Token) String() string {
 }
 
 func (t Token) MarshalText() ([]byte, error) {
-	return []byte(t), nil
+	return t.AppendText(nil)
+}
+
+// AppendText implements encoding.TextAppender.
+func (t Token) AppendText(text []byte) ([]byte, error) {
+	return append(text, t...), nil
 }
 
 func (t *Token) UnmarshalText(text []byte) error {

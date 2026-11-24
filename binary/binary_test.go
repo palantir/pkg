@@ -54,3 +54,13 @@ func TestBinary_Unmarshal(t *testing.T) {
 		})
 	}
 }
+
+func TestBinary_AppendText(t *testing.T) {
+	b := binary.New([]byte("hello world"))
+	got, err := b.AppendText([]byte("prefix:"))
+	assert.NoError(t, err)
+	assert.Equal(t, "prefix:aGVsbG8gd29ybGQ=", string(got))
+
+	_, err = binary.Binary("not base64!").AppendText(nil)
+	assert.Error(t, err)
+}

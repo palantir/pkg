@@ -6,7 +6,7 @@ package safehttp_test
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/http/httptrace"
@@ -68,7 +68,7 @@ func TestDefaultClientDoesNotLeakWhenClosed(t *testing.T) {
 		require.NoError(t, err)
 
 		// drain and close response body
-		_, err = ioutil.ReadAll(resp.Body)
+		_, err = io.ReadAll(resp.Body)
 		require.NoError(t, err)
 		err = resp.Body.Close()
 		require.NoError(t, err)

@@ -5,6 +5,7 @@
 package datetime
 
 import (
+	"slices"
 	"strings"
 	"time"
 )
@@ -32,7 +33,12 @@ func (d DateTime) String() string {
 
 // MarshalText implements encoding.TextMarshaler (used by encoding/json and others).
 func (d DateTime) MarshalText() ([]byte, error) {
-	return time.Time(d).AppendFormat(nil, time.RFC3339Nano), nil
+	return d.AppendText(nil)
+}
+
+// AppendText implements encoding.TextAppender.
+func (d DateTime) AppendText(b []byte) ([]byte, error) {
+	return time.Time(d).AppendFormat(slices.Grow(b, len(time.RFC3339Nano)), time.RFC3339Nano), nil
 }
 
 // UnmarshalText implements encoding.TextUnmarshaler (used by encoding/json and others).

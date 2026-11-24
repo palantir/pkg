@@ -76,3 +76,13 @@ func TestBoolean_Unmarshal(t *testing.T) {
 		})
 	}
 }
+
+func TestBoolean_AppendText(t *testing.T) {
+	for _, b := range []Boolean{false, true} {
+		want, err := b.MarshalText()
+		require.NoError(t, err)
+		got, err := b.AppendText([]byte("prefix:"))
+		require.NoError(t, err)
+		require.Equal(t, "prefix:"+string(want), string(got))
+	}
+}

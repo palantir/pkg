@@ -71,7 +71,7 @@ func fromValue(v reflect.Value, path string) (any, error) {
 		return fromMap(v, path)
 	case reflect.Slice, reflect.Array:
 		return fromSliceOrArray(v, path)
-	case reflect.Interface, reflect.Ptr:
+	case reflect.Interface, reflect.Pointer:
 		return fromValue(v.Elem(), path)
 	case reflect.Invalid:
 		return nil, nil
@@ -136,7 +136,7 @@ func convertObjectKeyToString(k reflect.Value, path string) (string, error) {
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		// matches logic in https://cs.opensource.google/go/go/+/refs/tags/go1.25.4:src/encoding/json/encode.go;l=564
 		return strconv.FormatUint(k.Uint(), 10), nil
-	case reflect.Interface, reflect.Ptr:
+	case reflect.Interface, reflect.Pointer:
 		return convertObjectKeyToString(k.Elem(), path)
 	default:
 		// if type implements encoding.TextMarshaler, use it.

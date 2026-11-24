@@ -24,5 +24,10 @@ func (b *Boolean) UnmarshalText(data []byte) error {
 
 // MarshalText implements encoding.TextMarshaler (used by encoding/json and others).
 func (b Boolean) MarshalText() ([]byte, error) {
-	return []byte(strconv.FormatBool(bool(b))), nil
+	return b.AppendText(nil)
+}
+
+// AppendText implements encoding.TextAppender.
+func (b Boolean) AppendText(text []byte) ([]byte, error) {
+	return strconv.AppendBool(text, bool(b)), nil
 }

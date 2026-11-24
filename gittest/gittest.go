@@ -5,7 +5,6 @@
 package gittest
 
 import (
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"runtime/debug"
@@ -33,7 +32,7 @@ func CommitAllFiles(t *testing.T, gitDir, commitMessage string) {
 }
 
 func CommitRandomFile(t *testing.T, gitDir, commitMessage string) {
-	file, err := ioutil.TempFile(gitDir, "random-file-")
+	file, err := os.CreateTemp(gitDir, "random-file-")
 	requireNoError(t, err, "failed to create temporary file")
 	requireNoError(t, file.Close(), "failed to close temporary file")
 	CommitAllFiles(t, gitDir, commitMessage)

@@ -7,8 +7,7 @@ package uuid
 import (
 	"encoding"
 	"fmt"
-
-	"github.com/palantir/pkg/uuid/internal/uuid"
+	"uuid"
 )
 
 func NewUUID() UUID {
@@ -18,6 +17,7 @@ func NewUUID() UUID {
 var (
 	_ fmt.Stringer             = UUID{}
 	_ encoding.TextMarshaler   = UUID{}
+	_ encoding.TextAppender    = UUID{}
 	_ encoding.TextUnmarshaler = &UUID{}
 )
 
@@ -50,6 +50,11 @@ func (u UUID) MarshalText() ([]byte, error) {
 	return uuid.UUID(u).MarshalText()
 }
 
+// AppendText implements encoding.TextAppender.
+func (u UUID) AppendText(b []byte) ([]byte, error) {
+	return uuid.UUID(u).AppendText(b)
+}
+
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (u *UUID) UnmarshalText(data []byte) error {
 	return (*uuid.UUID)(u).UnmarshalText(data)
@@ -57,10 +62,14 @@ func (u *UUID) UnmarshalText(data []byte) error {
 
 // MarshalBinary implements encoding.BinaryMarshaler.
 func (u UUID) MarshalBinary() ([]byte, error) {
-	return uuid.UUID(u).MarshalBinary()
+	return u[:], nil
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler.
 func (u *UUID) UnmarshalBinary(data []byte) error {
-	return (*uuid.UUID)(u).UnmarshalBinary(data)
+	if len(data) != 16 {
+		return fmt.Errorf("invalid UUID (got %d bytes)", len(data))
+	}
+	copy(u[:], data)
+	return nil
 }

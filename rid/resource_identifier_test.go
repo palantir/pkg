@@ -136,3 +136,15 @@ func TestResourceIdentifier(t *testing.T) {
 		})
 	}
 }
+
+func TestResourceIdentifier_AppendText(t *testing.T) {
+	r := rid.MustNew("my-service", "my-instance", "my-type", "my.locator.with.dots")
+	got, err := r.AppendText([]byte("prefix:"))
+	require.NoError(t, err)
+	assert.Equal(t, "prefix:"+r.String(), string(got))
+
+	invalid := rid.ResourceIdentifier{Service: "BAD"}
+	got, err = invalid.AppendText(nil)
+	assert.Error(t, err)
+	assert.Equal(t, invalid.String(), string(got))
+}
