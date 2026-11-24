@@ -17,6 +17,13 @@ cli
 `cli` provides a framework for creating CLI applications. It provides support for commands, subcommands, flags, before
 and after hooks, documentation, deprecation, command-line completion and other functionality.
 
+codegenfiles
+------------
+`codegenfiles` reconciles the output of a code generator against a directory: it writes the files whose content changed,
+leaves the rest alone, deletes output that is no longer generated, and preserves hand-written files that share the
+directory. Differences can be reported without modifying anything, so a tool's generate and verify modes are the same
+code path. Depends on `matcher`.
+
 gotoolchain
 -----------
 `gotoolchain` determines the Go toolchain that should be used for a module based on the `go` and `toolchain` directives

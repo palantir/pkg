@@ -25,6 +25,9 @@ groups:
   cobracli:
     paths: ["cobracli"]
     tag_prefix: "cobracli/v"
+  codegenfiles:
+    paths: ["codegenfiles"]
+    tag_prefix: "codegenfiles/v"
   datetime:
     paths: ["datetime"]
     tag_prefix: "datetime/v"

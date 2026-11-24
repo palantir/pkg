@@ -45,6 +45,11 @@ executors:
       - image: *image-version
     resource_class: medium
     working_directory: /home/circleci/go/src/github.com/palantir/pkg/cobracli
+  standard-executor-codegenfiles:
+    docker:
+      - image: *image-version
+    resource_class: medium
+    working_directory: /home/circleci/go/src/github.com/palantir/pkg/codegenfiles
   standard-executor-datetime:
     docker:
       - image: *image-version
@@ -192,6 +197,7 @@ requires_jobs: &requires_jobs
   - cli-verify
   - clipackager-verify
   - cobracli-verify
+  - codegenfiles-verify
   - datetime-verify
   - gittest-verify
   - gotoolchain-verify
@@ -279,6 +285,15 @@ workflows:
       - go-jobs/godel_verify:
           name: "cobracli-verify"
           executor: "standard-executor-cobracli"
+          setup_steps:
+            - go-jobs/default_setup_steps:
+                checkout_steps:
+                  - checkout:
+                      path: /home/circleci/go/src/github.com/palantir/pkg
+          <<: *all-tags-filter
+      - go-jobs/godel_verify:
+          name: "codegenfiles-verify"
+          executor: "standard-executor-codegenfiles"
           setup_steps:
             - go-jobs/default_setup_steps:
                 checkout_steps:
