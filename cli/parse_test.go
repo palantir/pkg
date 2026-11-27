@@ -294,6 +294,7 @@ func TestParseFlags(t *testing.T) {
 		t.Run(currCase.name, func(t *testing.T) {
 			app := cli.NewApp()
 			app.Name = "test"
+			app.AllowRoot = true
 
 			output := &bytes.Buffer{}
 			app.Subcommands = []cli.Command{
